@@ -1,0 +1,8 @@
+dist
+node_modules
+test-output
+coverage
+storybook-static
+*.tsbuildinfo
+vite.config.*.timestamp*
+vitest.config.*.timestamp*

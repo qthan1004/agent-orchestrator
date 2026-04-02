@@ -1,0 +1,55 @@
+name: Publish to npm
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-test-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.13.0'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npx vitest run --passWithNoTests
+
+      - name: Build
+        run: npx vite build
+
+      - name: Publish to npm
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          if [[ "$TAG" == *"-alpha"* ]]; then
+            npm publish --tag alpha
+          else
+            npm publish
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Cleanup alpha versions
+        if: ${{ !contains(github.ref, '-alpha') }}
+        run: |
+          PKG_NAME=$(node -p "require('./package.json').name")
+          ALPHAS=$(npm view "$PKG_NAME" versions --json 2>/dev/null | node -e "
+            const versions = JSON.parse(require('fs').readFileSync(0, 'utf8'));
+            const alphas = (Array.isArray(versions) ? versions : [versions]).filter(v => v.includes('-alpha'));
+            alphas.forEach(v => console.log(v));
+          ")
+          for VERSION in $ALPHAS; do
+            echo "Unpublishing $PKG_NAME@$VERSION"
+            npm unpublish "$PKG_NAME@$VERSION" || true
+          done
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

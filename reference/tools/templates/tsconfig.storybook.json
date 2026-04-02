@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "importHelpers": true,
+    "isolatedModules": true,
+    "lib": ["es2022"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "noEmitOnError": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "es2022",
+    "customConditions": ["@thanh-libs/source"],
+    "outDir": "out-tsc/storybook",
+    "jsx": "preserve"
+  },
+  "exclude": [
+    "src/**/*.spec.ts", "src/**/*.test.ts", "src/**/*.spec.js", "src/**/*.test.js",
+    "src/**/*.spec.tsx", "src/**/*.test.tsx", "src/**/*.spec.jsx", "src/**/*.test.jsx"
+  ],
+  "include": [
+    "src/**/*.stories.ts", "src/**/*.stories.js", "src/**/*.stories.jsx",
+    "src/**/*.stories.tsx", "src/**/*.stories.mdx",
+    ".storybook/*.js", ".storybook/*.ts"
+  ],
+  "references": [{ "path": "./tsconfig.lib.json" }]
+}
