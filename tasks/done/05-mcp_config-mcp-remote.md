@@ -85,7 +85,7 @@ Sau đó: Mở Antigravity session → gọi `hello_world` hoặc `get_status` �
 
 ## Done Criteria
 
-- [ ] `src/config.mjs` tồn tại, export `loadConfig()`
-- [ ] `mcp_config.json` dùng `mcp-remote` thay vì direct stdio
-- [ ] Antigravity session connect qua mcp-remote → gọi tools OK
-- [ ] Config paths hoạt động trên cả Windows lẫn Linux (dùng `path.join`)
+- [x] `src/config.mjs` tồn tại, export `loadConfig()`
+- [x] `mcp_config.json` dùng `mcp-remote` thay vì direct stdio
+- [x] Antigravity session connect qua mcp-remote → gọi tools OK
+- [x] Config paths hoạt động trên cả Windows lẫn Linux (dùng `path.join`)

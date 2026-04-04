@@ -66,7 +66,7 @@ graph TD
 | #   | Task                                                                  | Status     | Dependencies |
 | --- | --------------------------------------------------------------------- | ---------- | ------------ |
 | 04  | [Upgrade → Streamable HTTP](done/04-mcp_streamable-http.md)           | ✅ Done    | 03           |
-| 05  | [Config mcp-remote + config.mjs](pending/05-mcp_config-mcp-remote.md) | ⬜ Pending | 04           |
+| 05  | [Config mcp-remote + config.mjs](done/05-mcp_config-mcp-remote.md) | ✅ Done | 04           |
 
 ### Phase A3: Multi-session + Hardening
 
