@@ -40,6 +40,6 @@ node -e "import('@modelcontextprotocol/sdk/server/mcp.js').then(() => console.lo
 
 ## Done Criteria
 
-- [ ] `package.json` tồn tại, `type: module`
-- [ ] `node_modules/` có `@modelcontextprotocol/sdk` và `zod`
-- [ ] `.gitignore` có `node_modules/`
+- [x] `package.json` tồn tại, `type: module`
+- [x] `node_modules/` có `@modelcontextprotocol/sdk` và `zod`
+- [x] `.gitignore` có `node_modules/`

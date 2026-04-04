@@ -1,6 +1,6 @@
 # Task Board — Agent Orchestrator POC v0.4
 
-> **Tổng**: 15 tasks | **Pending**: 15 | **Processing**: 0 | **Done**: 0
+> **Tổng**: 15 tasks | **Pending**: 14 | **Processing**: 0 | **Done**: 1
 
 ---
 
@@ -30,7 +30,7 @@ graph TD
     T09 --> T15
     T10 --> T15
 
-    style T01 fill:#ef4444,color:#fff
+    style T01 fill:#22c55e,color:#fff
     style T02 fill:#ef4444,color:#fff
     style T03 fill:#ef4444,color:#fff
     style T04 fill:#f59e0b,color:#fff
@@ -56,7 +56,7 @@ graph TD
 ### Phase A1: Minimal MCP + Hello World
 | # | Task | Status | Dependencies |
 |---|------|--------|-------------|
-| 01 | [Init Node.js Project](pending/01-mcp_init-project.md) | ⬜ Pending | None |
+| 01 | [Init Node.js Project](done/01-mcp_init-project.md) | ✅ Done | None |
 | 02 | [stdio Hello World](pending/02-mcp_stdio-hello-world.md) | ⬜ Pending | 01 |
 | 03 | [Config Antigravity + Test](pending/03-mcp_config-antigravity-test.md) | ⬜ Pending | 02 |
 
