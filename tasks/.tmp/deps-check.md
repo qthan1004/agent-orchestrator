@@ -1,13 +1,9 @@
-# Dependency Check — 2026-04-04T05:59:53
-
-## 01-mcp_init-project.md
-- **Status**: ✅ READY
-- **Dependencies**: None
+# Dependency Check — 2026-04-04T06:06:38
 
 ## 02-mcp_stdio-hello-world.md
-- **Status**: 🔒 BLOCKED
+- **Status**: ✅ READY
 - **Dependencies**: `01`
-- **Unmet**: ❌ 01
+- **Met**: ✅ 01
 
 ## 03-mcp_config-antigravity-test.md
 - **Status**: 🔒 BLOCKED
@@ -75,4 +71,4 @@
 - **Unmet**: ❌ 14
 
 ---
-**Ready**: 1/15 tasks can be started now
+**Ready**: 1/14 tasks can be started now

@@ -47,6 +47,6 @@ Kỳ vọng: Nhận JSON-RPC response với server capabilities.
 
 ## Done Criteria
 
-- [ ] `node src/index.mjs` chạy không lỗi (stdio mode, chờ input)
-- [ ] Server respond JSON-RPC initialize request
-- [ ] Tool `hello_world` registered trong capabilities
+- [x] `node src/index.mjs` chạy không lỗi (stdio mode, chờ input)
+- [x] Server respond JSON-RPC initialize request
+- [x] Tool `hello_world` registered trong capabilities
