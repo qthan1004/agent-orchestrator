@@ -1,74 +1,53 @@
-# Hướng Dẫn Vận Hành Hệ Thống Đa Đặc Vụ (Multi-Agent)
+# Hướng Dẫn Vận Hành Đa Đặc Vụ (Chỉ dùng Antigravity IDE)
 
-Vấn đề rắc rối nhất của một MCP Orchestrator là làm sao để phân vai trò cho các hệ thống AI. Bởi vì mặc định các AI (như Claude hoặc các Chat Tab trong 1 cửa sổ VS Code) không có khái niệm "Role" từ ban đầu. Chúng ta phải **mở nhiều ứng dụng độc lập** để tạo ra các Session riêng biệt, và hướng dẫn mỗi AI đóng một vai trò.
+Vì bạn chỉ sử dụng duy nhất **Antigravity IDE**, đây là hướng dẫn chính xác nhất để bạn có thể biến hệ thống này thành một dây chuyền làm việc với tối thiểu **2 vai trò (1 Planner và 1 Worker)**.
 
-Để hệ thống Orchestrator phát huy tác dụng, bạn cần tối thiểu **02 Sessions**: 
-1. Một AI làm **Planner / Decomposer** (Người phân chia công việc).
-2. Một AI làm **Worker** (Người thi hành).
-
-Dưới đây là kịch bản Tốt Nhất để bạn vận hành dự án này.
+Bản chất của Antigravity IDE là nó chỉ khởi động **một đường kết nối (1 Session)** cho mỗi lần bạn mở một cửa sổ làm việc (Window). Do đó, bạn không thể nhét 2 vai trò vào cùng 1 cửa sổ, mà phải dùng tính năng **Mở thêm cửa sổ mới (New Window)**.
 
 ---
 
-## 1. Chuẩn Bị Server (Bước chung)
+## Bước 1: Khởi động Server (chạy ngầm)
 
-Chỉ có MỘT máy chủ Orchestrator duy nhất làm nhiệm vụ nhận/giao task. 
-Đầu tiên, bạn mở **Terminal** tại thư mục dự án và khởi chạy lệnh:
-
+Đầu tiên, bạn cần mở Terminal (Ctrl+`) ngay trong cửa sổ IDE hiện tại và chạy:
 ```bash
 npm run serve
 ```
-*Ghi chú: Giữ console này luôn chạy. Mọi AI sẽ "báo cáo" tiến độ về cổng 3847 này.*
+*(Cứ để Terminal này chạy ngầm, đây là "bộ não" trung tâm điều phối mọi cửa sổ).*
 
-Tiếp theo, bạn nạp một danh sách công việc mẫu (Plan) vào hệ thống:
+Tiếp theo, bạn mở một tab Terminal thứ 2 (dấu `+` trên Terminal panel) để nạp bản thiết kế công việc (Plan) vào Server:
 ```bash
 node src/index.mjs plan load plan/test_hello-orchestrator_v0.1.md
 ```
 
 ---
 
-## 2. Khởi tạo Session #1: Đóng vai trò PLANNER.
+## Bước 2: Thiết lập Cửa Sổ IDE Đầu Tiên (ROLE: PLANNER)
 
-Bạn tiến hành mở ứng dụng **VS Code đầu tiên**. Đây sẽ là phiên làm việc dành cho Planner.
+Cửa sổ Antigravity IDE bạn **đang mở hiện tại** sẽ đóng vai trò là Trưởng nhóm (Planner / Decomposer).
 
-1. Bật AI Assistant của bạn lên (ví dụ: mở Antigravity Chat).
-2. Để chỉ định cho AI này biết nó phải làm Planner, hãy ra lệnh cho nó bằng prompt mồi:
-   > *"Sử dụng công cụ của orchestrator: Hãy `register_worker()` để đăng ký. Sau đó dùng `get_queue_status()` để xem tình hình."*
-3. Lúc này, AI sẽ nhận thấy hàng đợi `tasks/pending/` đang rỗng, nhưng trong hệ thống có một Plan chưa được phân rã. 
-4. Hãy ra lệnh tiếp theo: 
-   > *"Hãy dùng `get_plan_for_decomposition()` để lấy plan, đọc kỹ, rồi dùng `submit_decomposition()` để chia nó thành các file task cấu trúc vào hàng đợi inbox."*
-5. Plannner sẽ thực thi cắt xẻ công việc. Khi nó báo thành công, vai trò của Session 1 tạm thời dừng lại.
+1. Bật khung chat Antigravity lên.
+2. Bạn gõ câu Thần chú này vào khung chat:
+   > "Bạn là Planner. Dùng công cụ `register_worker()` để đăng ký. Sau đó dùng `get_queue_status()`. Bạn sẽ thấy có plan chờ. Hãy dùng `get_plan_for_decomposition()` lấy nó ra, phân tích và gọi `submit_decomposition()` để biến nó thành các task nhỏ."
+3. Antigravity ở cửa sổ này sẽ thi hành và phản hồi lại kết quả phân kỳ (chia task). Lúc đó, công việc của Planner này xem như tạm xong, bạn cứ để cửa sổ đó nằm yên.
 
 ---
 
-## 3. Khởi tạo Session #2: Đóng vai trò WORKER.
+## Bước 3: Mở Cửa Sổ IDE Thứ Hai (ROLE: WORKER)
 
-Để tạo một **Session mới hoàn toàn**, bạn KHÔNG THỂ tạo đoạn Chat mới ở VS Code cũ. Bạn BẮT BUỘC phải làm 1 trong 2 cách sau:
-- **Cách A:** Trên VS Code, vào menu **File > New Window** (Ctrl+Shift+N / Cmd+Shift+N) để đẻ ra 1 cửa sổ hoàn toàn độc lập. Mở Chat Antigravity bên cửa sổ mới này.
-- **Cách B:** Mở phần mềm **Claude Desktop** độc lập trên máy tính. 
-
-Ở cửa sổ mới này, bạn giao nhiệm vụ (prompt) để biến AI thành thợ rèn (Worker):
-1. Ra lệnh khởi tạo:
-   > *"Sử dụng công cụ orchestrator: Hãy gọi `register_worker()` và kiểm tra hàng đợi bằng `get_queue_status()`."*
-2. Bây giờ, Worker sẽ thấy có task đang chờ (Pending) do Planner vừa chẻ ra.
-3. Ra lệnh thực thi tự động:
-   > *"Bạn là Worker. Hãy bắt đầu vòng lặp: liên tục dùng `get_next_task()`, đọc task, thực thi theo mô tả, hoàn thành bằng `complete_task()`. Lặp lại cho đến khi queue rỗng."*
-4. Worker sẽ hì hục nhận task từ cổng 3847, xử lý file và báo cáo lại liên tục mà không lo dính líu chi tới màn hình Planner ban đầu.
+Đây là bước quan trọng mấu chốt để hệ thống có phiên kết nối (Session) thứ 2:
+1. Bạn chĩa chuột lên thanh Menu trên cùng: Chọn **File -> New Window** (Hoặc bấm `Ctrl + Shift + N`).
+2. Giao diện một cái Antigravity IDE trống không sẽ bật lên đè lên màn hình. Đừng lo lắng, hãy giữ nguyên trạng thái "New Window" đó.
+3. Kéo thả thư mục dự án `agent-orchestrator` vào cái New Window này (để nó hiểu Workspace).
+4. Mở luôn cái khung chat Antigravity của cái cửa sổ mới này ra.
+5. Bạn ném câu Thần chú này vào cho Worker:
+   > "Bạn là Worker. Hãy gọi `register_worker()`. Bắt đầu vòng lặp: Xin việc qua `get_next_task()`, làm xong việc thì báo bằng `complete_task()`. Lặp lại cho đến khi queue báo Error/Empty."
+6. Lúc này, cửa sổ IDE thứ 2 sẽ hì hục nhận các file task (mà Planner ở màn hình cũ đã chẻ ra) để xử lý.
 
 ---
 
-## 4. Scale up: Mở Rộng Ra N Worker (Tối đa công suất)
+## Bước 4: (Tùy chọn) Khởi tạo thêm Worker số 2, số 3...
 
-Sức mạnh của Orchestrator là sự tận dụng Song Song. Khi một Plan đẻ ra 10 Tasks, 1 Worker sẽ chạy làm 10 lần.
-Vậy làm thế nào để xong nhanh hơn? **Mở thêm Session!**
-
-1. Bạn lặp lại bước 3: Tạo **File > New Window (#3)**, gọi AI ra và bảo nó: *"Bạn là Worker, hãy request lấy task và làm đi"*.
-2. Tạo thêm **File > New Window (#4)**, lặp lại y hệt.
-3. Lúc này, ở phần backend Terminal (Bước 1), bạn sẽ thấy log HTTP báo có **03 Worker** đang đổ xô gọi lệnh `get_next_task()`.
-4. Orchestrator sẽ đứng giữa và dùng State Manager để Lock những task nào đã có người bốc, và chia task C cho Worker mới nhàn rỗi. Nếu Task D phụ thuộc vào Task A, Worker yêu cầu Task D sẽ bị server "Pending" không giao cho đến khi Task A complete.
-
-## Tóm Lược Nguyên Tắc Kết Nối
-
-- **1 Cửa Sổ Ứng Dụng Độc Lập = 1 Phiên Session = 1 AI Agent (1 Vai Trò)**
-- Đừng cố giao 2 Role cho 1 cửa sổ chat vì AI sẽ rất dễ nhầm lẫn context (ngữ cảnh bộ nhớ), làm cho nó tự đánh nhau (vừa phân tích vừa làm task dễ dẫn đến lỗi hallucination). 
-- Độc lập các cửa sổ là chìa khoá để quy trình Orchestrator chạy trơn tru tuyệt đối.
+Nếu số code cần viết quá lớn hoặc Planner vừa chẻ ra hẳn 20 task:
+1. Bạn lại tiếp tục bấm **File -> New Window** (Ctrl + Shift + N).
+2. Lại mở khung chat ra và ném câu lệnh thần chú vòng lặp của Worker vào.
+3. Cứ làm lại như vậy, bạn có thể tạo thành một xưởng cày code với 3, 4 cửa sổ IDE cùng song song giải quyết kho task. Orchestrator Server (ở Bước 1) sẽ dùng cơ chế *Lock state* để điều phối, không để 2 Worker bị trùng một task.
