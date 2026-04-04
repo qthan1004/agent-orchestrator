@@ -1,16 +1,15 @@
-# Task Board — 2026-04-04T12:12:45
+# Task Board — 2026-04-04T12:14:08
 
 | Status | Count |
 |--------|-------|
-| ⬜ Pending | 9 |
+| ⬜ Pending | 8 |
 | 🔄 Processing | 0 |
-| ✅ Done | 9 |
+| ✅ Done | 10 |
 | **Total** | **18** |
 
-Progress: 9/18 (50%)
+Progress: 10/18 (56%)
 
 ## ⬜ Pending
-- `07-skills_orchestrator-protocol.md`
 - `08-workflows_create-all.md`
 - `09-skills_symlink-templates.md`
 - `10-tools_create-automation.md`
@@ -27,8 +26,9 @@ Progress: 9/18 (50%)
 - `04-mcp_streamable-http.md`
 - `05-mcp_config-mcp-remote.md`
 - `06-mcp_multi-session-hardening.md`
+- `07-skills_orchestrator-protocol.md`
 - `HF-A_server-factory.md`
 - `HF-B_transport-multi-session.md`
 - `HF-C_tool-error-handling.md`
 
-**Next**: `07-skills_orchestrator-protocol.md`
+**Next**: `08-workflows_create-all.md`

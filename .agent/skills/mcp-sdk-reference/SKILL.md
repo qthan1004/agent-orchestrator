@@ -22,25 +22,27 @@ await server.connect(new StdioServerTransport());
 ## 2. Streamable HTTP Server
 ```javascript
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import express from 'express';
 
 const app = express();
 app.use(express.json());
 
-// Stateful: session management
-const sessions = new Map();
+// Factory: mỗi session = 1 server mới
+const transports = {};
 app.post('/mcp', async (req, res) => {
   const sessionId = req.headers['mcp-session-id'];
-  let transport = sessions.get(sessionId);
-  if (!transport) {
-    transport = new StreamableHTTPServerTransport({
+  if (sessionId && transports[sessionId]) {
+    await transports[sessionId].handleRequest(req, res, req.body);
+  } else if (!sessionId && isInitializeRequest(req.body)) {
+    const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => crypto.randomUUID(),
+      onsessioninitialized: (sid) => { transports[sid] = transport; }
     });
-    transport.onclose = () => sessions.delete(transport.sessionId);
+    const server = createServer();  // ← ĐÚNG: factory
     await server.connect(transport);
-    sessions.set(transport.sessionId, transport);
+    await transport.handleRequest(req, res, req.body);
   }
-  await transport.handleRequest(req, res, req.body);
 });
 
 app.listen(3847, '127.0.0.1');

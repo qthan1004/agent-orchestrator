@@ -56,8 +56,8 @@ cat ".agent/skills/orchestrator-protocol/SKILL.md"
 
 ## Done Criteria
 
-- [ ] File tồn tại tại `.agent/skills/orchestrator-protocol/SKILL.md`
-- [ ] Có YAML frontmatter (name, description)
-- [ ] Cover cả Decomposer + Worker roles
-- [ ] References đúng MCP tool names (mcp__orchestrator__xxx)
-- [ ] Token-efficient: dùng `view_file()` thay vì request full data qua MCP
+- [x] File tồn tại tại `.agent/skills/orchestrator-protocol/SKILL.md`
+- [x] Có YAML frontmatter (name, description)
+- [x] Cover cả Decomposer + Worker roles
+- [x] References đúng MCP tool names (mcp__orchestrator__xxx)
+- [x] Token-efficient: dùng `view_file()` thay vì request full data qua MCP
