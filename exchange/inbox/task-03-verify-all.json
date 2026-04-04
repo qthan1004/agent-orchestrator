@@ -1,7 +1,0 @@
-{
-  "id": "03-verify-all",
-  "module": "verify",
-  "action": "Check all files",
-  "verification": "CI green",
-  "status": "pending"
-}

@@ -9,6 +9,7 @@
 |--------|------|
 | NEW | `plan/test_hello-orchestrator_v0.1.md` |
 | NEW | `plan/orchestrator_poc-results_v0.1.md` |
+| NEW | `tests/e2e-flow.mjs` |
 
 ## What to Do
 
@@ -53,14 +54,14 @@ node src/index.mjs plan load plan/test_hello-orchestrator_v0.1.md
 
 ### 3. Verify Checklist
 
-- [ ] **File flow**: inbox → active → outbox ✅
+- [x] **File flow**: inbox → active → outbox ✅
   - Check: `ls exchange/inbox/` (empty sau khi all done)
   - Check: `ls exchange/outbox/` (có result files)
-- [ ] **Result JSON**: outbox/*.result.json đúng format
-- [ ] **Checkpoint**: exchange/checkpoints/ có snapshot
-- [ ] **Logs**: exchange/logs/YYYY-MM-DD.md có đầy đủ events
-- [ ] **Worker registry**: exchange/workers.json có worker info
-- [ ] **DAG**: Task 3 chỉ run sau khi 1+2 done
+- [x] **Result JSON**: outbox/*.result.json đúng format
+- [x] **Checkpoint**: exchange/checkpoints/ có snapshot
+- [x] **Logs**: exchange/logs/YYYY-MM-DD.md có đầy đủ events
+- [x] **Worker registry**: exchange/workers.json có worker info
+- [x] **DAG**: Task 3 chỉ run sau khi 1+2 done
 
 ### 4. Measure Token Cost
 
@@ -102,11 +103,11 @@ cat exchange/checkpoints/  # Should have checkpoint
 
 ## Done Criteria
 
-- [ ] Plan loaded → decomposed → tasks created in inbox/
-- [ ] Agent executed all tasks successfully
-- [ ] File flow: inbox → active → outbox verified
-- [ ] Result JSONs valid
-- [ ] Checkpoint saved
-- [ ] Logs complete
-- [ ] Token cost documented
-- [ ] POC results written to plan/
+- [x] Plan loaded → decomposed → tasks created in inbox/
+- [x] Agent executed all tasks successfully
+- [x] File flow: inbox → active → outbox verified
+- [x] Result JSONs valid
+- [x] Checkpoint saved
+- [x] Logs complete
+- [x] Token cost documented
+- [x] POC results written to plan/

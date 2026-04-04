@@ -1,7 +1,0 @@
-{
-  "id": "01-create-hello",
-  "module": "files",
-  "action": "Create hello.md",
-  "verification": "File exists",
-  "status": "pending"
-}

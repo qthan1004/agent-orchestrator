@@ -1,7 +1,7 @@
 {
   "id": "02-update-readme",
   "module": "files",
-  "action": "Update README",
-  "verification": "Section exists",
+  "action": "Update README.md with Orchestrator Status section",
+  "verification": "README.md contains \"## Orchestrator Status\"",
   "status": "done"
 }
