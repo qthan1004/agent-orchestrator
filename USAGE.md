@@ -1,53 +1,58 @@
-# Hướng Dẫn Vận Hành Đa Đặc Vụ (Chỉ dùng Antigravity IDE)
+# Hướng Dẫn Vận Hành Đa Đặc Vụ (Multi-Agent Operation Guide)
 
-Vì bạn chỉ sử dụng duy nhất **Antigravity IDE**, đây là hướng dẫn chính xác nhất để bạn có thể biến hệ thống này thành một dây chuyền làm việc với tối thiểu **2 vai trò (1 Planner và 1 Worker)**.
+Tài liệu này cung cấp quy trình tiêu chuẩn để vận hành hệ thống Agent Orchestrator tích hợp với trình biên dịch Antigravity IDE. Thiết kế cốt lõi của Orchestrator yêu cầu phân tách độc lập các phiên làm việc (sessions) để gán vai trò tối thiểu: **01 Planner** (Phân tích & Lập Kế Hoạch) và **01 Worker** (Thực Thi Nhiệm Vụ).
 
-Bản chất của Antigravity IDE là nó chỉ khởi động **một đường kết nối (1 Session)** cho mỗi lần bạn mở một cửa sổ làm việc (Window). Do đó, bạn không thể nhét 2 vai trò vào cùng 1 cửa sổ, mà phải dùng tính năng **Mở thêm cửa sổ mới (New Window)**.
+## 1. Nguyên Tắc Quản Lý Phiên Làm Việc (Session Management)
+
+Trong môi trường Antigravity IDE, mỗi không gian làm việc (Workspace Window / Cửa sổ IDE) tương ứng với **một phiên kết nối duy nhất (1 Session)** tới Orchestrator Server. 
+Do đó, KHÔNG THỂ gán đồng thời hai vai trò (Planner và Worker) trong cùng một cửa sổ khung chat của IDE để tránh xung đột ngữ cảnh (context collision) và hiện tượng ảo giác AI.
 
 ---
 
-## Bước 1: Khởi động Server (chạy ngầm)
+## 2. Khởi Chạy Orchestrator Server (Kiến Trúc Nền)
 
-Đầu tiên, bạn cần mở Terminal (Ctrl+`) ngay trong cửa sổ IDE hiện tại và chạy:
+Trước khi khởi tạo các Agent, hệ thống điều phối trung tâm cần được rẽ nhánh quy trình. Mở Terminal tích hợp của trình soạn thảo và thực thi:
+
 ```bash
 npm run serve
 ```
-*(Cứ để Terminal này chạy ngầm, đây là "bộ não" trung tâm điều phối mọi cửa sổ).*
 
-Tiếp theo, bạn mở một tab Terminal thứ 2 (dấu `+` trên Terminal panel) để nạp bản thiết kế công việc (Plan) vào Server:
+> **Lưu ý:** Luồng tiến trình này yêu cầu duy trì liên tục (Background process). Server sẽ trực (listen) tại phân hệ mạng `3847` (mặc định) và ghi nhận toàn bộ log giao tiếp RPC từ các Agents thông qua giao thức Streamable HTTP. 
+
+Trong một Terminal phụ (độc lập với server), người điều phối có thể tiến hành nạp bản kế hoạch tổng thể (Plan) vào hệ thống:
+
 ```bash
 node src/index.mjs plan load plan/test_hello-orchestrator_v0.1.md
 ```
 
 ---
 
-## Bước 2: Thiết lập Cửa Sổ IDE Đầu Tiên (ROLE: PLANNER)
+## 3. Cấu hình Cửa Sổ IDE #1: Vai Trò PLANNER (Phân Tích)
 
-Cửa sổ Antigravity IDE bạn **đang mở hiện tại** sẽ đóng vai trò là Trưởng nhóm (Planner / Decomposer).
+Khởi động tiến trình xử lý đầu tiên bằng cửa sổ Antigravity IDE hiện tại. Phiên kết nối này sẽ đóng vai trò kiến trúc sư xử lý việc phân rã nghiệp vụ.
 
-1. Bật khung chat Antigravity lên.
-2. Bạn gõ câu Thần chú này vào khung chat:
-   > "Bạn là Planner. Dùng công cụ `register_worker()` để đăng ký. Sau đó dùng `get_queue_status()`. Bạn sẽ thấy có plan chờ. Hãy dùng `get_plan_for_decomposition()` lấy nó ra, phân tích và gọi `submit_decomposition()` để biến nó thành các task nhỏ."
-3. Antigravity ở cửa sổ này sẽ thi hành và phản hồi lại kết quả phân kỳ (chia task). Lúc đó, công việc của Planner này xem như tạm xong, bạn cứ để cửa sổ đó nằm yên.
-
----
-
-## Bước 3: Mở Cửa Sổ IDE Thứ Hai (ROLE: WORKER)
-
-Đây là bước quan trọng mấu chốt để hệ thống có phiên kết nối (Session) thứ 2:
-1. Bạn chĩa chuột lên thanh Menu trên cùng: Chọn **File -> New Window** (Hoặc bấm `Ctrl + Shift + N`).
-2. Giao diện một cái Antigravity IDE trống không sẽ bật lên đè lên màn hình. Đừng lo lắng, hãy giữ nguyên trạng thái "New Window" đó.
-3. Kéo thả thư mục dự án `agent-orchestrator` vào cái New Window này (để nó hiểu Workspace).
-4. Mở luôn cái khung chat Antigravity của cái cửa sổ mới này ra.
-5. Bạn ném câu Thần chú này vào cho Worker:
-   > "Bạn là Worker. Hãy gọi `register_worker()`. Bắt đầu vòng lặp: Xin việc qua `get_next_task()`, làm xong việc thì báo bằng `complete_task()`. Lặp lại cho đến khi queue báo Error/Empty."
-6. Lúc này, cửa sổ IDE thứ 2 sẽ hì hục nhận các file task (mà Planner ở màn hình cũ đã chẻ ra) để xử lý.
+1. Bật giao diện tương tác (Chat UI) của Antigravity.
+2. Cung cấp **Prompt Định Danh Phiên (Role Initialization Prompt)** như sau:
+   > "Hệ thống xác nhận bạn là Planner. Hãy thực thi `register_worker()` để đăng ký phiên làm việc. Tiếp theo, gọi lệnh `get_queue_status()`, phát hiện trạng thái hàng đợi có Plan chờ. Xin hãy dùng `get_plan_for_decomposition()` để trích xuất dữ liệu, tổng hợp logic và sử dụng `submit_decomposition()` nhằm biến hệ thống thành các task vi mô cấu trúc theo dạng DAG."
+3. Sau khi Agent xử lý và báo cáo đẩy thành công dữ liệu vào hàng đợi (Pending queue), quá trình vận hành của Planner hoàn tất vòng đời khởi tạo.
 
 ---
 
-## Bước 4: (Tùy chọn) Khởi tạo thêm Worker số 2, số 3...
+## 4. Cấu hình Cửa Sổ IDE #2: Vai Trò WORKER (Thực Thi)
 
-Nếu số code cần viết quá lớn hoặc Planner vừa chẻ ra hẳn 20 task:
-1. Bạn lại tiếp tục bấm **File -> New Window** (Ctrl + Shift + N).
-2. Lại mở khung chat ra và ném câu lệnh thần chú vòng lặp của Worker vào.
-3. Cứ làm lại như vậy, bạn có thể tạo thành một xưởng cày code với 3, 4 cửa sổ IDE cùng song song giải quyết kho task. Orchestrator Server (ở Bước 1) sẽ dùng cơ chế *Lock state* để điều phối, không để 2 Worker bị trùng một task.
+Để kích hoạt luồng xử lý xử lý công việc độc lập, hệ thống bắt buộc khởi tạo phiên làm việc thứ hai:
+
+1. Thiết lập Cửa Sổ Độc Lập bằng cách điều hướng **File > New Window** (hoặc nhấn phím tắt `Ctrl + Shift + N` / `Cmd + Shift + N`).
+2. Tải và chỉ định đường dẫn ứng dụng (thư mục `agent-orchestrator`) trên cửa sổ mới thiết lập.
+3. Kích hoạt Chat UI Antigravity và thiết lập vai trò thực thi (Execution Stage) bằng Prompt mệnh lệnh:
+   > "Hệ thống xác định bạn là Worker. Hãy gọi `register_worker()` để thiết lập tính khả dụng. Quản trị vòng lặp tự động (Autonomous Loop): Khởi chạy `get_next_task()`, đọc nội dung tệp tin, chỉnh sửa Source Code/Cầu hình, tự động rà soát đảm bảo chất lượng, và chốt hoàn thành bằng `complete_task()`. Tuân thủ thao tác lặp vòng này tới khi máy chủ hồi đáp trạng thái Empty."
+4. Kể từ thời điểm này, Agent #2 sẽ liên kết với Backend và thực hiện tải công việc đơn luồng không tương tác với ngữ cảnh của Planner ở IDE 1.
+
+---
+
+## 5. Mở Rộng Quy Mô Bằng Đa Đặc Vụ (Horizontal Scaling)
+
+Tại trường hợp tổng khối lượng công việc mở rộng, việc cung cấp thêm tiến trình (Workers) sẽ gia tốc cường độ xử lý dự án.
+
+- Tiến hành lặp lại quy định **Bước 4**: Tạo lập thêm các instance `New Window` thứ 3, thứ 4...
+- Cung cấp đoạn Prompt thực thi tương ứng. Orchestrator Server ứng dụng hệ thống State Manager xử lý Lock / Dependency Constraints nhằm vô hiệu hóa tình trạng Deadlock (Xung đột nguồn tài nguyên mã nguồn) cho phép hàng chục Worker chạy tích hợp song song.
