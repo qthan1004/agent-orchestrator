@@ -8,22 +8,18 @@ description: Show current task board status — pending, processing, done counts
 
 // turbo-all
 
-1. Đếm tasks trong mỗi directory:
+1. Chạy task-board tool:
 ```powershell
-Write-Host "=== TASK BOARD ===" ; Write-Host "Pending:" ; (Get-ChildItem tasks/pending/ -Filter *.md | Measure-Object).Count ; Get-ChildItem tasks/pending/ -Filter *.md -Name ; Write-Host "`nProcessing:" ; (Get-ChildItem tasks/processing/ -Filter *.md -ErrorAction SilentlyContinue | Measure-Object).Count ; Get-ChildItem tasks/processing/ -Filter *.md -Name -ErrorAction SilentlyContinue ; Write-Host "`nDone:" ; (Get-ChildItem tasks/done/ -Filter *.md -ErrorAction SilentlyContinue | Measure-Object).Count ; Get-ChildItem tasks/done/ -Filter *.md -Name -ErrorAction SilentlyContinue
+node tools/task-board.mjs
 ```
 
-2. Hiển thị bảng tổng hợp cho user theo format:
+2. Đọc kết quả: view file `tasks/.tmp/board.md`
 
+3. Chạy dependency check:
+```powershell
+node tools/check-deps.mjs
 ```
-📋 Task Board — Agent Orchestrator POC
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-⬜ Pending:    X tasks
-🔄 Processing: Y tasks
-✅ Done:       Z tasks
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Total:         N tasks
+4. Đọc kết quả: view file `tasks/.tmp/deps-check.md`
 
-Next available: <task name> (nếu có)
-```
+5. Hiển thị tổng hợp cho user: board + tasks ready to start
