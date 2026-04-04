@@ -56,7 +56,7 @@ Mở Antigravity session → agent gọi được `mcp__orchestrator__hello_worl
 
 ## Done Criteria
 
-- [ ] MCP server `orchestrator` hiện trong Antigravity MCP Servers list
-- [ ] Agent gọi được `hello_world` tool thành công
-- [ ] Response hiển thị đúng greeting message
-- [ ] Ghi observations vào `plan/orchestrator_poc-observations_v0.1.md`
+- [x] MCP server `orchestrator` hiện trong Antigravity MCP Servers list
+- [x] Agent gọi được `hello_world` tool thành công
+- [x] Response hiển thị đúng greeting message
+- [x] Ghi observations vào `plan/orchestrator_poc-observations_v0.1.md`

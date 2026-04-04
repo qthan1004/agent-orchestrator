@@ -1,14 +1,9 @@
-# Dependency Check — 2026-04-04T06:08:20
-
-## 03-mcp_config-antigravity-test.md
-- **Status**: ✅ READY
-- **Dependencies**: `02`
-- **Met**: ✅ 02
+# Dependency Check — 2026-04-04T07:08:54
 
 ## 04-mcp_streamable-http.md
-- **Status**: 🔒 BLOCKED
+- **Status**: ✅ READY
 - **Dependencies**: `03`
-- **Unmet**: ❌ 03
+- **Met**: ✅ 03
 
 ## 05-mcp_config-mcp-remote.md
 - **Status**: 🔒 BLOCKED
@@ -66,4 +61,4 @@
 - **Unmet**: ❌ 14
 
 ---
-**Ready**: 1/13 tasks can be started now
+**Ready**: 1/12 tasks can be started now
