@@ -1,14 +1,9 @@
-# Dependency Check — 2026-04-04T14:24:37
-
-## 12-mcp_state-manager-queue.md
-- **Status**: ✅ READY
-- **Dependencies**: `11`
-- **Met**: ✅ 11
+# Dependency Check — 2026-04-04T14:52:08
 
 ## 13-mcp_implement-all-tools.md
-- **Status**: 🔒 BLOCKED
+- **Status**: ✅ READY
 - **Dependencies**: `12`
-- **Unmet**: ❌ 12
+- **Met**: ✅ 12
 
 ## 14-mcp_recovery-crash-test.md
 - **Status**: 🔒 BLOCKED
@@ -21,4 +16,4 @@
 - **Unmet**: ❌ 14
 
 ---
-**Ready**: 1/4 tasks can be started now
+**Ready**: 1/3 tasks can be started now

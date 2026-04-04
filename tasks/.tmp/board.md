@@ -1,16 +1,15 @@
-# Task Board — 2026-04-04T14:41:41
+# Task Board — 2026-04-04T15:11:08
 
 | Status | Count |
 |--------|-------|
-| ⬜ Pending | 3 |
+| ⬜ Pending | 2 |
 | 🔄 Processing | 0 |
-| ✅ Done | 16 |
+| ✅ Done | 17 |
 | **Total** | **19** |
 
-Progress: 16/19 (84%)
+Progress: 17/19 (89%)
 
 ## ⬜ Pending
-- `13-mcp_implement-all-tools.md`
 - `14-mcp_recovery-crash-test.md`
 - `15-test_end-to-end-flow.md`
 
@@ -28,8 +27,9 @@ Progress: 16/19 (84%)
 - `11-utils_file-backend-logger.md`
 - `12-mcp_state-manager-queue-plan.md`
 - `12-mcp_state-manager-queue.md`
+- `13-mcp_implement-all-tools.md`
 - `HF-A_server-factory.md`
 - `HF-B_transport-multi-session.md`
 - `HF-C_tool-error-handling.md`
 
-**Next**: `13-mcp_implement-all-tools.md`
+**Next**: `14-mcp_recovery-crash-test.md`

@@ -2,7 +2,7 @@ import path from 'path';
 import { loadConfig } from '../config.mjs';
 import { readJSON, writeJSON, moveFile, listFiles, ensureDir } from '../utils/file-backend.mjs';
 import { TaskQueue } from './task-queue.mjs';
-import { TASK_STATUS, FILE_PREFIXES } from '../constants.mjs';
+import { TASK_STATUS, FILE_PREFIXES, STATE_EVENTS } from '../constants.mjs';
 
 export class StateManager {
   constructor(logger) {
@@ -21,7 +21,7 @@ export class StateManager {
   loadPlan(planMeta) {
     this.plan = planMeta;
     if (this.logger) {
-      this.logger.log('PLAN_LOADED', { message: 'Loaded plan metadata', plan: planMeta });
+      this.logger.log(STATE_EVENTS.PLAN_LOADED, { message: 'Loaded plan metadata', plan: planMeta });
     }
   }
 
@@ -45,7 +45,7 @@ export class StateManager {
     writeJSON(queuePath, { groups: graph.groups });
 
     if (this.logger) {
-        this.logger.log('TASKS_STORED', { message: 'Stored new tasks and queue metadata' });
+        this.logger.log(STATE_EVENTS.TASKS_STORED, { message: 'Stored new tasks and queue metadata' });
     }
   }
 
@@ -65,7 +65,7 @@ export class StateManager {
     this.queue.completeTask(taskId, TASK_STATUS.ACTIVE);
 
     if (this.logger) {
-        this.logger.log('TASK_ACTIVATED', { message: `Moved task ${taskId} to active` });
+        this.logger.log(STATE_EVENTS.TASK_ACTIVATED, { message: `Moved task ${taskId} to active` });
     }
   }
 
@@ -88,7 +88,7 @@ export class StateManager {
     this.queue.completeTask(taskId, result.status);
 
     if (this.logger) {
-        this.logger.log('TASK_COMPLETED', { message: `Moved task ${taskId} to outbox with status ${result.status}` });
+        this.logger.log(STATE_EVENTS.TASK_COMPLETED, { message: `Moved task ${taskId} to outbox with status ${result.status}` });
     }
   }
 
@@ -114,7 +114,7 @@ export class StateManager {
     this.queue.requeueTask(taskId);
 
     if (this.logger) {
-        this.logger.log('TASK_REQUEUED', { message: `Moved task ${taskId} back to inbox` });
+        this.logger.log(STATE_EVENTS.TASK_REQUEUED, { message: `Moved task ${taskId} back to inbox` });
     }
   }
 
@@ -146,12 +146,28 @@ export class StateManager {
     this.queue.loadFromState(rebuiltMap, graphData);
 
     if (this.logger) {
-        this.logger.log('STATE_RESTORED', { message: 'Restored queue and tasks from files' });
+        this.logger.log(STATE_EVENTS.STATE_RESTORED, { message: 'Restored queue and tasks from files' });
     }
   }
 
   // State query
   getStatus() {
     return this.queue.getStatus();
+  }
+
+  // Checkpointing
+  saveCheckpoint() {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const checkpointFileName = `checkpoint-${timestamp}.json`;
+    const checkpointPath = path.join(this.config.exchange.checkpoints, checkpointFileName);
+    
+    // Write serialized queue
+    writeJSON(checkpointPath, this.queue.serialize());
+
+    if (this.logger) {
+      this.logger.log(STATE_EVENTS.CHECKPOINT_SAVED, { file: checkpointFileName });
+    }
+
+    return `checkpoints/${checkpointFileName}`;
   }
 }

@@ -95,9 +95,9 @@ Start server → mở Antigravity session → gọi lần lượt:
 
 ## Done Criteria
 
-- [ ] 9 tools registered trong MCP server
-- [ ] Mỗi tool có zod schema validation
-- [ ] `get_next_task` returns relative file_path
-- [ ] `complete_task` triggers DAG unlock check
-- [ ] `submit_decomposition` validates all constraints
-- [ ] All tools log events qua logger
+- [x] 9 tools registered trong MCP server
+- [x] Mỗi tool có zod schema validation
+- [x] `get_next_task` returns relative file_path
+- [x] `complete_task` triggers DAG unlock check
+- [x] `submit_decomposition` validates all constraints
+- [x] All tools log events qua logger

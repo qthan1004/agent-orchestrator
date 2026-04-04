@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import { createServer } from './server.mjs';
 import { API_ROUTES } from '../constants.mjs';
 
-export function setupMcpRoutes(app) {
+export function setupMcpRoutes(app, context) {
   const transports = {};
 
   // GET /mcp
@@ -36,7 +36,7 @@ export function setupMcpRoutes(app) {
         const sid = transport.sessionId;
         if (sid && transports[sid]) delete transports[sid];
       };
-      const server = createServer();
+      const server = createServer(context);
       await server.connect(transport);
       await transport.handleRequest(req, res, req.body);
     } else {

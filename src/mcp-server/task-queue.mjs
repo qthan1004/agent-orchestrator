@@ -13,35 +13,35 @@ export class TaskQueue {
   validateDAG(graph) {
     if (!graph || !graph.groups) return;
 
-    const adj = new Map(); // group_id -> depends_on[]
+    const dependencyGraph = new Map(); // group_id -> depends_on[]
     for (const group of graph.groups) {
-      adj.set(group.group_id, group.depends_on || []);
+      dependencyGraph.set(group.group_id, group.depends_on || []);
     }
 
-    const visited = new Set();
-    const recStack = new Set();
+    const visitedGroups = new Set();
+    const groupsInCurrentPath = new Set();
 
-    const dfs = (node) => {
-      if (!visited.has(node)) {
-        visited.add(node);
-        recStack.add(node);
+    const checkCycle = (groupId) => {
+      if (!visitedGroups.has(groupId)) {
+        visitedGroups.add(groupId);
+        groupsInCurrentPath.add(groupId);
 
-        const neighbors = adj.get(node) || [];
-        for (const neighbor of neighbors) {
-          if (!visited.has(neighbor) && dfs(neighbor)) {
+        const dependentGroups = dependencyGraph.get(groupId) || [];
+        for (const depGroupId of dependentGroups) {
+          if (!visitedGroups.has(depGroupId) && checkCycle(depGroupId)) {
             return true; // Cycle detected
-          } else if (recStack.has(neighbor)) {
+          } else if (groupsInCurrentPath.has(depGroupId)) {
             return true; // Cycle detected
           }
         }
       }
-      recStack.delete(node);
+      groupsInCurrentPath.delete(groupId);
       return false;
     };
 
-    for (const group_id of adj.keys()) {
-      if (!visited.has(group_id)) {
-        if (dfs(group_id)) {
+    for (const groupId of dependencyGraph.keys()) {
+      if (!visitedGroups.has(groupId)) {
+        if (checkCycle(groupId)) {
           throw new Error('Circular dependency detected in task graph');
         }
       }
@@ -140,18 +140,16 @@ export class TaskQueue {
    * Get overall task queue status.
    */
   getStatus() {
-    let total = 0, pending = 0, active = 0, done = 0, failed = 0, blocked = 0;
+    const counts = { total: 0, pending: 0, active: 0, done: 0, failed: 0, blocked: 0 };
 
     for (const task of this.tasks.values()) {
-      total++;
-      if (task.status === TASK_STATUS.PENDING) pending++;
-      else if (task.status === TASK_STATUS.ACTIVE) active++;
-      else if (task.status === TASK_STATUS.DONE) done++;
-      else if (task.status === TASK_STATUS.FAILED) failed++;
-      else if (task.status === TASK_STATUS.BLOCKED) blocked++;
+      counts.total++;
+      if (counts[task.status] !== undefined) {
+        counts[task.status]++;
+      }
     }
 
-    return { total, pending, active, done, failed, blocked };
+    return counts;
   }
 
   /**
