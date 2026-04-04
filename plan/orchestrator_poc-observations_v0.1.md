@@ -11,3 +11,7 @@
 - **Graceful Shutdown**: Implement SIGINT (`Ctrl+C`) và SIGTERM signals xử lý thành công, đảm bảo Express HTTP server down và ngắt MCP instance.
 - **State Sharing**: Sử dụng singleton instance (`WorkerRegistry`) cho in-memory map. Data state (number of registered workers) share lập tức cho mọi incoming requests. Một remote instance (như mcp-remote connect tới port) có thể query chung state với các instances khác, khẳng định multi-session HTTP transport working properly.
 - **Worker Identity**: UUID assignment operation is locked to server-side only. Client depends on Orchestrator as single source of truth for its identify lifecycle.
+
+## Hotfix C: Tool Error Handling
+- Bọc tool callbacks bằng try-catch và mock `isError: true` trong response trả về từ `@modelcontextprotocol/sdk` để tránh làm chết session. 
+- MCP Server cho phép errors tự nhiên trả về client qua parameter `isError: true` trong content block thay vì throw Error dẫn đến transport crash.
