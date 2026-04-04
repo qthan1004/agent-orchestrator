@@ -149,11 +149,11 @@ node tools/test-multi-session.mjs
 
 ## Done Criteria
 
-- [ ] `transport.mjs` hỗ trợ POST + GET + DELETE trên `/mcp`
-- [ ] 2+ sessions cùng tồn tại song song (không kill nhau)
-- [ ] Mỗi session tạo McpServer instance riêng (qua `createServer()`)
-- [ ] Shared state hoạt động (register_worker ở session 1, get_status ở session 2 thấy)
-- [ ] `index.mjs` không import singleton `server` nữa
-- [ ] Graceful shutdown close tất cả active transports
-- [ ] `test-mcp-client.mjs` PASS
-- [ ] `test-multi-session.mjs` PASS
+- [x] `transport.mjs` hỗ trợ POST + GET + DELETE trên `/mcp`
+- [x] 2+ sessions cùng tồn tại song song (không kill nhau)
+- [x] Mỗi session tạo McpServer instance riêng (qua `createServer()`)
+- [x] Shared state hoạt động (register_worker ở session 1, get_status ở session 2 thấy)
+- [x] `index.mjs` không import singleton `server` nữa
+- [x] Graceful shutdown close tất cả active transports
+- [x] `test-mcp-client.mjs` PASS
+- [x] `test-multi-session.mjs` PASS

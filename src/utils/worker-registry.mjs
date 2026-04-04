@@ -1,4 +1,7 @@
 import crypto from 'crypto';
+import { WORKER_STATUS } from '../constants.mjs';
+
+export const generateWorkerId = () => `w-${crypto.randomBytes(4).toString('hex')}`;
 
 export class WorkerRegistry {
   constructor() {
@@ -6,15 +9,14 @@ export class WorkerRegistry {
   }
 
   register() {
-    // Generate UUID with format w-<8chars>
-    const id = `w-${crypto.randomBytes(4).toString('hex')}`;
+    const id = generateWorkerId();
     const workerInfo = {
       id,
       registered_at: new Date().toISOString(),
       last_heartbeat: new Date().toISOString(),
       current_task: null,
       tasks_completed: 0,
-      status: 'idle'
+      status: WORKER_STATUS.IDLE
     };
     this.workers.set(id, workerInfo);
     return workerInfo;

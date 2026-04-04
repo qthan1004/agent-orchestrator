@@ -1,8 +1,4 @@
-# Dependency Check — 2026-04-04T10:20:35
-
-## HF-A_server-factory.md
-- **Status**: ✅ READY
-- **Dependencies**: None
+# Dependency Check — 2026-04-04T10:36:16
 
 ## HF-B_transport-multi-session.md
 - **Status**: ✅ READY
@@ -58,4 +54,4 @@
 - **Unmet**: ❌ 14
 
 ---
-**Ready**: 6/12 tasks can be started now
+**Ready**: 5/11 tasks can be started now
