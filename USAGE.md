@@ -1,58 +1,71 @@
-# Hướng Dẫn Vận Hành Đa Đặc Vụ (Multi-Agent Operation Guide)
+# Cẩm Nang Vận Hành Agent Orchestrator (Operation Manual)
 
-Tài liệu này cung cấp quy trình tiêu chuẩn để vận hành hệ thống Agent Orchestrator tích hợp với trình biên dịch Antigravity IDE. Thiết kế cốt lõi của Orchestrator yêu cầu phân tách độc lập các phiên làm việc (sessions) để gán vai trò tối thiểu: **01 Planner** (Phân tích & Lập Kế Hoạch) và **01 Worker** (Thực Thi Nhiệm Vụ).
-
-## 1. Nguyên Tắc Quản Lý Phiên Làm Việc (Session Management)
-
-Trong môi trường Antigravity IDE, mỗi không gian làm việc (Workspace Window / Cửa sổ IDE) tương ứng với **một phiên kết nối duy nhất (1 Session)** tới Orchestrator Server. 
-Do đó, KHÔNG THỂ gán đồng thời hai vai trò (Planner và Worker) trong cùng một cửa sổ khung chat của IDE để tránh xung đột ngữ cảnh (context collision) và hiện tượng ảo giác AI.
+Tài liệu này chuẩn hóa toàn bộ quy trình thao tác với Hệ thống Đa Đặc Vụ (Multi-Agent), đi sâu từ bước khởi tạo bối cảnh, giao việc, cho đến quá trình nghiệm thu chất lượng và cách hệ thống chống chịu, phục hồi trước lỗi lập trình do AI tạo ra.
 
 ---
 
-## 2. Khởi Chạy Orchestrator Server (Kiến Trúc Nền)
+## 1. Khởi Tạo & Quản Trị Phiên Làm Việc (Session & Roles)
 
-Trước khi khởi tạo các Agent, hệ thống điều phối trung tâm cần được rẽ nhánh quy trình. Mở Terminal tích hợp của trình soạn thảo và thực thi:
+Để một hệ thống được coi là Orchestrator đúng nghĩa, nó yêu cầu phân tách độc lập bối cảnh thẻ nhớ (mạch tư duy) của các AI Agent. Chúng ta cần thiết lập lưới mạng bao gồm: **Người Lập Kế Hoạch (Planner)** và **Công Nhân (Worker)**.
 
+**[Bước Bắt Buộc] Bật Node Server:** Mở Terminal nội bộ và giữ tiến trình này trực 24/7.
 ```bash
 npm run serve
 ```
 
-> **Lưu ý:** Luồng tiến trình này yêu cầu duy trì liên tục (Background process). Server sẽ trực (listen) tại phân hệ mạng `3847` (mặc định) và ghi nhận toàn bộ log giao tiếp RPC từ các Agents thông qua giao thức Streamable HTTP. 
+**[Phiên 1] Thiết lập Vai Trò Planner (Cửa sổ IDE hiện tại):**
+1. Mở tính năng trò chuyện của Antigravity ở chính cửa sổ hiện tại.
+2. Thiết lập vai trò bằng định danh chuẩn (Mẫu System Prompt):
+   > "Hệ thống bổ nhiệm bạn là Planner. Hãy thiết lập kết nối bằng `register_worker()`. Vai trò của bạn là Giám sát và Phân cực Yêu cầu. Từ giờ, hãy luôn sẵn sàng dùng Tool đọc tệp tin (view_file) để thấu hiểu tài liệu trong thư mục `plan/` mỗi khi tôi giao việc. Xin hãy phản hồi xác nhận lệnh trực."
 
-Trong một Terminal phụ (độc lập với server), người điều phối có thể tiến hành nạp bản kế hoạch tổng thể (Plan) vào hệ thống:
+**[Phiên 2, 3] Thiết lập Vai Trò Worker (Cửa sổ IDE Độc Lập):**
+1. **Lệnh Tiên Quyết**: Nhấn `Ctrl + Shift + N` / `Cmd + Shift + N` (`File > New Window`) để tạo ra một Không Gian Làm Việc hoàn toàn mới. Nạp mã nguồn dự án vào Cửa Sổ này. Hành động này mở ra 1 Session Mới cho Server.
+2. Mở Chat Antigravity mới. Thiết lập vòng lặp thi hành (Autonomous Loop) bằng Prompt:
+   > "Bạn là Worker. Triển khai lệnh `register_worker()` để đăng ký. Hãy đặt bản thân vào vòng lặp liên tục: gọi `get_next_task()`, đọc mô tả nhiệm vụ, thực thi mã nguồn IDE, và đóng công việc bằng `complete_task()`. Tuân thủ tiến trình lặp này tới khi hàng đợi trống."
+3. Bức tranh toàn cảnh: Cửa sổ 2, 3 sẽ điên cuồng bắt API về cổng 3847 chờ Việc. Mọi chuyện sẽ được Server dùng State Manager chốt luồng, không gặp rủi ro Deadlock.
 
+---
+
+## 2. Quy Trình Giao Nhận Kế Hoạch (Plan Handover Protocol)
+
+Mọi giao tiếp cốt lõi về Business Logic giữa **Con Người (Human)** và **Hệ Thống** không thông qua dòng lệnh thuần, mà qua Hồ Sơ Văn Bản.
+
+**Cách Giao Việc Cho Đầu Não:**
+1. Con người (Quản trị viên) tạo một hồ sơ (File Markdown) lưu trữ mọi yêu cầu (Ví dụ: `plan/feature_login.md`).
+2. Quản trị viên quay ngược trở lại **Phiên 1 (Cửa Sổ Planner)** và ban lệnh:
+   > "Tôi vừa thả một dự án mới vào `plan/feature_login.md`. Hãy gọi `get_plan_for_decomposition()`, sử dụng Tool đọc hồ sơ để nắm logic, sau đó dùng công cụ `submit_decomposition()` để phân rã ra cấu trúc DAG và đẩy nó lên Hệ thống Trung tâm."
+3. Planner AI nén gói tất cả, đẩy vào Server. Ngay khoảnh khắc đó, các Worker đang trong vòng lặp vô tận (ở Cửa Sổ 2, 3) lập tức bắt được Tín hiệu -> lao vào bốc Task thi hành.
+
+---
+
+## 3. Quy Trình Phân Tích & Nghiệm Thu (Quality & Reporting)
+
+Với cương vị Quản trị viên, bạn không phải theo dõi từng dòng log máy chủ. Bạn quan sát sự thay đổi toàn cục thông qua 2 tiêu điểm lớn:
+
+### Báo Cáo Sơ Đồ Toàn Cảnh (Macro-Board)
+Chạy mã scripts sau tại Terminal để hệ thống tự quét và Render trạng thái:
 ```bash
-node src/index.mjs plan load plan/test_hello-orchestrator_v0.1.md
+node tools/task-board.mjs
 ```
+Kết quả tỷ lệ `%` hoàn thành tổng thể, lượng task nằm ở Pending(⬜) - Processing(🔄) - Done(✅) sẽ được in lập tức ra file `tasks/README.md`. Bấm vào đọc để đôn đốc.
+
+### Báo Cáo Thi Hành Chi Tiết Điểm Cuối (Granular Outbox)
+Bất kỳ khi nào một Worker xử lý xong lệnh `complete_task(status)`, thông cáo báo chí của nhiệm vụ đó (Thành công/Lỗi, ID con AI nào đã làm) sẽ được Đóng gói thành `.json`. 
+Quản trị viên nếu cần chà sát tiểu tiết thì vào kiểm định ở Hòm thư xuất:
+👉 `exchange/outbox/task-<ID>.result.json`.
 
 ---
 
-## 3. Cấu hình Cửa Sổ IDE #1: Vai Trò PLANNER (Phân Tích)
+## 4. Sự Cố & Tái Thực Thi Tự Động (Error Handling & Re-execution)
 
-Khởi động tiến trình xử lý đầu tiên bằng cửa sổ Antigravity IDE hiện tại. Phiên kết nối này sẽ đóng vai trò kiến trúc sư xử lý việc phân rã nghiệp vụ.
+Hệ thống được thiết kế mang tính Chống Chịu Lỗi Cực Hình (Crash Tolerance) và có khả năng phục hồi nghiệp vụ (Self-Healing). Điều gì diễn ra khi dòng Code của AI sinh ra bị lỗi nặng?
 
-1. Bật giao diện tương tác (Chat UI) của Antigravity.
-2. Cung cấp **Prompt Định Danh Phiên (Role Initialization Prompt)** như sau:
-   > "Hệ thống xác nhận bạn là Planner. Hãy thực thi `register_worker()` để đăng ký phiên làm việc. Tiếp theo, gọi lệnh `get_queue_status()`, phát hiện trạng thái hàng đợi có Plan chờ. Xin hãy dùng `get_plan_for_decomposition()` để trích xuất dữ liệu, tổng hợp logic và sử dụng `submit_decomposition()` nhằm biến hệ thống thành các task vi mô cấu trúc theo dạng DAG."
-3. Sau khi Agent xử lý và báo cáo đẩy thành công dữ liệu vào hàng đợi (Pending queue), quá trình vận hành của Planner hoàn tất vòng đời khởi tạo.
+### Bước Trình Báo Thất Bại (Failure Emit)
+Khi Worker đối diện với lỗi Build hoặc thiếu môi trường, nó sẽ ném trực tiếp trạng thái lệnh về máy chủ: `complete_task(status: 'FAILED', summary: 'Cấu hình thiếu Module XYZ')`. Lập tức Task này nằm liệt vịnh viễn đóng mác **FAILED** ở Outbox. 
 
----
-
-## 4. Cấu hình Cửa Sổ IDE #2: Vai Trò WORKER (Thực Thi)
-
-Để kích hoạt luồng xử lý xử lý công việc độc lập, hệ thống bắt buộc khởi tạo phiên làm việc thứ hai:
-
-1. Thiết lập Cửa Sổ Độc Lập bằng cách điều hướng **File > New Window** (hoặc nhấn phím tắt `Ctrl + Shift + N` / `Cmd + Shift + N`).
-2. Tải và chỉ định đường dẫn ứng dụng (thư mục `agent-orchestrator`) trên cửa sổ mới thiết lập.
-3. Kích hoạt Chat UI Antigravity và thiết lập vai trò thực thi (Execution Stage) bằng Prompt mệnh lệnh:
-   > "Hệ thống xác định bạn là Worker. Hãy gọi `register_worker()` để thiết lập tính khả dụng. Quản trị vòng lặp tự động (Autonomous Loop): Khởi chạy `get_next_task()`, đọc nội dung tệp tin, chỉnh sửa Source Code/Cầu hình, tự động rà soát đảm bảo chất lượng, và chốt hoàn thành bằng `complete_task()`. Tuân thủ thao tác lặp vòng này tới khi máy chủ hồi đáp trạng thái Empty."
-4. Kể từ thời điểm này, Agent #2 sẽ liên kết với Backend và thực hiện tải công việc đơn luồng không tương tác với ngữ cảnh của Planner ở IDE 1.
-
----
-
-## 5. Mở Rộng Quy Mô Bằng Đa Đặc Vụ (Horizontal Scaling)
-
-Tại trường hợp tổng khối lượng công việc mở rộng, việc cung cấp thêm tiến trình (Workers) sẽ gia tốc cường độ xử lý dự án.
-
-- Tiến hành lặp lại quy định **Bước 4**: Tạo lập thêm các instance `New Window` thứ 3, thứ 4...
-- Cung cấp đoạn Prompt thực thi tương ứng. Orchestrator Server ứng dụng hệ thống State Manager xử lý Lock / Dependency Constraints nhằm vô hiệu hóa tình trạng Deadlock (Xung đột nguồn tài nguyên mã nguồn) cho phép hàng chục Worker chạy tích hợp song song.
+### Kích Hoạt Thiết Chế Làm Lại (The Retry Mechanism)
+Thay vì con người phải thủ công mở file xóa xóa sửa sửa, Quản trị Vấn Đề diễn ra như sau:
+1. Bạn (hoặc nhờ Planner ở Cửa số 1 đọc định kỳ Outbox) sẽ bắt được tín hiệu có rủi ro Failed tại ID Task đó.
+2. Kích hoạt trực tiếp công cụ API: `request_retry(task_id, reason, attempt)`.
+3. Khi Server nhận được gói `request_retry` thông qua giao thức RPC, nó ngay lập tức Lục lọi lại hòm thư báo lỗi, bế xuất Task hỏng kia **đẩy ngược trở lại dòng chảy** (Pending Queue).
+4. Do có Task "tái sinh" chen vào Queue, các Worker của bạn (đang rình mồi `get_next_task()`) sẽ tiếp tục kéo task FAILED này trêm tâm thế thực hiện nỗ lực (Attempt) đợt 2 theo những `reason` (góp ý) gửi kèm tới khi nó trở thành Đạt hoàn toàn (DONE).
