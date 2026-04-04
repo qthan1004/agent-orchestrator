@@ -1,9 +1,9 @@
 [
   {
-    "id": "w-008c9e93",
-    "registered_at": "2026-04-04T14:07:25.149Z",
-    "last_heartbeat": "2026-04-04T14:07:25.149Z",
-    "current_task": null,
+    "id": "w-ee5b84a9",
+    "registered_at": "2026-04-04T15:22:37.397Z",
+    "last_heartbeat": "2026-04-04T15:22:37.430Z",
+    "current_task": "01-create-hello",
     "tasks_completed": 0,
     "status": "idle"
   }

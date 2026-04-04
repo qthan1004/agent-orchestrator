@@ -1,0 +1,45 @@
+{
+  "graph": {
+    "groups": [
+      {
+        "group_id": 1,
+        "tasks": [
+          "01-create-hello",
+          "02-update-readme"
+        ]
+      },
+      {
+        "group_id": 2,
+        "tasks": [
+          "03-verify-all"
+        ],
+        "depends_on": [
+          1
+        ]
+      }
+    ]
+  },
+  "tasks": {
+    "01-create-hello": {
+      "id": "01-create-hello",
+      "module": "files",
+      "action": "Create hello.md",
+      "verification": "File exists",
+      "status": "done"
+    },
+    "02-update-readme": {
+      "id": "02-update-readme",
+      "module": "files",
+      "action": "Update README",
+      "verification": "Section exists",
+      "status": "pending"
+    },
+    "03-verify-all": {
+      "id": "03-verify-all",
+      "module": "verify",
+      "action": "Check all files",
+      "verification": "CI green",
+      "status": "pending"
+    }
+  }
+}

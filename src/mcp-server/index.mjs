@@ -16,7 +16,29 @@ export async function startServer({ port = 3847, host = '127.0.0.1' } = {}) {
   const context = { stateManager, logger, config };
 
   const app = express();
+
+  // Request logging (debug mcp-remote connections)
+  app.use((req, res, next) => {
+    const sid = req.headers['mcp-session-id'] || 'no-session';
+    console.log(`→ ${req.method} ${req.url} [${sid}]`);
+    next();
+  });
+
   app.use(express.json());
+
+  // JSON parse error handler — MUST be right after express.json()
+  app.use((err, req, res, next) => {
+    if (err.type === 'entity.parse.failed') {
+      console.error(`⚠ JSON parse error from ${req.method} ${req.url}:`, err.message);
+      res.status(400).json({
+        jsonrpc: '2.0',
+        error: { code: -32700, message: 'Parse error: Invalid JSON' },
+        id: null
+      });
+      return;
+    }
+    next(err);
+  });
 
   app.get(API_ROUTES.HEALTH, (req, res) => {
     res.json({
@@ -29,8 +51,20 @@ export async function startServer({ port = 3847, host = '127.0.0.1' } = {}) {
   // Setup MCP routes (controller)
   const transports = setupMcpRoutes(app, context);
 
+  // Catch-all error handler (last middleware)
+  app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err.message);
+    if (!res.headersSent) {
+      res.status(500).json({
+        jsonrpc: '2.0',
+        error: { code: -32603, message: 'Internal server error' },
+        id: null
+      });
+    }
+  });
+
   const httpServer = app.listen(port, host, () => {
-    // Pad the port to ensure the ASCII box aligns if port is 4 digits
+    logger.log('SERVER_START', { port, host });
     const portStr = port.toString().padEnd(4, ' ');
     console.log(`┌───────────────────────────────────┐`);
     console.log(`│  MCP Server listening :${portStr}       │`);

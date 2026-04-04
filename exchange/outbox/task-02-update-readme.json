@@ -1,0 +1,7 @@
+{
+  "id": "02-update-readme",
+  "module": "files",
+  "action": "Update README",
+  "verification": "Section exists",
+  "status": "done"
+}
