@@ -89,9 +89,9 @@ cat exchange/.tmp/health.md
 
 ## Done Criteria
 
-- [ ] 4 tool files tồn tại, chạy không lỗi
-- [ ] `init-exchange.mjs` tạo đủ directories
-- [ ] `health-check.mjs` output MD file đúng format
-- [ ] `queue-status.mjs` scan được exchange/ dirs
-- [ ] `task-scanner.mjs` parse được .task.json files
-- [ ] `tools/README.md` cập nhật
+- [x] 4 tool files tồn tại, chạy không lỗi
+- [x] `init-exchange.mjs` tạo đủ directories
+- [x] `health-check.mjs` output MD file đúng format
+- [x] `queue-status.mjs` scan được exchange/ dirs
+- [x] `task-scanner.mjs` parse được .task.json files
+- [x] `tools/README.md` cập nhật
