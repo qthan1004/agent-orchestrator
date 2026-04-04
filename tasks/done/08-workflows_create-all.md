@@ -68,7 +68,7 @@ Verify: 5 files tồn tại, mỗi file có YAML frontmatter hợp lệ.
 
 ## Done Criteria
 
-- [ ] 5 workflow files tồn tại
-- [ ] Mỗi file có `description` trong YAML frontmatter
-- [ ] Logic flow nhất quán với SKILL.md
-- [ ] `// turbo` annotations ở đúng steps
+- [x] 5 workflow files tồn tại
+- [x] Mỗi file có `description` trong YAML frontmatter
+- [x] Logic flow nhất quán với SKILL.md
+- [x] `// turbo` annotations ở đúng steps

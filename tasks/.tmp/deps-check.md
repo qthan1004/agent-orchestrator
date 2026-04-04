@@ -1,19 +1,9 @@
-# Dependency Check — 2026-04-04T12:12:58
-
-## 07-skills_orchestrator-protocol.md
-- **Status**: ✅ READY
-- **Dependencies**: `06`
-- **Met**: ✅ 06
-
-## 08-workflows_create-all.md
-- **Status**: 🔒 BLOCKED
-- **Dependencies**: `07`
-- **Unmet**: ❌ 07
+# Dependency Check — 2026-04-04T12:29:28
 
 ## 09-skills_symlink-templates.md
-- **Status**: 🔒 BLOCKED
+- **Status**: ✅ READY
 - **Dependencies**: `07`
-- **Unmet**: ❌ 07
+- **Met**: ✅ 07
 
 ## 10-tools_create-automation.md
 - **Status**: ✅ READY
@@ -46,4 +36,4 @@
 - **Unmet**: ❌ 14
 
 ---
-**Ready**: 3/9 tasks can be started now
+**Ready**: 3/7 tasks can be started now
