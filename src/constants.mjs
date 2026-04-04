@@ -40,3 +40,17 @@ export const DIR_NAMES = {
   TEMPLATES: 'templates',
   PLAN: 'plan'
 };
+
+export const TASK_STATUS = {
+  PENDING: 'pending',
+  ACTIVE: 'active',
+  DONE: 'done',
+  FAILED: 'failed',
+  BLOCKED: 'blocked'
+};
+
+export const FILE_PREFIXES = {
+  TASK: 'task-',
+  RESULT: 'result-',
+  QUEUE: '_queue.json'
+};

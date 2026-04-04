@@ -97,9 +97,9 @@ node -e "
 
 ## Done Criteria
 
-- [ ] `StateManager` dual-writes all operations
-- [ ] `TaskQueue` respects group ordering (DAG)
-- [ ] `getNextTask()` only returns tasks from unlocked groups
-- [ ] `completeTask()` unlocks dependent groups when all prereqs done
-- [ ] `validateDAG()` rejects circular dependencies
-- [ ] Crash recovery: `loadFromFiles()` restores queue state
+- [x] `StateManager` dual-writes all operations
+- [x] `TaskQueue` respects group ordering (DAG)
+- [x] `getNextTask()` only returns tasks from unlocked groups
+- [x] `completeTask()` unlocks dependent groups when all prereqs done
+- [x] `validateDAG()` rejects circular dependencies
+- [x] Crash recovery: `loadFromFiles()` restores queue state
