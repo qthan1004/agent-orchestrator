@@ -82,8 +82,8 @@ node -e "
 
 ## Done Criteria
 
-- [ ] `file-backend.mjs` exports all CRUD functions
-- [ ] `atomicWrite` uses write→rename pattern
-- [ ] `logger.mjs` creates daily MD log files
-- [ ] Log entries follow structured MD format
-- [ ] `worker-registry.mjs` persists to file + loads on init
+- [x] `file-backend.mjs` exports all CRUD functions
+- [x] `atomicWrite` uses write→rename pattern
+- [x] `logger.mjs` creates daily MD log files
+- [x] Log entries follow structured MD format
+- [x] `worker-registry.mjs` persists to file + loads on init
