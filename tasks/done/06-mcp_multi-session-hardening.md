@@ -77,8 +77,8 @@ node src/index.mjs serve
 
 ## Done Criteria
 
-- [ ] `register_worker()` tạo unique UUID mỗi lần gọi
-- [ ] `get_status()` hiện đúng số workers connected
-- [ ] 2 sessions thấy cùng state (shared)
-- [ ] SIGINT graceful shutdown hoạt động (Ctrl+C → server dừng sạch)
-- [ ] Ghi observations vào `plan/orchestrator_poc-observations_v0.1.md`
+- [x] `register_worker()` tạo unique UUID mỗi lần gọi
+- [x] `get_status()` hiện đúng số workers connected
+- [x] 2 sessions thấy cùng state (shared)
+- [x] SIGINT graceful shutdown hoạt động (Ctrl+C → server dừng sạch)
+- [x] Ghi observations vào `plan/orchestrator_poc-observations_v0.1.md`

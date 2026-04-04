@@ -1,6 +1,6 @@
 # Task Board — Agent Orchestrator POC v0.4
 
-> **Tổng**: 15 tasks | **Pending**: 11 | **Processing**: 0 | **Done**: 4
+> **Tổng**: 15 tasks | **Pending**: 10 | **Processing**: 0 | **Done**: 5
 
 ---
 
@@ -72,7 +72,7 @@ graph TD
 
 | #   | Task                                                                           | Status     | Dependencies |
 | --- | ------------------------------------------------------------------------------ | ---------- | ------------ |
-| 06  | [Multi-session + Graceful Shutdown](pending/06-mcp_multi-session-hardening.md) | ⬜ Pending | 05           |
+| 06  | [Multi-session + Graceful Shutdown](done/06-mcp_multi-session-hardening.md)    | ✅ Done    | 05           |
 
 ### Phase B: Skills / Workflows / Templates
 

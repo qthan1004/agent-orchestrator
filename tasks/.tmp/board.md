@@ -1,16 +1,15 @@
-# Task Board — 2026-04-04T07:47:56
+# Task Board — 2026-04-04T08:00:21
 
 | Status | Count |
 |--------|-------|
-| ⬜ Pending | 10 |
+| ⬜ Pending | 9 |
 | 🔄 Processing | 0 |
-| ✅ Done | 5 |
+| ✅ Done | 6 |
 | **Total** | **15** |
 
-Progress: 5/15 (33%)
+Progress: 6/15 (40%)
 
 ## ⬜ Pending
-- `06-mcp_multi-session-hardening.md`
 - `07-skills_orchestrator-protocol.md`
 - `08-workflows_create-all.md`
 - `09-skills_symlink-templates.md`
@@ -27,5 +26,6 @@ Progress: 5/15 (33%)
 - `03-mcp_config-antigravity-test.md`
 - `04-mcp_streamable-http.md`
 - `05-mcp_config-mcp-remote.md`
+- `06-mcp_multi-session-hardening.md`
 
-**Next**: `06-mcp_multi-session-hardening.md`
+**Next**: `07-skills_orchestrator-protocol.md`

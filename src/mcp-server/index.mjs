@@ -21,7 +21,7 @@ export async function startServer({ port = 3847, host = '127.0.0.1' } = {}) {
   // Setup MCP routes (controller)
   setupMcpRoutes(app, server);
 
-  app.listen(port, host, () => {
+  const httpServer = app.listen(port, host, () => {
     // Pad the port to ensure the ASCII box aligns if port is 4 digits
     const portStr = port.toString().padEnd(4, ' ');
     console.log(`┌───────────────────────────────────┐`);
@@ -31,4 +31,15 @@ export async function startServer({ port = 3847, host = '127.0.0.1' } = {}) {
     console.log(`│  Health: /health                  │`);
     console.log(`└───────────────────────────────────┘`);
   });
+
+  const shutdown = async () => {
+    console.log('\n🛑 Shutting down gracefully...');
+    // Future: flush state to files
+    await server.close();
+    httpServer.close();
+    process.exit(0);
+  };
+
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
 }
