@@ -7,10 +7,12 @@ const server = new McpServer({
   version: "0.1.0"
 });
 
-server.tool(
+server.registerTool(
   "hello_world",
-  "A simple hello world tool",
-  { name: z.string().describe("Your name") },
+  {
+    description: "A simple hello world tool",
+    inputSchema: { name: z.string().describe("Your name") }
+  },
   async ({ name }) => ({
     content: [{ type: "text", text: `Hello, ${name}! MCP Orchestrator is running.` }]
   })

@@ -12,9 +12,10 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
 const server = new McpServer({ name: 'orchestrator', version: '0.1.0' });
-server.tool('hello', 'Greet', { name: z.string() },
-  async ({ name }) => ({ content: [{ type: 'text', text: `Hello ${name}` }] })
-);
+server.registerTool('hello', {
+  description: 'Greet',
+  inputSchema: { name: z.string() }
+}, async ({ name }) => ({ content: [{ type: 'text', text: `Hello ${name}` }] }));
 await server.connect(new StdioServerTransport());
 ```
 
@@ -47,8 +48,10 @@ app.listen(3847, '127.0.0.1');
 
 ## 3. Tool Pattern
 ```javascript
-server.tool('name', 'Description', { param: z.string().describe('...') },
-  async (args) => {
+server.registerTool('name', {
+  description: 'Description',
+  inputSchema: { param: z.string().describe('...') }
+}, async (args) => {
     try {
       return { content: [{ type: 'text', text: JSON.stringify(result) }] };
     } catch (err) {

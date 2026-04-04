@@ -1,14 +1,9 @@
-# Dependency Check — 2026-04-04T06:06:38
-
-## 02-mcp_stdio-hello-world.md
-- **Status**: ✅ READY
-- **Dependencies**: `01`
-- **Met**: ✅ 01
+# Dependency Check — 2026-04-04T06:08:20
 
 ## 03-mcp_config-antigravity-test.md
-- **Status**: 🔒 BLOCKED
+- **Status**: ✅ READY
 - **Dependencies**: `02`
-- **Unmet**: ❌ 02
+- **Met**: ✅ 02
 
 ## 04-mcp_streamable-http.md
 - **Status**: 🔒 BLOCKED
@@ -71,4 +66,4 @@
 - **Unmet**: ❌ 14
 
 ---
-**Ready**: 1/14 tasks can be started now
+**Ready**: 1/13 tasks can be started now
