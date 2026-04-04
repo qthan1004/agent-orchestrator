@@ -5,37 +5,37 @@ Dự án này đóng vai trò là một **Local MCP Server** (hoạt động ng�
 ## 1. Yêu cầu hệ thống
 - **Node.js**: Phiên bản 18+ trở lên.
 
-## 2. Cài đặt Cấu hình MCP Client
+## 2. Khởi chạy Server
 
-Vì Agent Orchestrator được khởi động từ xa bởi các Client qua Standard Input/Output (`stdio`), cấu hình của Client **bắt buộc phải sử dụng đường dẫn tuyệt đối (absolute path)** để trỏ tới `src/index.mjs`. Điều này khiến cấu hình trên mỗi hệ điều hành (Windows/Linux/macOS) sẽ khác nhau.
+Agent Orchestrator sử dụng giao thức **Streamable HTTP** tại cổng `3847`. Khởi chạy server bằng lệnh sau trong terminal:
+
+```bash
+cd /path/to/agent-orchestrator
+node src/index.mjs serve
+```
+
+## 3. Cài đặt Cấu hình MCP Client
+
+Vì Orchestrator đã chuyển sang giao thức mạng (HTTP-first), cấu hình của Client trở nên đồng nhất trên mọi hệ điều hành (Windows/Linux/macOS) và **không còn bắt buộc cấu hình đường dẫn tuyệt đối**. Chúng ta sẽ sử dụng công cụ `mcp-remote` để làm cầu nối.
 
 **Vị trí file cấu hình `mcp_config.json` phụ thuộc vào ứng dụng Client:**
 - Nếu dùng Antigravity: `~/.gemini/antigravity/mcp_config.json`
 - Nếu dùng Claude Desktop: `%APPDATA%\Claude\claude_desktop_config.json` (Windows) hoặc `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
 
-### 2.1 Cấu hình cho Windows
-Mở file `mcp_config.json` và thêm cấu hình `orchestrator` như sau, thay đổi đường dẫn ổ cứng (`d:/workspace/...`) cho khớp với vị trí bạn clone code:
+Mở file thiết lập JSON tùy theo Client bạn sử dụng và thêm cấu hình `orchestrator` như sau:
 
 ```json
 {
   "mcpServers": {
     "orchestrator": {
-      "command": "node",
-      "args": ["d:/workspace/agent-orchestrator/src/index.mjs"]
-    }
-  }
-}
-```
-
-### 2.2 Cấu hình cho Linux / macOS
-Tương tự như trên, nhưng vì filesystem Unix sử dụng format `/path/to/folder`, bạn cần chỉ định đúng đường dẫn tuyệt đối theo format của Linux:
-
-```json
-{
-  "mcpServers": {
-    "orchestrator": {
-      "command": "node",
-      "args": ["/home/username/workspace/agent-orchestrator/src/index.mjs"]
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "http://127.0.0.1:3847/mcp",
+        "--transport",
+        "http-first"
+      ]
     }
   }
 }

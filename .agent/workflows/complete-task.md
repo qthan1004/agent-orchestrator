@@ -15,7 +15,10 @@ Empty → "Không có task processing" → dừng.
 
 3. Tick `[x]` tất cả Done Criteria trong task file
 
-4. Move + update board:
+4. Check `INSTALL.md`:
+   Hỏi user xem task hiện tại có làm thay đổi cách cài đặt hay cấu hình không, nếu có thì hãy update `INSTALL.md` trước.
+
+5. Move + update board:
 ```powershell
 Move-Item "tasks/processing/<task>" "tasks/done/"
 ```
@@ -25,7 +28,7 @@ Move-Item "tasks/processing/<task>" "tasks/done/"
 node tools/task-board.mjs
 ```
 
-5. Update `tasks/README.md` — status ⬜→✅, counts
+6. Update `tasks/README.md` — status ⬜→✅, counts
 
 6. Commit:
 ```powershell
