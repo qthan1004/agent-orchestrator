@@ -1,0 +1,11 @@
+{
+  "task_id": "",
+  "title": "",
+  "status": "done",
+  "started_at": "ISO-8601",
+  "completed_at": "ISO-8601",
+  "duration_ms": 0,
+  "worker_id": "",
+  "summary": "",
+  "files_modified": []
+}

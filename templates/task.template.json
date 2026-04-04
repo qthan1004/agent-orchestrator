@@ -1,0 +1,46 @@
+{
+  "id": "01-setup-env",
+  "title": "Setup Environment",
+  "module": "infra",
+  "action": "setup",
+  "status": "pending",
+  "assigned_to": null,
+  "priority": 1,
+  "what_to_do": "...",
+  "files": [
+    {
+      "action": "MODIFY",
+      "path": "relative/path/to/file"
+    },
+    {
+      "action": "NEW",
+      "path": "relative/path/to/new/file"
+    }
+  ],
+  "constraints": {
+    "skills": [
+      "strict-scope",
+      "token-optimization"
+    ],
+    "rules": [
+      "Không sửa file ngoài danh sách"
+    ]
+  },
+  "dependencies": [],
+  "verification": {
+    "command": "npm test",
+    "expected": "All tests pass"
+  },
+  "done_criteria": [
+    "Files modified as specified",
+    "Tests pass"
+  ],
+  "metadata": {
+    "created_at": "...",
+    "completed_at": null,
+    "duration_ms": null,
+    "worker_id": null,
+    "attempt": 0,
+    "partial_progress": null
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "plan_source": "plan/xxx.md",
+  "decomposed_at": "ISO-8601",
+  "decomposed_by": "worker_id",
+  "total_tasks": 0,
+  "tasks": [],
+  "execution_graph": {
+    "groups": []
+  },
+  "reasoning": "..."
+}

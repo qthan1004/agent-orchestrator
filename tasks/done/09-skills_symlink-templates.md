@@ -107,7 +107,7 @@ node -e "JSON.parse(require('fs').readFileSync('templates/task.template.json','u
 
 ## Done Criteria
 
-- [ ] 3 symlinks tồn tại, trỏ đúng target
-- [ ] Symlinks hoạt động trên current OS (đọc được file qua symlink)
-- [ ] 4 template JSON files valid
-- [ ] Templates match plan v0.4 format
+- [x] 3 symlinks tồn tại, trỏ đúng target
+- [x] Symlinks hoạt động trên current OS (đọc được file qua symlink)
+- [x] 4 template JSON files valid
+- [x] Templates match plan v0.4 format

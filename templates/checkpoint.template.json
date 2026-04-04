@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "timestamp": "ISO-8601",
+  "server_uptime_ms": 0,
+  "queue": {
+    "total": 0,
+    "pending": 0,
+    "active": 0,
+    "done": 0,
+    "blocked": 0,
+    "failed": 0
+  },
+  "workers": {},
+  "last_completed_task": null,
+  "dag_state": {}
+}
