@@ -1,0 +1,29 @@
+{
+  "groups": [
+    {
+      "group_id": 1,
+      "tasks": [
+        "1",
+        "2"
+      ]
+    },
+    {
+      "group_id": 2,
+      "tasks": [
+        "3"
+      ],
+      "depends_on": [
+        1
+      ]
+    },
+    {
+      "group_id": 3,
+      "tasks": [
+        "4"
+      ],
+      "depends_on": [
+        2
+      ]
+    }
+  ]
+}
