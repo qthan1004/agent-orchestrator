@@ -6,10 +6,10 @@ description: Agent Orchestrator project structure and conventions
 
 ## Architecture
 - **Dual-Layer**: MCP (coordination) + File IPC (data provider)
-- **MCP Server**: SSE transport, shared state across sessions
+- **MCP Server**: Streamable HTTP transport (`/mcp` endpoint), shared state across sessions
 - **File IPC**: `exchange/` dirs — token-efficient context recovery
 - **Runtime**: All agents run through Antigravity (regardless of model)
-- **Cross-platform**: Linux (primary) + Windows (WSL/Git Bash)
+- **Cross-platform**: Linux + Windows — 1 solution, no OS detection
 
 ## Structure
 
@@ -20,15 +20,16 @@ agent-orchestrator/
 ├── templates/                     ← JSON contract templates
 ├── src/                           ← MCP Server source code
 │   ├── index.mjs                  ← CLI entry
-│   ├── config.mjs                 ← Config + paths
-│   ├── mcp-server/                ← MCP Server layer
-│   └── utils/                     ← Helpers (file-backend, checkpoint, etc.)
+│   ├── config.mjs                 ← Config + paths (cross-platform)
+│   ├── mcp-server/                ← MCP Server layer (Streamable HTTP)
+│   └── utils/                     ← Helpers (file-backend, logger, worker-registry, etc.)
+├── tools/                         ← Node.js automation scripts (output MD, token-saving)
 ├── exchange/                      ← File IPC — Data Provider Layer
 │   ├── inbox/                     ← Tasks chờ agent nhận
 │   ├── active/                    ← Tasks đang xử lý
 │   ├── outbox/                    ← Kết quả agent trả về
-│   └── checkpoints/               ← State snapshots
-├── tools/                         ← Node.js automation scripts (token-saving)
+│   ├── checkpoints/               ← State snapshots
+│   └── logs/                      ← Structured MD logs (daily, append-only)
 ├── .agent/                        ← Antigravity integration
 │   ├── skills/                    ← Agent skills
 │   └── workflows/                 ← Agent workflows (slash commands)
@@ -36,16 +37,22 @@ agent-orchestrator/
 ```
 
 ## Conventions
-- **Paths**: Relative paths + `path.join()` — cross-platform Linux/Windows
+- **Paths**: `path.join()` + `import.meta.url` — 1 API cho cả Linux/Windows
 - **MCP responses**: Return `file_path` (not full data) → agent dùng `view_file()`
+- **Worker ID**: UUID — only MCP server creates/manages
+- **Logging**: Structured MD logs → `exchange/logs/YYYY-MM-DD.md`
+- **Tools output**: Tạo file MD tạm → agent đọc → xong xóa (token-saving)
+- **File writes**: Atomic write-then-rename pattern
+- **Symlinks**: `symlinkSync('junction')` — 1 API, cả 2 OS
 - **Git**: Branch `master`. Conventional Commits format.
+- **Naming**: `<module>_<description>_<version>` for plan files
 - **Timeout**: Stop any command exceeding 30s with no output.
 
 ## Skills (`.agent/skills/`)
 
 | Skill | Mô tả |
 |-------|--------|
-| `orchestrator-protocol` | Master protocol: MCP connect → pull → execute → complete |
+| `orchestrator-protocol` | Master protocol: MCP connect → register → pull → execute → complete |
 | `strict-scope` | Do ONLY what was asked — no extra refactors |
 | `token-optimization` | Context management, Index Pattern, Turn Limit |
 | `git-commit-convention` | Conventional Commits format |
@@ -56,7 +63,7 @@ agent-orchestrator/
 |----------|--------|
 | `/start-server` | Khởi động MCP Server + verify |
 | `/orchestrate` | Full flow: decompose → execute |
-| `/worker` | Worker mode: pull → execute → complete loop |
+| `/worker` | Worker mode: register → pull → execute → complete loop |
 | `/decompose` | Parse plan → tạo atomic tasks |
 | `/status` | Xem queue status + progress |
 | `/save-plan` | Lưu plan vào `plan/` theo format chuẩn |
@@ -65,13 +72,13 @@ agent-orchestrator/
 
 ## Tools (`tools/`)
 
-| Script | Mô tả |
-|--------|--------|
-| `health-check.mjs` | Check MCP server status, return JSON |
-| `queue-status.mjs` | Scan exchange/ dirs, return task summary |
-| `init-exchange.mjs` | Create exchange directory structure |
-| `task-scanner.mjs` | Scan & summarize tasks across all dirs |
-| `git-push.sh` | Git add + commit + push (no submodules) |
+| Script | Output | Mô tả |
+|--------|--------|--------|
+| `health-check.mjs` | `exchange/.tmp/health.md` | Server status, uptime, worker count |
+| `queue-status.mjs` | `exchange/.tmp/queue-status.md` | Task summary across all dirs |
+| `init-exchange.mjs` | Creates dirs | Setup exchange/ directory structure |
+| `task-scanner.mjs` | `exchange/.tmp/task-scan.md` | Detailed task listing |
+| `git-push.sh` | — | Git add + commit + push |
 
 ## Reference Skills (`reference/skills/`)
 
@@ -79,7 +86,15 @@ Portable skills dùng chung cho nhiều project:
 
 | Skill | Mô tả |
 |-------|--------|
-| `task-delegation` | Planner/Worker protocol, ticket template (evolve → orchestrator-protocol) |
+| `task-delegation` | Legacy protocol (evolved → orchestrator-protocol) |
 | `strict-scope` | Do ONLY what user asked — no extra refactors |
 | `token-optimization` | Context management, Index Pattern, Turn Limit |
 | `git-commit-convention` | Commit message format |
+
+## Current Plan
+
+- **Version**: v0.4
+- **Plan file**: `plan/2026-04-04_agent-orchestrator_v0.4.md`
+- **Status**: Approved — ready for task breakdown
+- **Transport**: Streamable HTTP (SSE deprecated)
+- **Phases**: A (Core MCP) → B (Skills/Workflows) → C (File IPC) → D (Full Test)
