@@ -1,6 +1,6 @@
 # Task Board — Agent Orchestrator POC v0.4
 
-> **Tổng**: 15 tasks | **Pending**: 13 | **Processing**: 1 | **Done**: 2
+> **Tổng**: 15 tasks | **Pending**: 12 | **Processing**: 0 | **Done**: 3
 
 ---
 
@@ -59,7 +59,7 @@ graph TD
 | --- | ---------------------------------------------------------------------- | ---------- | ------------ |
 | 01  | [Init Node.js Project](done/01-mcp_init-project.md)                    | ✅ Done    | None         |
 | 02  | [stdio Hello World](done/02-mcp_stdio-hello-world.md)                  | ✅ Done    | 01           |
-| 03  | [Config Antigravity + Test](processing/03-mcp_config-antigravity-test.md) | 🔄 Processing | 02           |
+| 03  | [Config Antigravity + Test](done/03-mcp_config-antigravity-test.md) | ✅ Done | 02           |
 
 ### Phase A2: Streamable HTTP + mcp-remote
 
