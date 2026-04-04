@@ -1,16 +1,16 @@
 import express from 'express';
-import { server } from './server.mjs';
-import { registerTools } from './tools.mjs';
+import { createServer } from './server.mjs';
 import { setupMcpRoutes } from './transport.mjs';
+import { SHUTDOWN_SIGNALS, API_ROUTES } from '../constants.mjs';
 
 // Setup tools
-registerTools(server);
+const server = createServer();
 
 export async function startServer({ port = 3847, host = '127.0.0.1' } = {}) {
   const app = express();
   app.use(express.json());
 
-  app.get('/health', (req, res) => {
+  app.get(API_ROUTES.HEALTH, (req, res) => {
     res.json({
       status: "ok",
       uptime: process.uptime(),
@@ -27,19 +27,19 @@ export async function startServer({ port = 3847, host = '127.0.0.1' } = {}) {
     console.log(`┌───────────────────────────────────┐`);
     console.log(`│  MCP Server listening :${portStr}       │`);
     console.log(`│  Transport: Streamable HTTP       │`);
-    console.log(`│  Endpoint: /mcp                   │`);
-    console.log(`│  Health: /health                  │`);
+    console.log(`│  Endpoint: ${API_ROUTES.MCP.padEnd(23)}│`);
+    console.log(`│  Health: ${API_ROUTES.HEALTH.padEnd(25)}│`);
     console.log(`└───────────────────────────────────┘`);
   });
 
-  const shutdown = async () => {
-    console.log('\n🛑 Shutting down gracefully...');
+  const shutdown = async (signal) => {
+    console.log(`\n🛑 Received ${signal}. Shutting down gracefully...`);
     // Future: flush state to files
     await server.close();
     httpServer.close();
     process.exit(0);
   };
 
-  process.on('SIGINT', shutdown);
-  process.on('SIGTERM', shutdown);
+  SHUTDOWN_SIGNALS.forEach(signal => process.on(signal, () => shutdown(signal)));
 }
+

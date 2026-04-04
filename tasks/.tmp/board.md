@@ -1,13 +1,13 @@
-# Task Board — 2026-04-04T08:00:21
+# Task Board — 2026-04-04T10:23:51
 
 | Status | Count |
 |--------|-------|
-| ⬜ Pending | 9 |
+| ⬜ Pending | 11 |
 | 🔄 Processing | 0 |
-| ✅ Done | 6 |
-| **Total** | **15** |
+| ✅ Done | 7 |
+| **Total** | **18** |
 
-Progress: 6/15 (40%)
+Progress: 7/18 (39%)
 
 ## ⬜ Pending
 - `07-skills_orchestrator-protocol.md`
@@ -19,6 +19,8 @@ Progress: 6/15 (40%)
 - `13-mcp_implement-all-tools.md`
 - `14-mcp_recovery-crash-test.md`
 - `15-test_end-to-end-flow.md`
+- `HF-B_transport-multi-session.md`
+- `HF-C_tool-error-handling.md`
 
 ## ✅ Done
 - `01-mcp_init-project.md`
@@ -27,5 +29,6 @@ Progress: 6/15 (40%)
 - `04-mcp_streamable-http.md`
 - `05-mcp_config-mcp-remote.md`
 - `06-mcp_multi-session-hardening.md`
+- `HF-A_server-factory.md`
 
 **Next**: `07-skills_orchestrator-protocol.md`

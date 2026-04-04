@@ -1,6 +1,6 @@
 # Task Board — Agent Orchestrator POC v0.4
 
-> **Tổng**: 15 tasks | **Pending**: 10 | **Processing**: 0 | **Done**: 5
+> **Tổng**: 18 tasks | **Pending**: 12 | **Processing**: 0 | **Done**: 6
 
 ---
 
@@ -73,6 +73,9 @@ graph TD
 | #   | Task                                                                           | Status     | Dependencies |
 | --- | ------------------------------------------------------------------------------ | ---------- | ------------ |
 | 06  | [Multi-session + Graceful Shutdown](done/06-mcp_multi-session-hardening.md)    | ✅ Done    | 05           |
+| HF-A| [Hotfix A: Refactor Server → Factory](done/HF-A_server-factory.md)             | ✅ Done    | None         |
+| HF-B| [Hotfix B: Rewrite Transport Multi-Session](pending/HF-B_transport-multi-session.md)| ⬜ Pending | HF-A         |
+| HF-C| [Hotfix C: Tool Error Handling](pending/HF-C_tool-error-handling.md)           | ⬜ Pending | HF-B         |
 
 ### Phase B: Skills / Workflows / Templates
 

@@ -1,10 +1,11 @@
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import crypto from 'crypto';
+import { API_ROUTES } from '../constants.mjs';
 
 export function setupMcpRoutes(app, server) {
   const sessions = new Map();
   
-  app.post('/mcp', async (req, res, next) => {
+  app.post(API_ROUTES.MCP, async (req, res, next) => {
     try {
       /* 
       // Uncomment to debug incoming requests

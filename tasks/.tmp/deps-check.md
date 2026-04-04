@@ -1,14 +1,21 @@
-# Dependency Check — 2026-04-04T07:50:57
+# Dependency Check — 2026-04-04T10:20:35
 
-## 06-mcp_multi-session-hardening.md
+## HF-A_server-factory.md
 - **Status**: ✅ READY
-- **Dependencies**: `05`
-- **Met**: ✅ 05
+- **Dependencies**: None
+
+## HF-B_transport-multi-session.md
+- **Status**: ✅ READY
+- **Dependencies**: None
+
+## HF-C_tool-error-handling.md
+- **Status**: ✅ READY
+- **Dependencies**: None
 
 ## 07-skills_orchestrator-protocol.md
-- **Status**: 🔒 BLOCKED
+- **Status**: ✅ READY
 - **Dependencies**: `06`
-- **Unmet**: ❌ 06
+- **Met**: ✅ 06
 
 ## 08-workflows_create-all.md
 - **Status**: 🔒 BLOCKED
@@ -26,10 +33,9 @@
 - **Met**: ✅ 05
 
 ## 11-utils_file-backend-logger.md
-- **Status**: 🔒 BLOCKED
+- **Status**: ✅ READY
 - **Dependencies**: `06`, `05`
-- **Met**: ✅ 05
-- **Unmet**: ❌ 06
+- **Met**: ✅ 06, ✅ 05
 
 ## 12-mcp_state-manager-queue.md
 - **Status**: 🔒 BLOCKED
@@ -52,4 +58,4 @@
 - **Unmet**: ❌ 14
 
 ---
-**Ready**: 2/10 tasks can be started now
+**Ready**: 6/12 tasks can be started now

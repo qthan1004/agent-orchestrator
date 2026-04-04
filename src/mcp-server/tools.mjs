@@ -1,9 +1,10 @@
 import { z } from 'zod';
 import { workerRegistry } from '../utils/worker-registry.mjs';
+import { TOOL_NAMES } from '../constants.mjs';
 
 export function registerTools(server) {
   server.registerTool(
-    "hello_world",
+    TOOL_NAMES.HELLO_WORLD,
     {
       description: "A simple hello world tool",
       inputSchema: { name: z.string().describe("Your name") }
@@ -14,7 +15,7 @@ export function registerTools(server) {
   );
 
   server.registerTool(
-    "register_worker",
+    TOOL_NAMES.REGISTER_WORKER,
     {
       description: "Register a new worker and get a unique UUID",
     },
@@ -27,7 +28,7 @@ export function registerTools(server) {
   );
 
   server.registerTool(
-    "get_status",
+    TOOL_NAMES.GET_STATUS,
     {
       description: "Get server status and version",
     },
