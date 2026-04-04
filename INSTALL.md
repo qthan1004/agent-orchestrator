@@ -43,3 +43,10 @@ Tương tự như trên, nhưng vì filesystem Unix sử dụng format `/path/to
 
 ## 3. Khởi động lại Client
 Sau khi cập nhật file JSON, tiến hành Restart / Làm mới kết nối trong phần MCP Server của cấu hình Client để hệ thống nhận diện các Tools mới.
+
+## 4. Kiểm tra (Verification)
+Sau khi kết nối thành công, bạn có thể kiểm tra xem Orchestrator đã hoạt động hay chưa bằng cách:
+- **Trên Antigravity**: Mở cửa sổ chat mới, yêu cầu Agent với câu lệnh như: *"Hãy liệt kê các tool hiện có"*. Bạn sẽ thấy các tool như `hello_world`, `get_status` xuất hiện trong danh sách.
+- **Trên Claude Desktop**: Kiểm tra biểu tượng cái phích cắm (plug icon) ở góc, nếu thấy sáng lên và hiện tên server `orchestrator` tức là kết nối thành công. Bạn có thể chat trực tiếp: *"Sử dụng tool hello_world của orchestrator cho tôi"*.
+
+Nếu không thấy công cụ xuất hiện, hãy kiểm tra lại log lỗi (thường nằm ở console hoặc Developer Tools của ứng dụng Client) nhằm đảm bảo đường dẫn thư mục khai báo đã hoàn toàn chính xác.
