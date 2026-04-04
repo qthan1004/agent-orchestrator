@@ -1,9 +1,9 @@
-# Dependency Check — 2026-04-04T07:08:54
+# Dependency Check — 2026-04-04T07:10:12
 
 ## 04-mcp_streamable-http.md
-- **Status**: ✅ READY
+- **Status**: 🔒 BLOCKED
 - **Dependencies**: `03`
-- **Met**: ✅ 03
+- **Unmet**: ❌ 03
 
 ## 05-mcp_config-mcp-remote.md
 - **Status**: 🔒 BLOCKED
@@ -61,4 +61,4 @@
 - **Unmet**: ❌ 14
 
 ---
-**Ready**: 1/12 tasks can be started now
+**Ready**: 0/12 tasks can be started now

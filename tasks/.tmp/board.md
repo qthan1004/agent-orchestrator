@@ -1,13 +1,16 @@
-# Task Board — 2026-04-04T07:08:54
+# Task Board — 2026-04-04T07:10:12
 
 | Status | Count |
 |--------|-------|
 | ⬜ Pending | 12 |
-| 🔄 Processing | 0 |
-| ✅ Done | 3 |
+| 🔄 Processing | 1 |
+| ✅ Done | 2 |
 | **Total** | **15** |
 
-Progress: 3/15 (20%)
+Progress: 2/15 (13%)
+
+## 🔄 Processing
+- `03-mcp_config-antigravity-test.md`
 
 ## ⬜ Pending
 - `04-mcp_streamable-http.md`
@@ -26,6 +29,5 @@ Progress: 3/15 (20%)
 ## ✅ Done
 - `01-mcp_init-project.md`
 - `02-mcp_stdio-hello-world.md`
-- `03-mcp_config-antigravity-test.md`
 
-**Next**: `04-mcp_streamable-http.md`
+**Current**: `03-mcp_config-antigravity-test.md` — finish this first

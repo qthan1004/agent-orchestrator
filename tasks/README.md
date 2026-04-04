@@ -1,6 +1,6 @@
 # Task Board — Agent Orchestrator POC v0.4
 
-> **Tổng**: 15 tasks | **Pending**: 12 | **Processing**: 0 | **Done**: 3
+> **Tổng**: 15 tasks | **Pending**: 13 | **Processing**: 1 | **Done**: 2
 
 ---
 
@@ -31,11 +31,11 @@ graph TD
     T10 --> T15
 
     style T01 fill:#22c55e,color:#fff
-    style T02 fill:#ef4444,color:#fff
-    style T03 fill:#ef4444,color:#fff
-    style T04 fill:#f59e0b,color:#fff
-    style T05 fill:#f59e0b,color:#fff
-    style T06 fill:#f59e0b,color:#fff
+    style T02 fill:#22c55e,color:#fff
+    style T03 fill:#f59e0b,color:#fff
+    style T04 fill:#ef4444,color:#fff
+    style T05 fill:#ef4444,color:#fff
+    style T06 fill:#ef4444,color:#fff
     style T07 fill:#8b5cf6,color:#fff
     style T08 fill:#8b5cf6,color:#fff
     style T09 fill:#8b5cf6,color:#fff
@@ -54,43 +54,49 @@ graph TD
 ## Task List
 
 ### Phase A1: Minimal MCP + Hello World
-| # | Task | Status | Dependencies |
-|---|------|--------|-------------|
-| 01 | [Init Node.js Project](done/01-mcp_init-project.md) | ✅ Done | None |
-| 02 | [stdio Hello World](done/02-mcp_stdio-hello-world.md) | ✅ Done | 01 |
-| 03 | [Config Antigravity + Test](done/03-mcp_config-antigravity-test.md) | ✅ Done | 02 |
+
+| #   | Task                                                                   | Status     | Dependencies |
+| --- | ---------------------------------------------------------------------- | ---------- | ------------ |
+| 01  | [Init Node.js Project](done/01-mcp_init-project.md)                    | ✅ Done    | None         |
+| 02  | [stdio Hello World](done/02-mcp_stdio-hello-world.md)                  | ✅ Done    | 01           |
+| 03  | [Config Antigravity + Test](processing/03-mcp_config-antigravity-test.md) | 🔄 Processing | 02           |
 
 ### Phase A2: Streamable HTTP + mcp-remote
-| # | Task | Status | Dependencies |
-|---|------|--------|-------------|
-| 04 | [Upgrade → Streamable HTTP](pending/04-mcp_streamable-http.md) | ⬜ Pending | 03 |
-| 05 | [Config mcp-remote + config.mjs](pending/05-mcp_config-mcp-remote.md) | ⬜ Pending | 04 |
+
+| #   | Task                                                                  | Status     | Dependencies |
+| --- | --------------------------------------------------------------------- | ---------- | ------------ |
+| 04  | [Upgrade → Streamable HTTP](pending/04-mcp_streamable-http.md)        | ⬜ Pending | 03           |
+| 05  | [Config mcp-remote + config.mjs](pending/05-mcp_config-mcp-remote.md) | ⬜ Pending | 04           |
 
 ### Phase A3: Multi-session + Hardening
-| # | Task | Status | Dependencies |
-|---|------|--------|-------------|
-| 06 | [Multi-session + Graceful Shutdown](pending/06-mcp_multi-session-hardening.md) | ⬜ Pending | 05 |
+
+| #   | Task                                                                           | Status     | Dependencies |
+| --- | ------------------------------------------------------------------------------ | ---------- | ------------ |
+| 06  | [Multi-session + Graceful Shutdown](pending/06-mcp_multi-session-hardening.md) | ⬜ Pending | 05           |
 
 ### Phase B: Skills / Workflows / Templates
-| # | Task | Status | Dependencies |
-|---|------|--------|-------------|
-| 07 | [Orchestrator Protocol SKILL.md](pending/07-skills_orchestrator-protocol.md) | ⬜ Pending | 06 |
-| 08 | [Create Workflows (5 files)](pending/08-workflows_create-all.md) | ⬜ Pending | 07 |
-| 09 | [Symlink Skills + JSON Templates](pending/09-skills_symlink-templates.md) | ⬜ Pending | 07 |
-| 10 | [Create Automation Tools (4 scripts)](pending/10-tools_create-automation.md) | ⬜ Pending | 05 |
+
+| #   | Task                                                                         | Status     | Dependencies |
+| --- | ---------------------------------------------------------------------------- | ---------- | ------------ |
+| 07  | [Orchestrator Protocol SKILL.md](pending/07-skills_orchestrator-protocol.md) | ⬜ Pending | 06           |
+| 08  | [Create Workflows (5 files)](pending/08-workflows_create-all.md)             | ⬜ Pending | 07           |
+| 09  | [Symlink Skills + JSON Templates](pending/09-skills_symlink-templates.md)    | ⬜ Pending | 07           |
+| 10  | [Create Automation Tools (4 scripts)](pending/10-tools_create-automation.md) | ⬜ Pending | 05           |
 
 ### Phase C: File IPC + Core MCP Tools
-| # | Task | Status | Dependencies |
-|---|------|--------|-------------|
-| 11 | [File Backend + Logger + Registry](pending/11-utils_file-backend-logger.md) | ⬜ Pending | 05, 06 |
-| 12 | [State Manager + Task Queue](pending/12-mcp_state-manager-queue.md) | ⬜ Pending | 11 |
-| 13 | [Implement All MCP Tools (9 tools)](pending/13-mcp_implement-all-tools.md) | ⬜ Pending | 12 |
-| 14 | [Recovery + Crash Test](pending/14-mcp_recovery-crash-test.md) | ⬜ Pending | 13 |
+
+| #   | Task                                                                        | Status     | Dependencies |
+| --- | --------------------------------------------------------------------------- | ---------- | ------------ |
+| 11  | [File Backend + Logger + Registry](pending/11-utils_file-backend-logger.md) | ⬜ Pending | 05, 06       |
+| 12  | [State Manager + Task Queue](pending/12-mcp_state-manager-queue.md)         | ⬜ Pending | 11           |
+| 13  | [Implement All MCP Tools (9 tools)](pending/13-mcp_implement-all-tools.md)  | ⬜ Pending | 12           |
+| 14  | [Recovery + Crash Test](pending/14-mcp_recovery-crash-test.md)              | ⬜ Pending | 13           |
 
 ### Phase D: Full Flow Test
-| # | Task | Status | Dependencies |
-|---|------|--------|-------------|
-| 15 | [End-to-End Flow Test](pending/15-test_end-to-end-flow.md) | ⬜ Pending | 08, 09, 10, 14 |
+
+| #   | Task                                                       | Status     | Dependencies   |
+| --- | ---------------------------------------------------------- | ---------- | -------------- |
+| 15  | [End-to-End Flow Test](pending/15-test_end-to-end-flow.md) | ⬜ Pending | 08, 09, 10, 14 |
 
 ---
 
