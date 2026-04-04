@@ -1,8 +1,4 @@
-# Dependency Check — 2026-04-04T10:36:16
-
-## HF-B_transport-multi-session.md
-- **Status**: ✅ READY
-- **Dependencies**: None
+# Dependency Check — 2026-04-04T10:43:41
 
 ## HF-C_tool-error-handling.md
 - **Status**: ✅ READY
@@ -54,4 +50,4 @@
 - **Unmet**: ❌ 14
 
 ---
-**Ready**: 5/11 tasks can be started now
+**Ready**: 4/10 tasks can be started now

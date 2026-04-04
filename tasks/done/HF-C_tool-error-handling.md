@@ -115,7 +115,7 @@ cat .agent/skills/mcp-sdk-reference/SKILL.md
 
 ## Done Criteria
 
-- [ ] Cả 3 tool callbacks có try-catch wrapper
-- [ ] Error responses trả `{ isError: true }` 
-- [ ] Skill reference section 2 + 3 cập nhật theo factory pattern
-- [ ] Ghi observations vào `plan/orchestrator_poc-observations_v0.1.md`
+- [x] Cả 3 tool callbacks có try-catch wrapper
+- [x] Error responses trả `{ isError: true }` 
+- [x] Skill reference section 2 + 3 cập nhật theo factory pattern
+- [x] Ghi observations vào `plan/orchestrator_poc-observations_v0.1.md`
