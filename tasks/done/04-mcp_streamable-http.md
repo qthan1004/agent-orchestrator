@@ -65,8 +65,8 @@ Kỳ vọng: Health endpoint trả JSON `{ "status": "ok", ... }`
 
 ## Done Criteria
 
-- [ ] `node src/index.mjs serve` khởi động HTTP server
-- [ ] `/health` endpoint trả JSON status
-- [ ] `/mcp` endpoint accept POST (Streamable HTTP)
-- [ ] Console hiển thị banner + port
-- [ ] Server bind `127.0.0.1` only
+- [x] `node src/index.mjs serve` khởi động HTTP server
+- [x] `/health` endpoint trả JSON status
+- [x] `/mcp` endpoint accept POST (Streamable HTTP)
+- [x] Console hiển thị banner + port
+- [x] Server bind `127.0.0.1` only

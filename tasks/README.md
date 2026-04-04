@@ -1,6 +1,6 @@
 # Task Board — Agent Orchestrator POC v0.4
 
-> **Tổng**: 15 tasks | **Pending**: 12 | **Processing**: 0 | **Done**: 3
+> **Tổng**: 15 tasks | **Pending**: 11 | **Processing**: 0 | **Done**: 4
 
 ---
 
@@ -65,7 +65,7 @@ graph TD
 
 | #   | Task                                                                  | Status     | Dependencies |
 | --- | --------------------------------------------------------------------- | ---------- | ------------ |
-| 04  | [Upgrade → Streamable HTTP](pending/04-mcp_streamable-http.md)        | ⬜ Pending | 03           |
+| 04  | [Upgrade → Streamable HTTP](done/04-mcp_streamable-http.md)           | ✅ Done    | 03           |
 | 05  | [Config mcp-remote + config.mjs](pending/05-mcp_config-mcp-remote.md) | ⬜ Pending | 04           |
 
 ### Phase A3: Multi-session + Hardening

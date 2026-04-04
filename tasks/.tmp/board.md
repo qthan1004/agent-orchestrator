@@ -1,16 +1,15 @@
-# Task Board — 2026-04-04T07:11:45
+# Task Board — 2026-04-04T07:19:56
 
 | Status | Count |
 |--------|-------|
-| ⬜ Pending | 12 |
+| ⬜ Pending | 11 |
 | 🔄 Processing | 0 |
-| ✅ Done | 3 |
+| ✅ Done | 4 |
 | **Total** | **15** |
 
-Progress: 3/15 (20%)
+Progress: 4/15 (27%)
 
 ## ⬜ Pending
-- `04-mcp_streamable-http.md`
 - `05-mcp_config-mcp-remote.md`
 - `06-mcp_multi-session-hardening.md`
 - `07-skills_orchestrator-protocol.md`
@@ -27,5 +26,6 @@ Progress: 3/15 (20%)
 - `01-mcp_init-project.md`
 - `02-mcp_stdio-hello-world.md`
 - `03-mcp_config-antigravity-test.md`
+- `04-mcp_streamable-http.md`
 
-**Next**: `04-mcp_streamable-http.md`
+**Next**: `05-mcp_config-mcp-remote.md`
