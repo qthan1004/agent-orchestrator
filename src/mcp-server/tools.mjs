@@ -211,15 +211,15 @@ export function registerTools(server, context) {
   );
 
   server.registerTool(
-    TOOL_NAMES.GET_PLAN_FOR_DECOMPOSITION,
+    TOOL_NAMES.CHECK_PLANS,
     {
-      description: "Get the main implementation plan needed for decomposing tasks",
+      description: "Check for new plan files in plan/pending/. Returns 'ready' with plan path if found (auto-moves to processing/), 'busy' if already processing one, 'idle' if none pending.",
     },
     async () => {
       try {
-        // According to config, templates is ../templates, plans is ../plan
+        const result = stateManager.checkPlans();
         return {
-          content: [{ type: "text", text: JSON.stringify({ plan_file_path: '../plan', template_path: '../templates' }) }]
+          content: [{ type: "text", text: JSON.stringify(result) }]
         };
       } catch (err) {
         return formatError(err);
@@ -237,7 +237,7 @@ export function registerTools(server, context) {
   server.registerTool(
     TOOL_NAMES.SUBMIT_DECOMPOSITION,
     {
-      description: "Submit decomposed tasks and graph dependency",
+      description: "Submit decomposed tasks and graph dependency. Marks source plan as done.",
       inputSchema: {
         tasks: z.array(TaskDefSchema).max(20).describe("List of tasks"),
         graph: z.object({
@@ -247,15 +247,17 @@ export function registerTools(server, context) {
                 depends_on: z.array(z.number()).optional()
             }))
         }).describe("DAG constraint groups"),
-        reasoning: z.string().describe("Justification for the breakdown")
+        reasoning: z.string().describe("Justification for the breakdown"),
+        source_plan: z.string().describe("Filename of the plan being decomposed (from check_plans)")
       }
     },
-    async ({ tasks, graph, reasoning }) => {
+    async ({ tasks, graph, reasoning, source_plan }) => {
       try {
          // Throws if circular deps
          stateManager.storeTasks(tasks, graph);
+         stateManager.completePlan(source_plan);
         return {
-          content: [{ type: "text", text: JSON.stringify({ accepted: true }) }]
+          content: [{ type: "text", text: JSON.stringify({ accepted: true, plan_completed: source_plan }) }]
         };
       } catch (err) {
          return {
@@ -289,18 +291,4 @@ export function registerTools(server, context) {
     }
   );
 
-  // TEMPORARY TEST TOOL
-  server.registerTool(
-    "test_error",
-    {
-      description: "Trigger a mock error to test isError format",
-    },
-    async () => {
-      try {
-        throw new Error("This is a simulated critical database failure!");
-      } catch (err) {
-        return formatError(err);
-      }
-    }
-  );
 }

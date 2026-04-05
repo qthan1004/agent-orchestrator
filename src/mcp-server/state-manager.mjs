@@ -29,6 +29,57 @@ export class StateManager {
     return this.plan;
   }
 
+  // Plan state machine: pending/ → processing/ → done/
+  checkPlans() {
+    ensureDir(this.config.plans.pending);
+    ensureDir(this.config.plans.processing);
+    ensureDir(this.config.plans.done);
+
+    // Already processing a plan? → Don't pick another
+    const processingFiles = listFiles(this.config.plans.processing, '.md');
+    if (processingFiles.length > 0) {
+      return {
+        status: 'busy',
+        current: processingFiles[0],
+        plan_path: `plan/processing/${processingFiles[0]}`,
+        pending_count: listFiles(this.config.plans.pending, '.md').length
+      };
+    }
+
+    // Scan pending, FIFO sort by filename (use timestamp prefix for ordering)
+    const pendingFiles = listFiles(this.config.plans.pending, '.md').sort();
+    if (pendingFiles.length === 0) {
+      return { status: 'idle', current: null, pending_count: 0 };
+    }
+
+    // Pick oldest → move to processing/
+    const nextFile = pendingFiles[0];
+    const src = path.join(this.config.plans.pending, nextFile);
+    const dest = path.join(this.config.plans.processing, nextFile);
+    moveFile(src, dest);
+
+    if (this.logger) {
+      this.logger.log(STATE_EVENTS.PLAN_PROCESSING, { filename: nextFile, pending_remaining: pendingFiles.length - 1 });
+    }
+
+    return {
+      status: 'ready',
+      current: nextFile,
+      plan_path: `plan/processing/${nextFile}`,
+      pending_count: pendingFiles.length - 1
+    };
+  }
+
+  completePlan(filename) {
+    const src = path.join(this.config.plans.processing, filename);
+    const dest = path.join(this.config.plans.done, filename);
+    moveFile(src, dest);
+
+    if (this.logger) {
+      this.logger.log(STATE_EVENTS.PLAN_COMPLETED, { filename });
+    }
+  }
+
   // Task management
   storeTasks(tasks, graph) {
     this.queue.validateDAG(graph);

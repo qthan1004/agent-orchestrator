@@ -7,7 +7,7 @@ export const TOOL_NAMES = {
   REPORT_PROGRESS: "report_progress",
   GET_QUEUE_STATUS: "get_queue_status",
   GET_CHECKPOINT: "get_checkpoint",
-  GET_PLAN_FOR_DECOMPOSITION: "get_plan_for_decomposition",
+  CHECK_PLANS: "check_plans",
   SUBMIT_DECOMPOSITION: "submit_decomposition",
   REQUEST_RETRY: "request_retry"
 };
@@ -46,7 +46,10 @@ export const DIR_NAMES = {
   CHECKPOINTS: 'checkpoints',
   LOGS: 'logs',
   TEMPLATES: 'templates',
-  PLAN: 'plan'
+  PLAN: 'plan',
+  PENDING: 'pending',
+  PROCESSING: 'processing',
+  DONE: 'done'
 };
 
 export const TASK_STATUS = {
@@ -65,6 +68,9 @@ export const FILE_PREFIXES = {
 
 export const STATE_EVENTS = {
   PLAN_LOADED: 'PLAN_LOADED',
+  PLAN_DETECTED: 'PLAN_DETECTED',
+  PLAN_PROCESSING: 'PLAN_PROCESSING',
+  PLAN_COMPLETED: 'PLAN_COMPLETED',
   TASKS_STORED: 'TASKS_STORED',
   TASK_ACTIVATED: 'TASK_ACTIVATED',
   TASK_COMPLETED: 'TASK_COMPLETED',
