@@ -6,9 +6,23 @@ import { StateManager } from './state-manager.mjs';
 import { RecoveryManager } from './recovery.mjs';
 import { workerRegistry } from '../utils/worker-registry.mjs';
 import { Logger } from '../utils/logger.mjs';
+import { bootstrapDirectories } from '../utils/bootstrap.mjs';
 
 export async function startServer({ port = 3847, host = '127.0.0.1' } = {}) {
   const config = loadConfig({ port, host });
+
+  // Bootstrap: tạo toàn bộ thư mục cần thiết trước khi khởi tạo bất kỳ service nào
+  const { created, failed, skipped } = bootstrapDirectories(config);
+  if (failed.length > 0) {
+    console.error('❌ Failed to create directories:', failed);
+    process.exit(1);
+  }
+  if (created.length > 0) {
+    console.log(`📁 Created ${created.length} missing directories (${skipped} already existed).`);
+  } else {
+    console.log('📁 All directories present.');
+  }
+
   const logger = new Logger(config.exchange.logs);
   const stateManager = new StateManager(logger);
 

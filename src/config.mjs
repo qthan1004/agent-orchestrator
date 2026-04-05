@@ -24,6 +24,12 @@ export function loadConfig(overrides = {}) {
       processing: join(root, DIR_NAMES.PLAN, DIR_NAMES.PROCESSING),
       done: join(root, DIR_NAMES.PLAN, DIR_NAMES.DONE),
     },
+    tasks: {
+      base: join(root, DIR_NAMES.TASKS),
+      pending: join(root, DIR_NAMES.TASKS, DIR_NAMES.PENDING),
+      processing: join(root, DIR_NAMES.TASKS, DIR_NAMES.PROCESSING),
+      done: join(root, DIR_NAMES.TASKS, DIR_NAMES.DONE),
+    },
     server: {
       port: overrides.port || 3847,
       host: overrides.host || '127.0.0.1',

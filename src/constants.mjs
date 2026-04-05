@@ -47,6 +47,7 @@ export const DIR_NAMES = {
   LOGS: 'logs',
   TEMPLATES: 'templates',
   PLAN: 'plan',
+  TASKS: 'tasks',
   PENDING: 'pending',
   PROCESSING: 'processing',
   DONE: 'done'
