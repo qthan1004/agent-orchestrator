@@ -1,6 +1,6 @@
 import path from 'path';
 import { loadConfig } from '../config.mjs';
-import { readJSON, writeJSON, moveFile, listFiles, ensureDir } from '../utils/file-backend.mjs';
+import { readJSON, writeJSON, moveFile, listFiles, ensureDir, readFile } from '../utils/file-backend.mjs';
 import { TaskQueue } from './task-queue.mjs';
 import { TASK_STATUS, FILE_PREFIXES, STATE_EVENTS } from '../constants.mjs';
 
@@ -42,6 +42,7 @@ export class StateManager {
         status: 'busy',
         current: processingFiles[0],
         plan_path: `plan/processing/${processingFiles[0]}`,
+        content: readFile(path.join(this.config.plans.processing, processingFiles[0])),
         pending_count: listFiles(this.config.plans.pending, '.md').length
       };
     }
@@ -66,6 +67,7 @@ export class StateManager {
       status: 'ready',
       current: nextFile,
       plan_path: `plan/processing/${nextFile}`,
+      content: readFile(dest),
       pending_count: pendingFiles.length - 1
     };
   }

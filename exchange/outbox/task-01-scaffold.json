@@ -1,0 +1,7 @@
+{
+  "id": "01-scaffold",
+  "module": "Scaffold",
+  "action": "[CONTEXT OVERRIDE]: Cwd bắt buộc là `d:\\workspace\\agent-orchestrator`. Từ đó dùng absolute path tiến hành thưc thi: `cd d:\\workspace\\react-lib-workspace && bash tools/gen-lib.sh input` và `bash tools/git-setup-lib.sh input` để scaffold.",
+  "verification": "Thư mục libs/input được tạo thành công cùng với config git.",
+  "status": "failed"
+}

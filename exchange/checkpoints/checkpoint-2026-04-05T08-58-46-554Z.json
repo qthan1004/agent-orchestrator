@@ -1,0 +1,54 @@
+{
+  "graph": {
+    "groups": [
+      {
+        "group_id": 1,
+        "tasks": [
+          "01-scaffold"
+        ],
+        "depends_on": []
+      },
+      {
+        "group_id": 2,
+        "tasks": [
+          "02-implementation"
+        ],
+        "depends_on": [
+          1
+        ]
+      },
+      {
+        "group_id": 3,
+        "tasks": [
+          "03-verify"
+        ],
+        "depends_on": [
+          2
+        ]
+      }
+    ]
+  },
+  "tasks": {
+    "01-scaffold": {
+      "id": "01-scaffold",
+      "module": "Scaffold",
+      "action": "[CONTEXT OVERRIDE]: Cwd bắt buộc là `d:\\workspace\\agent-orchestrator`. Từ đó dùng absolute path tiến hành thưc thi: `cd d:\\workspace\\react-lib-workspace && bash tools/gen-lib.sh input` và `bash tools/git-setup-lib.sh input` để scaffold.",
+      "verification": "Thư mục libs/input được tạo thành công cùng với config git.",
+      "status": "failed"
+    },
+    "02-implementation": {
+      "id": "02-implementation",
+      "module": "Implementation",
+      "action": "[CONTEXT OVERRIDE]: Cwd bắt buộc là `d:\\workspace\\agent-orchestrator`. Từ đó dùng absolute path: Implement React & UI cho Component Input tại `d:\\workspace\\react-lib-workspace\\libs\\input`. Đọc và bám sát `.agent/skills` (ví dụ styled-theme-convention.md).",
+      "verification": "Input component hoàn tất logic, props, events.",
+      "status": "pending"
+    },
+    "03-verify": {
+      "id": "03-verify",
+      "module": "Verify",
+      "action": "[CONTEXT OVERRIDE]: Cwd bắt buộc là `d:\\workspace\\agent-orchestrator`. Từ đó, đi vào `d:\\workspace\\react-lib-workspace\\libs\\input`, chạy `npm install` và `npx vite build`. Xác thực compile pass. Bỏ qua Human Setup NPM_TOKEN nếu không có CI manual.",
+      "verification": "Lệnh vite build trả về exit code 0.",
+      "status": "pending"
+    }
+  }
+}

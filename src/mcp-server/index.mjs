@@ -4,6 +4,7 @@ import { SHUTDOWN_SIGNALS, API_ROUTES } from '../constants.mjs';
 import { loadConfig } from '../config.mjs';
 import { StateManager } from './state-manager.mjs';
 import { RecoveryManager } from './recovery.mjs';
+import { PlanWatcher } from './plan-watcher.mjs';
 import { workerRegistry } from '../utils/worker-registry.mjs';
 import { Logger } from '../utils/logger.mjs';
 import { bootstrapDirectories } from '../utils/bootstrap.mjs';
@@ -42,7 +43,16 @@ export async function startServer({ port = 3847, host = '127.0.0.1' } = {}) {
   // 5. Clear marker
   const { wasClean, orphanCount } = recoveryManager.runStartupRecovery();
 
-  const context = { stateManager, logger, config, recoveryManager };
+  // Plan watcher — auto-polls plan/pending/ directory
+  const planWatcherIntervalMs = config.planWatcher?.intervalMs || 30_000;
+  const planWatcher = new PlanWatcher({
+    stateManager,
+    logger,
+    intervalMs: planWatcherIntervalMs
+  });
+  planWatcher.start();
+
+  const context = { stateManager, logger, config, recoveryManager, planWatcher };
 
   const app = express();
 
@@ -73,9 +83,10 @@ export async function startServer({ port = 3847, host = '127.0.0.1' } = {}) {
     res.json({
       status: "ok",
       uptime: process.uptime(),
-      version: "0.1.0",
+      version: "0.2.0",
       last_start_clean: wasClean,
-      orphans_recovered: orphanCount
+      orphans_recovered: orphanCount,
+      plan_watcher: planWatcher.getStats()
     });
   });
 
@@ -109,6 +120,9 @@ export async function startServer({ port = 3847, host = '127.0.0.1' } = {}) {
 
   const shutdown = async (signal) => {
     console.log(`\n🛑 Received ${signal}. Shutting down gracefully...`);
+
+    // Stop plan watcher
+    planWatcher.stop();
 
     // Run graceful shutdown (stop monitoring, checkpoint, marker)
     recoveryManager.runGracefulShutdown();

@@ -91,13 +91,14 @@ export function registerTools(server, context) {
 
         stateManager.moveToActive(task.id);
         worker.current_task = task.id;
+        workerRegistry.updateHeartbeat(worker_id);
         
         if (logger) {
             logger.log(STATE_EVENTS.TASK_ASSIGNED, { task_id: task.id, worker_id });
         }
 
         return {
-          content: [{ type: "text", text: JSON.stringify({ task_id: task.id, file_path: `active/task-${task.id}.json` }) }]
+          content: [{ type: "text", text: JSON.stringify({ task_id: task.id, task_details: task }) }]
         };
       } catch (err) {
         return formatError(err);

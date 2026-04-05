@@ -99,7 +99,7 @@ export const RECOVERY_EVENTS = {
 
 export const RECOVERY_DEFAULTS = {
   MONITOR_INTERVAL_MS: 10_000, // 10s
-  STALE_THRESHOLD_MS: 30_000,  // 30s since last heartbeat
+  STALE_THRESHOLD_MS: 86400_000,  // 24 hours (chạy tới khi tắt thì thôi)
   MAX_RETRIES: 3
 };
 

@@ -33,6 +33,9 @@ export function loadConfig(overrides = {}) {
     server: {
       port: overrides.port || 3847,
       host: overrides.host || '127.0.0.1',
+    },
+    planWatcher: {
+      intervalMs: overrides.planWatcherIntervalMs || 30_000, // 30s default
     }
   };
 }

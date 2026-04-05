@@ -162,6 +162,7 @@ node tools/health-check.mjs
 ```
 
 Kết quả ghi vào `exchange/.tmp/health.md`:
+
 - ✅ Running → Server chạy tốt
 - ❌ Failed → Server chưa bật hoặc bị lỗi
 
@@ -261,11 +262,13 @@ Không cần nhắn AI, không cần gõ lệnh. **Bỏ file vào đúng thư m�
 # Tính năng đăng nhập
 
 ## Yêu cầu
+
 - Tạo trang login với form email/password
 - Validate input
 - Kết nối API backend
 
 ## Chi tiết
+
 - File frontend: src/pages/Login.vue
 - File API: src/api/auth.mjs
 - Cần viết unit test
@@ -310,17 +313,17 @@ plan/pending/xxx.md    ──► plan/processing/xxx.md    ──► plan/done/x
 
 ## 🛠️ MCP Tools Reference
 
-| Tool | Chức năng | Ai dùng |
-|------|-----------|---------|
-| `register_worker` | Đăng ký AI với server | Bắt buộc, gọi 1 lần đầu |
-| `check_plans` | Quét `plan/pending/`, lấy plan mới | Planner (loop liên tục) |
-| `submit_decomposition` | Chia plan thành task, đánh dấu plan done | Planner |
-| `get_next_task` | Lấy task tiếp theo để làm | Worker (loop liên tục) |
-| `report_progress` | Báo tiến độ đang làm (%) | Worker |
-| `complete_task` | Báo xong task (done/failed/blocked) | Worker |
-| `get_queue_status` | Xem tổng quan queue | Ai cũng dùng |
-| `get_checkpoint` | Lưu bản snapshot trạng thái | Ai cũng dùng |
-| `request_retry` | Yêu cầu làm lại task bị lỗi | Planner/Bạn |
+| Tool                   | Chức năng                                | Ai dùng                 |
+| ---------------------- | ---------------------------------------- | ----------------------- |
+| `register_worker`      | Đăng ký AI với server                    | Bắt buộc, gọi 1 lần đầu |
+| `check_plans`          | Quét `plan/pending/`, lấy plan mới       | Planner (loop liên tục) |
+| `submit_decomposition` | Chia plan thành task, đánh dấu plan done | Planner                 |
+| `get_next_task`        | Lấy task tiếp theo để làm                | Worker (loop liên tục)  |
+| `report_progress`      | Báo tiến độ đang làm (%)                 | Worker                  |
+| `complete_task`        | Báo xong task (done/failed/blocked)      | Worker                  |
+| `get_queue_status`     | Xem tổng quan queue                      | Ai cũng dùng            |
+| `get_checkpoint`       | Lưu bản snapshot trạng thái              | Ai cũng dùng            |
+| `request_retry`        | Yêu cầu làm lại task bị lỗi              | Planner/Bạn             |
 
 ---
 
@@ -337,12 +340,12 @@ Kết quả ghi vào `tasks/README.md`:
 ```markdown
 # Task Board — 2026-04-05T01:00:00
 
-| Status | Count |
-|--------|-------|
-| ⬜ Pending | 2 |
-| 🔄 Processing | 1 |
-| ✅ Done | 5 |
-| **Total** | **8** |
+| Status        | Count |
+| ------------- | ----- |
+| ⬜ Pending    | 2     |
+| 🔄 Processing | 1     |
+| ✅ Done       | 5     |
+| **Total**     | **8** |
 
 Progress: 5/8 (62%)
 ```
@@ -386,12 +389,15 @@ Ghi lại từng sự kiện theo thứ tự thời gian: `TASK_ASSIGNED`, `PROG
 **Nguyên nhân:** Cổng 3847 đang bị chương trình khác chiếm.
 
 **Cách A: Đổi cổng**
+
 ```bash
 node src/index.mjs serve --port 4000
 ```
+
 > Nhớ cập nhật file `mcp_config.json` sửa `3847` thành `4000`
 
 **Cách B: Tắt process đang chiếm cổng**
+
 ```powershell
 netstat -ano | findstr :3847
 # Lấy PID (số cuối cùng) rồi:
@@ -401,6 +407,7 @@ taskkill /PID <PID> /F
 ### ❌ Antigravity không thấy tool nào
 
 **Checklist:**
+
 1. **Server có đang chạy không?** → Terminal phải hiện `🚀 Server is running`
 2. **File cấu hình đúng chưa?** → URL phải là `http://127.0.0.1:3847/mcp` (có `/mcp`!)
 3. **Đã restart Antigravity chưa?** → Phải tắt hoàn toàn rồi mở lại
@@ -434,7 +441,7 @@ Server sẽ: lấy task thất bại → đẩy lại vào queue → Worker tự
 ### Cách 2: Tự fix rồi retry
 
 1. Sửa code liên quan
-2. Nhắn AI: *"Task 03 đã fix xong, gọi `request_retry` để chạy lại"*
+2. Nhắn AI: _"Task 03 đã fix xong, gọi `request_retry` để chạy lại"_
 
 > [!WARNING]
 > Mỗi task chỉ được retry tối đa **3 lần** (`attempt: 1`, `2`, `3`). Vượt quá 3 → cần review lại plan hoặc tự sửa code.
@@ -443,12 +450,12 @@ Server sẽ: lấy task thất bại → đẩy lại vào queue → Worker tự
 
 ## 🛡️ Recovery tự động
 
-| Tình huống | Hệ thống xử lý |
-|------------|-----------------|
+| Tình huống                  | Hệ thống xử lý                                         |
+| --------------------------- | ------------------------------------------------------ |
 | Server crash, khởi động lại | Tự quét orphan task trong `exchange/active/` → requeue |
-| Worker treo quá 30 giây | Đánh dấu "stale", requeue cho Worker khác |
-| Tắt đột ngột (không Ctrl+C) | Phát hiện "unclean shutdown" → full recovery scan |
-| Tắt bình thường (Ctrl+C) | Ghi marker "clean shutdown" |
+| Worker treo quá 30 giây     | Đánh dấu "stale", requeue cho Worker khác              |
+| Tắt đột ngột (không Ctrl+C) | Phát hiện "unclean shutdown" → full recovery scan      |
+| Tắt bình thường (Ctrl+C)    | Ghi marker "clean shutdown"                            |
 
 → **Không cần lo mất dữ liệu.** Mọi thay đổi đều được checkpoint.
 
@@ -497,6 +504,7 @@ Bỏ file .md vào plan/pending/         ← CHỈ CẦN LÀM VIỆC NÀY
 ### 💡 Mẹo cho người mới
 
 > [!TIP]
+>
 > - **Ban đầu**, hãy thử với plan đơn giản (2-3 task nhỏ) để làm quen
 > - **Luôn kiểm tra** `get_queue_status()` trước khi giao task mới
 > - **Đọc log** tại `exchange/logs/` nếu muốn hiểu chuyện gì đang xảy ra
@@ -507,13 +515,13 @@ Bỏ file .md vào plan/pending/         ← CHỈ CẦN LÀM VIỆC NÀY
 
 ## 📦 Tech Stack
 
-| Thành phần | Công nghệ |
-|------------|-----------|
-| Runtime | Node.js ≥ 18 (ESM) |
-| Protocol | MCP (Model Context Protocol) — Streamable HTTP |
-| Framework | Express 5 |
-| Validation | Zod 4 |
-| MCP SDK | `@modelcontextprotocol/sdk` |
+| Thành phần | Công nghệ                                      |
+| ---------- | ---------------------------------------------- |
+| Runtime    | Node.js ≥ 18 (ESM)                             |
+| Protocol   | MCP (Model Context Protocol) — Streamable HTTP |
+| Framework  | Express 5                                      |
+| Validation | Zod 4                                          |
+| MCP SDK    | `@modelcontextprotocol/sdk`                    |
 
 ---
 

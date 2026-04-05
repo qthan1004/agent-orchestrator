@@ -52,6 +52,21 @@ export function readJSON(filePath) {
 }
 
 /**
+ * Reads plain text from a file.
+ * @param {string} filePath - Target file path.
+ * @returns {string|null} The string content or null if error.
+ */
+export function readFile(filePath) {
+  try {
+    if (!fs.existsSync(filePath)) return null;
+    return fs.readFileSync(filePath, 'utf8');
+  } catch (err) {
+    console.error(`readFile error for ${filePath}:`, err.message);
+    return null;
+  }
+}
+
+/**
  * Writes JSON atomically.
  * @param {string} filePath - Target file path.
  * @param {object} data - Data stringify.
