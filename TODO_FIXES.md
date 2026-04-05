@@ -25,8 +25,10 @@ Cần có sẵn 2 templates chuẩn, bao gồm các thành phần sau:
 - Worker cần thiết lập thời gian loop ngắn hơn để phản hồi nhanh với các công việc nguyên tử (atomic tasks).
 - **Khoảng thời gian (Interval):** ~10 giây cho 1 lần loop.
 
-## 5. Các ý khác (Pending)
-- *(Người dùng còn 1 ý nữa nhưng tạm quên, sẽ bổ sung sau)*.
+## 5. Tối ưu Token Usage trong quá trình Loop
+- Việc agent phải loop liên tục dẫn đến tiêu hao quá nhiều token một cách lãng phí.
+- Cần tìm tools hoặc thiết kế giải pháp để giảm thiểu token trong các vòng lặp. 
+- **Ví dụ:** Khi gọi tool lấy danh sách (queue/tasks), nếu trả về danh sách rỗng (empty) thì agent chuyển ngay sang trạng thái idle (ngủ/chờ) đợi tới vòng lặp tiếp theo, bỏ qua các bước giải thích hay suy luận gây tốn token.
 
 ---
 > **Lưu ý:** Chỉ ghi nhận lại theo yêu cầu, chưa thực hiện bất kỳ implement code nào.
