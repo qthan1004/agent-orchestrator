@@ -1,7 +1,0 @@
-{
-  "id": "01-create-hello",
-  "module": "files",
-  "action": "Create hello.md with content \"Hello from Orchestrator!\"",
-  "verification": "File hello.md exists with correct content",
-  "status": "done"
-}
