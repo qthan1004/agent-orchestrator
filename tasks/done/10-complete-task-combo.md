@@ -87,8 +87,8 @@ async ({ task_id, status, summary, worker_id, auto_pickup = true }) => {
 - Complete task FAILED → response chứa `next_task.action: "IDLE"` (không auto pickup)
 
 ## Done Criteria
-- [ ] `auto_pickup` parameter, default true
-- [ ] Next task inline khi available
-- [ ] BECOME_PLANNER khi plan pending + no planner
-- [ ] IDLE khi thực sự trống
-- [ ] FAILED/BLOCKED không auto pickup
+- [x] `auto_pickup` parameter, default true
+- [x] Next task inline khi available
+- [x] BECOME_PLANNER khi plan pending + no planner
+- [x] IDLE khi thực sự trống
+- [x] FAILED/BLOCKED không auto pickup

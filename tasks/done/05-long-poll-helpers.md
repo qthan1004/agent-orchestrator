@@ -99,8 +99,8 @@ console.log('timeout:', Date.now() - start, 'ms, result:', r2);  // ~2000ms, nul
 ```
 
 ## Done Criteria
-- [ ] `waitForTask` instant mode trả ngay khi `timeoutMs=0`
-- [ ] `waitForTask` chờ đúng timeout khi queue trống
-- [ ] `waitForTask` trả task ngay khi available (trước timeout)
-- [ ] `waitForPlan` logic tương tự
-- [ ] Không block event loop (dùng setInterval, không while-loop)
+- [x] `waitForTask` instant mode trả ngay khi `timeoutMs=0`
+- [x] `waitForTask` chờ đúng timeout khi queue trống
+- [x] `waitForTask` trả task ngay khi available (trước timeout)
+- [x] `waitForPlan` logic tương tự
+- [x] Không block event loop (dùng setInterval, không while-loop)

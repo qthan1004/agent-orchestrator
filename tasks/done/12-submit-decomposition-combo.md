@@ -83,7 +83,7 @@ inputSchema: {
 - Nếu hết plan → next_plan = IDLE
 
 ## Done Criteria
-- [ ] Response có `next_plan` với action directive
-- [ ] Chuyển role planner → worker sau submit (nếu hết plan)
-- [ ] Multiple plans: auto chain decomposition
-- [ ] Error case giữ nguyên behavior
+- [x] Response có `next_plan` với action directive
+- [x] Chuyển role planner → worker sau submit (nếu hết plan)
+- [x] Multiple plans: auto chain decomposition
+- [x] Error case giữ nguyên behavior

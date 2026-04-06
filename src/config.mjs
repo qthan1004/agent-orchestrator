@@ -1,7 +1,7 @@
 import { resolve, join } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { DIR_NAMES } from './constants.mjs';
+import { DIR_NAMES, POLL_DEFAULTS, RECOVERY_DEFAULTS } from './constants.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -36,6 +36,14 @@ export function loadConfig(overrides = {}) {
     },
     planWatcher: {
       intervalMs: overrides.planWatcherIntervalMs || 30_000, // 30s default
+    },
+    polling: {
+      pollTimeoutMs: overrides.pollTimeoutMs || POLL_DEFAULTS.POLL_TIMEOUT_MS,
+      checkIntervalMs: overrides.checkIntervalMs || POLL_DEFAULTS.CHECK_INTERVAL_MS,
+      planPollTimeoutMs: overrides.planPollTimeoutMs || POLL_DEFAULTS.PLAN_POLL_TIMEOUT_MS,
+    },
+    recovery: {
+      staleThresholdMs: overrides.staleThresholdMs || RECOVERY_DEFAULTS.STALE_THRESHOLD_MS,
     }
   };
 }

@@ -51,7 +51,7 @@ server.registerTool(TOOL_NAMES.REQUEST_RETRY, schema, withHeartbeat(requestRetry
 - Không cần gọi report_progress riêng để keepalive
 
 ## Done Criteria
-- [ ] `withHeartbeat` middleware function
-- [ ] Áp dụng cho tất cả tools có worker_id
-- [ ] Xóa duplicate heartbeat calls trong handlers
-- [ ] report_progress vẫn hoạt động bình thường
+- [x] `withHeartbeat` middleware function
+- [x] Áp dụng cho tất cả tools có worker_id
+- [x] Xóa duplicate heartbeat calls trong handlers
+- [x] report_progress vẫn hoạt động bình thường

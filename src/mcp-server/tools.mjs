@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { workerRegistry } from '../utils/worker-registry.mjs';
-import { TOOL_NAMES, STATE_EVENTS, TASK_STATUS } from '../constants.mjs';
+import { TOOL_NAMES, STATE_EVENTS, TASK_STATUS, AGENT_ACTION, WORKER_ROLE } from '../constants.mjs';
+import { waitForTask, waitForPlan } from './poll-helpers.mjs';
+import { resolveIdleAction } from './idle-resolver.mjs';
 
 function formatError(err) {
   return {
@@ -9,8 +11,28 @@ function formatError(err) {
   };
 }
 
+/**
+ * Middleware: auto-update heartbeat cho mọi tool call có worker_id.
+ * Agent không cần gọi report_progress chỉ để keepalive.
+ */
+function withHeartbeat(handler) {
+  return async (params) => {
+    if (params.worker_id) {
+      workerRegistry.updateHeartbeat(params.worker_id);
+    }
+    return handler(params);
+  };
+}
+
 export function registerTools(server, context) {
   const { stateManager, logger } = context;
+
+  function findGroupForTask(taskId) {
+    for (const group of stateManager.queue.groups) {
+      if (group.tasks.includes(taskId)) return group.group_id;
+    }
+    return null;
+  }
 
   server.registerTool(
     TOOL_NAMES.HELLO_WORLD,
@@ -37,8 +59,41 @@ export function registerTools(server, context) {
     async () => {
       try {
         const worker = workerRegistry.register();
+        const status = stateManager.getStatus();
+        const planStatus = stateManager.checkPlansQuick();
+        const { staleThresholdMs } = context.config.recovery;
+        
+        // Determine role — SINGLE PLANNER enforced
+        let role = WORKER_ROLE.WORKER;
+        
+        if (status.pending === 0 && status.active === 0) {
+          // No tasks in queue
+          if (planStatus.hasPending || planStatus.hasProcessing) {
+            // Plans available → need planner?
+            const activePlanner = workerRegistry.getActivePlanner(staleThresholdMs);
+            if (!activePlanner) {
+              role = WORKER_ROLE.PLANNER;
+            } else {
+              role = WORKER_ROLE.IDLE; // planner exists, no tasks
+            }
+          } else {
+            role = WORKER_ROLE.IDLE; // nothing to do
+          }
+        }
+        // else: tasks available → WORKER (default)
+        
+        workerRegistry.setRole(worker.id, role);
+        
         return {
-          content: [{ type: "text", text: JSON.stringify({ worker_id: worker.id }) }]
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              worker_id: worker.id,
+              role: role,
+              queue_summary: status,
+              has_pending_plans: planStatus.hasPending || planStatus.hasProcessing
+            })
+          }]
         };
       } catch (err) {
         return formatError(err);
@@ -77,33 +132,52 @@ export function registerTools(server, context) {
       description: "Get the next pending task for the worker to execute",
       inputSchema: { worker_id: z.string().describe("Your worker UUID from register_worker") }
     },
-    async ({ worker_id }) => {
+    withHeartbeat(async ({ worker_id }) => {
       try {
         const worker = workerRegistry.getWorker(worker_id);
         if (!worker) throw new Error("Invalid worker_id");
-
-        const task = stateManager.queue.getNextTask();
+        
+        // Long poll
+        const { pollTimeoutMs, checkIntervalMs } = context.config.polling;
+        const task = await waitForTask(stateManager.queue, { 
+          timeoutMs: pollTimeoutMs, 
+          checkIntervalMs 
+        });
+        
         if (!task) {
-           return {
-             content: [{ type: "text", text: JSON.stringify({ task_id: null, file_path: null }) }]
-           };
+          // No task → check if should become planner
+          const idleResult = resolveIdleAction({ stateManager, workerRegistry, workerId: worker_id, config: context.config });
+          // Backward compatibility via task_id: null
+          return {
+            content: [{ type: "text", text: JSON.stringify({ ...idleResult, task_id: null }) }]
+          };
         }
-
+        
+        // Có task → assign
         stateManager.moveToActive(task.id);
         worker.current_task = task.id;
-        workerRegistry.updateHeartbeat(worker_id);
+        workerRegistry.setRole(worker_id, WORKER_ROLE.WORKER);
         
-        if (logger) {
-            logger.log(STATE_EVENTS.TASK_ASSIGNED, { task_id: task.id, worker_id });
-        }
-
+        if (logger) logger.log(STATE_EVENTS.TASK_ASSIGNED, { task_id: task.id, worker_id });
+        
         return {
-          content: [{ type: "text", text: JSON.stringify({ task_id: task.id, task_details: task }) }]
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              action: AGENT_ACTION.EXECUTE,
+              task_id: task.id,
+              task_details: task,
+              context: {
+                group_id: findGroupForTask(task.id),
+                total_remaining: stateManager.queue.getStatus().pending
+              }
+            })
+          }]
         };
       } catch (err) {
         return formatError(err);
       }
-    }
+    })
   );
 
   server.registerTool(
@@ -114,10 +188,11 @@ export function registerTools(server, context) {
         task_id: z.string().describe("Task ID"),
         status: z.enum([TASK_STATUS.DONE, TASK_STATUS.BLOCKED, TASK_STATUS.FAILED]).describe("Completion status"),
         summary: z.string().describe("Short summary of what was done"),
-        worker_id: z.string().describe("Your worker UUID")
+        worker_id: z.string().describe("Your worker UUID"),
+        auto_pickup: z.boolean().optional().default(true).describe("Auto-pickup next task")
       }
     },
-    async ({ task_id, status, summary, worker_id }) => {
+    withHeartbeat(async ({ task_id, status, summary, worker_id, auto_pickup = true }) => {
       try {
         const worker = workerRegistry.getWorker(worker_id);
         if (!worker || worker.current_task !== task_id) {
@@ -134,16 +209,50 @@ export function registerTools(server, context) {
             logger.log(STATE_EVENTS.TASK_COMPLETED, { task_id, status, worker_id });
         }
 
-        const unlockedTasks = stateManager.queue.getUnlockedTasks().map(t => t.id);
         stateManager.saveCheckpoint();
-
-        return {
-          content: [{ type: "text", text: JSON.stringify({ accepted: true, next_unlocked: unlockedTasks }) }]
-        };
+        
+        // Auto pickup next task?
+        if (auto_pickup && status === TASK_STATUS.DONE) {
+          const nextTask = stateManager.queue.getNextTask();
+          
+          if (nextTask) {
+            // Có task kế tiếp → assign ngay
+            stateManager.moveToActive(nextTask.id);
+            worker.current_task = nextTask.id;
+            
+            return { content: [{ type: "text", text: JSON.stringify({
+              accepted: true,
+              completed: task_id,
+              next_task: {
+                action: AGENT_ACTION.EXECUTE,
+                task_id: nextTask.id,
+                task_details: nextTask
+              }
+            }) }] };
+          }
+          
+          // Hết task → check planner re-election
+          const idleResult = resolveIdleAction({ 
+            stateManager, workerRegistry, workerId: worker_id, config: context.config 
+          });
+          
+          return { content: [{ type: "text", text: JSON.stringify({
+            accepted: true,
+            completed: task_id,
+            next_task: idleResult  // IDLE hoặc BECOME_PLANNER
+          }) }] };
+        }
+        
+        // FAILED/BLOCKED hoặc auto_pickup=false → không auto pickup
+        return { content: [{ type: "text", text: JSON.stringify({
+          accepted: true,
+          completed: task_id,
+          next_task: { action: AGENT_ACTION.IDLE }
+        }) }] };
       } catch (err) {
         return formatError(err);
       }
-    }
+    })
   );
 
   server.registerTool(
@@ -157,11 +266,10 @@ export function registerTools(server, context) {
         worker_id: z.string().describe("Your worker UUID")
       }
     },
-    async ({ task_id, step, percentage, worker_id }) => {
+    withHeartbeat(async ({ task_id, step, percentage, worker_id }) => {
       try {
         const worker = workerRegistry.getWorker(worker_id);
         if (!worker) throw new Error("Invalid worker_id");
-        workerRegistry.updateHeartbeat(worker_id);
         
         if (logger) {
             logger.log(STATE_EVENTS.PROGRESS, { task_id, step, percentage, worker_id });
@@ -173,7 +281,7 @@ export function registerTools(server, context) {
       } catch (err) {
          return formatError(err);
       }
-    }
+    })
   );
 
   server.registerTool(
@@ -218,10 +326,30 @@ export function registerTools(server, context) {
     },
     async () => {
       try {
-        const result = stateManager.checkPlans();
-        return {
-          content: [{ type: "text", text: JSON.stringify(result) }]
-        };
+        const { planPollTimeoutMs, checkIntervalMs } = context.config.polling;
+        const result = await waitForPlan(stateManager, {
+          timeoutMs: planPollTimeoutMs,
+          checkIntervalMs: checkIntervalMs * 2  // plan check ít thường xuyên hơn
+        });
+        
+        if (result.status === 'idle') {
+          return { content: [{ type: "text", text: JSON.stringify({ action: AGENT_ACTION.IDLE }) }] };
+        }
+        
+        if (result.status === 'busy') {
+          return { content: [{ type: "text", text: JSON.stringify({ 
+            action: AGENT_ACTION.WAIT, 
+            current: result.current 
+          }) }] };
+        }
+        
+        // ready
+        return { content: [{ type: "text", text: JSON.stringify({
+          action: AGENT_ACTION.DECOMPOSE,
+          plan_path: result.plan_path,
+          content: result.content,
+          pending_count: result.pending_count
+        }) }] };
       } catch (err) {
         return formatError(err);
       }
@@ -249,23 +377,50 @@ export function registerTools(server, context) {
             }))
         }).describe("DAG constraint groups"),
         reasoning: z.string().describe("Justification for the breakdown"),
-        source_plan: z.string().describe("Filename of the plan being decomposed (from check_plans)")
+        source_plan: z.string().describe("Filename of the plan being decomposed (from check_plans)"),
+        worker_id: z.string().optional().describe("Planner worker UUID for role transition")
       }
     },
-    async ({ tasks, graph, reasoning, source_plan }) => {
+    withHeartbeat(async ({ tasks, graph, reasoning, source_plan, worker_id }) => {
       try {
          // Throws if circular deps
          stateManager.storeTasks(tasks, graph);
          stateManager.completePlan(source_plan);
-        return {
-          content: [{ type: "text", text: JSON.stringify({ accepted: true, plan_completed: source_plan }) }]
-        };
+         
+         const planStatus = stateManager.checkPlansQuick();
+         let nextAction;
+         
+         if (planStatus.hasPending) {
+           const nextPlan = stateManager.checkPlans(); // move pending → processing
+           nextAction = {
+             action: AGENT_ACTION.DECOMPOSE,
+             plan_path: nextPlan.plan_path,
+             content: nextPlan.content,
+             pending_count: nextPlan.pending_count
+           };
+           // keep PLANNER role if worker_id provided
+         } else {
+           nextAction = { action: AGENT_ACTION.IDLE };
+           // Hết plan -> chuyển sang WORKER
+           if (worker_id) {
+             workerRegistry.setRole(worker_id, WORKER_ROLE.WORKER);
+           }
+         }
+         
+         return {
+           content: [{ type: "text", text: JSON.stringify({
+             accepted: true,
+             plan_completed: source_plan,
+             tasks_created: tasks.length,
+             next_plan: nextAction
+           }) }]
+         };
       } catch (err) {
          return {
           content: [{ type: "text", text: JSON.stringify({ accepted: false, errors: [err.message] }) }]
         };
       }
-    }
+    })
   );
 
   server.registerTool(
@@ -278,7 +433,7 @@ export function registerTools(server, context) {
          attempt: z.number()
       }
     },
-    async ({ task_id, reason, attempt }) => {
+    withHeartbeat(async ({ task_id, reason, attempt }) => {
       try {
         if (attempt > 3) throw new Error("Max retry attempt exceeded");
         stateManager.moveToInbox(task_id);
@@ -289,7 +444,7 @@ export function registerTools(server, context) {
       } catch(err) {
          return formatError(err);
       }
-    }
+    })
   );
 
 }

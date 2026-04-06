@@ -30,6 +30,33 @@ export class StateManager {
   }
 
   // Plan state machine: pending/ → processing/ → done/
+  checkPlansQuick() {
+    ensureDir(this.config.plans.pending);
+    ensureDir(this.config.plans.processing);
+    
+    const pendingFiles = listFiles(this.config.plans.pending, '.md');
+    const processingFiles = listFiles(this.config.plans.processing, '.md');
+    
+    return {
+      hasPending: pendingFiles.length > 0,
+      hasProcessing: processingFiles.length > 0,
+      pendingCount: pendingFiles.length,
+      processingCount: processingFiles.length
+    };
+  }
+
+  getProcessingPlan() {
+    const files = listFiles(this.config.plans.processing, '.md');
+    if (files.length === 0) return null;
+    
+    const filename = files[0];
+    return {
+      current: filename,
+      plan_path: `plan/processing/${filename}`,
+      content: readFile(path.join(this.config.plans.processing, filename))
+    };
+  }
+
   checkPlans() {
     ensureDir(this.config.plans.pending);
     ensureDir(this.config.plans.processing);

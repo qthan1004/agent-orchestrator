@@ -1,24 +1,9 @@
 [
   {
-    "id": "w-698829f7",
-    "registered_at": "2026-04-05T08:52:29.068Z",
-    "last_heartbeat": "2026-04-05T08:53:49.599Z",
-    "current_task": "01-scaffold",
-    "tasks_completed": 0,
-    "status": "idle"
-  },
-  {
-    "id": "w-e0ac494e",
-    "registered_at": "2026-04-05T08:52:31.587Z",
-    "last_heartbeat": "2026-04-05T08:52:31.587Z",
-    "current_task": null,
-    "tasks_completed": 0,
-    "status": "idle"
-  },
-  {
-    "id": "w-74768efb",
-    "registered_at": "2026-04-05T08:57:55.672Z",
-    "last_heartbeat": "2026-04-05T08:57:55.672Z",
+    "id": "w-3d47d414",
+    "role": "PLANNER",
+    "registered_at": "2026-04-06T06:09:05.216Z",
+    "last_heartbeat": "2026-04-06T06:09:05.217Z",
     "current_task": null,
     "tasks_completed": 0,
     "status": "idle"

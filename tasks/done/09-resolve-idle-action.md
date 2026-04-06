@@ -74,7 +74,7 @@ return { content: [{ type: "text", text: JSON.stringify(idleResult) }] };
 ```
 
 ## Done Criteria
-- [ ] Trả BECOME_PLANNER khi plan pending + no planner
-- [ ] Trả IDLE khi không có plan hoặc planner đã tồn tại
-- [ ] Promote worker bằng setRole()
-- [ ] Plan content inline nếu BECOME_PLANNER
+- [x] Trả BECOME_PLANNER khi plan pending + no planner
+- [x] Trả IDLE khi không có plan hoặc planner đã tồn tại
+- [x] Promote worker bằng setRole()
+- [x] Plan content inline nếu BECOME_PLANNER

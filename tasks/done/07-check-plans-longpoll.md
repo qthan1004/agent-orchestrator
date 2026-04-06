@@ -55,6 +55,6 @@ async () => {
 - Drop file vào `plan/pending/` → gọi `check_plans` → trả `{ action: "DECOMPOSE", content: "..." }`
 
 ## Done Criteria
-- [ ] Long Poll 60s cho plans
-- [ ] Directive format: IDLE/WAIT/DECOMPOSE
-- [ ] Plan content inline trong response
+- [x] Long Poll 60s cho plans
+- [x] Directive format: IDLE/WAIT/DECOMPOSE
+- [x] Plan content inline trong response

@@ -65,6 +65,6 @@ console.log(sm.checkPlansQuick());
 ```
 
 ## Done Criteria
-- [ ] `checkPlansQuick()` trả đúng counts mà KHÔNG move files
-- [ ] `getProcessingPlan()` trả content nếu có, null nếu không
-- [ ] `checkPlans()` existing không bị ảnh hưởng
+- [x] `checkPlansQuick()` trả đúng counts mà KHÔNG move files
+- [x] `getProcessingPlan()` trả content nếu có, null nếu không
+- [x] `checkPlans()` existing không bị ảnh hưởng

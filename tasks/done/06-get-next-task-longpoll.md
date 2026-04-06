@@ -88,8 +88,8 @@ function findGroupForTask(taskId) {
 - Thêm task vào queue → gọi `get_next_task` → phải trả `{ action: "EXECUTE", task_id: "..." }`
 
 ## Done Criteria
-- [ ] Long Poll hoạt động (chờ 30s khi trống)
-- [ ] Directive format: `action` field thay vì `task_id: null`
-- [ ] Task details inline trong response
-- [ ] Auto-heartbeat trên mỗi call
-- [ ] Backward compatibility: response vẫn có `task_id` field
+- [x] Long Poll hoạt động (chờ 30s khi trống)
+- [x] Directive format: `action` field thay vì `task_id: null`
+- [x] Task details inline trong response
+- [x] Auto-heartbeat trên mỗi call
+- [x] Backward compatibility: response vẫn có `task_id` field

@@ -44,7 +44,7 @@ import { POLL_DEFAULTS, RECOVERY_DEFAULTS } from './constants.mjs';
 - Phải in ra `{ pollTimeoutMs: 5000, checkIntervalMs: 2000, planPollTimeoutMs: 60000 }`
 
 ## Done Criteria
-- [ ] `config.polling` object có 3 fields
-- [ ] `config.recovery` object có staleThresholdMs
-- [ ] Overrides hoạt động đúng
-- [ ] Existing code không bị break
+- [x] `config.polling` object có 3 fields
+- [x] `config.recovery` object có staleThresholdMs
+- [x] Overrides hoạt động đúng
+- [x] Existing code không bị break

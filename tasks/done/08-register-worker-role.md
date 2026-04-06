@@ -70,7 +70,7 @@ async () => {
 - Register khi có tasks → nhận role `WORKER`
 
 ## Done Criteria
-- [ ] Response có `role` field
-- [ ] Single planner enforced
-- [ ] Queue summary inline
-- [ ] `has_pending_plans` flag
+- [x] Response có `role` field
+- [x] Single planner enforced
+- [x] Queue summary inline
+- [x] `has_pending_plans` flag

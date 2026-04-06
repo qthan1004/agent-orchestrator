@@ -73,8 +73,8 @@ console.log('role:', w.role, 'planner:', planner?.id === w.id);
 - Expected: `role: PLANNER planner: true`
 
 ## Done Criteria
-- [ ] `register()` trả worker có `role: null`
-- [ ] `setRole()` update role + persist
-- [ ] `getActivePlanner()` tìm planner alive
-- [ ] `getActivePlanner()` return null nếu planner stale
-- [ ] Existing code không break
+- [x] `register()` trả worker có `role: null`
+- [x] `setRole()` update role + persist
+- [x] `getActivePlanner()` tìm planner alive
+- [x] `getActivePlanner()` return null nếu planner stale
+- [x] Existing code không break

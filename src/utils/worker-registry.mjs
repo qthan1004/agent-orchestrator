@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import path from 'path';
-import { WORKER_STATUS } from '../constants.mjs';
+import { WORKER_STATUS, WORKER_ROLE } from '../constants.mjs';
 import { loadConfig } from '../config.mjs';
 import { readJSON, writeJSON, ensureDir } from './file-backend.mjs';
 
@@ -33,6 +33,7 @@ export class WorkerRegistry {
     const id = generateWorkerId();
     const workerInfo = {
       id,
+      role: null,
       registered_at: new Date().toISOString(),
       last_heartbeat: new Date().toISOString(),
       current_task: null,
@@ -60,6 +61,27 @@ export class WorkerRegistry {
       return true;
     }
     return false;
+  }
+
+  setRole(workerId, role) {
+    const w = this.workers.get(workerId);
+    if (w) {
+      w.role = role;
+      this._save();
+      return true;
+    }
+    return false;
+  }
+
+  getActivePlanner(staleThresholdMs) {
+    const now = Date.now();
+    for (const w of this.workers.values()) {
+      if (w.role === WORKER_ROLE.PLANNER) {
+        const elapsed = now - new Date(w.last_heartbeat).getTime();
+        if (elapsed < staleThresholdMs) return w;
+      }
+    }
+    return null;
   }
 }
 
