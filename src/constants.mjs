@@ -104,3 +104,23 @@ export const RECOVERY_DEFAULTS = {
 };
 
 export const SHUTDOWN_MARKER_FILE = '.shutdown_clean';
+
+export const WORKER_ROLE = {
+  PLANNER: 'PLANNER',
+  WORKER: 'WORKER',
+  IDLE: 'IDLE'
+};
+
+export const AGENT_ACTION = {
+  EXECUTE: 'EXECUTE',           // Có task → agent execute
+  IDLE: 'IDLE',                 // Không có gì → agent idle
+  BECOME_PLANNER: 'BECOME_PLANNER',  // Có plan mới → promote to planner
+  DECOMPOSE: 'DECOMPOSE',      // Plan sẵn sàng → decompose
+  WAIT: 'WAIT'                  // Đang bận → chờ
+};
+
+export const POLL_DEFAULTS = {
+  POLL_TIMEOUT_MS: 30_000,      // Long poll default 30s
+  CHECK_INTERVAL_MS: 2_000,     // Internal check every 2s
+  PLAN_POLL_TIMEOUT_MS: 60_000  // Plan poll default 60s
+};

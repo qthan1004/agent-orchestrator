@@ -50,7 +50,7 @@ export const POLL_DEFAULTS = {
 - Tất cả 3 objects phải in ra đúng values
 
 ## Done Criteria
-- [ ] `WORKER_ROLE` export có 3 values
-- [ ] `AGENT_ACTION` export có 5 values
-- [ ] `POLL_DEFAULTS` export có 3 values
-- [ ] Không break existing imports
+- [x] `WORKER_ROLE` export có 3 values
+- [x] `AGENT_ACTION` export có 5 values
+- [x] `POLL_DEFAULTS` export có 3 values
+- [x] Không break existing imports
