@@ -9,7 +9,8 @@ export const TOOL_NAMES = {
   GET_CHECKPOINT: "get_checkpoint",
   CHECK_PLANS: "check_plans",
   SUBMIT_DECOMPOSITION: "submit_decomposition",
-  REQUEST_RETRY: "request_retry"
+  REQUEST_RETRY: "request_retry",
+  FORCE_RELEASE_TASK: "force_release_task"
 };
 
 /**

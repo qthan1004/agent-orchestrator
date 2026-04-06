@@ -117,7 +117,7 @@ export class TaskQueue {
   /**
    * Mark a task as completed (done, failed, etc).
    */
-  completeTask(taskId, status) {
+  updateTaskStatus(taskId, status) {
     const task = this.tasks.get(taskId);
     if (!task) return false;
 

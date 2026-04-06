@@ -9,8 +9,8 @@ import { workerRegistry } from '../utils/worker-registry.mjs';
 import { Logger } from '../utils/logger.mjs';
 import { bootstrapDirectories } from '../utils/bootstrap.mjs';
 
-export async function startServer({ port = 3847, host = '127.0.0.1' } = {}) {
-  const config = loadConfig({ port, host });
+export async function startServer(config) {
+  const { port, host } = config.server;
 
   // Bootstrap: tạo toàn bộ thư mục cần thiết trước khi khởi tạo bất kỳ service nào
   const { created, failed, skipped } = bootstrapDirectories(config);

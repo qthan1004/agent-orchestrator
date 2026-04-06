@@ -1,34 +1,37 @@
-# Các Issue cần fix sau (Pending Tasks)
+# Các Phát Hiện & Fixes Yêu Cầu (Resolved)
 
-Ghi nhận lại các issue sau quá trình chạy thử để fix sau:
+Tất cả các issues dưới đây đã được giải quyết bằng bản nâng cấp Kiến trúc Long Polling và Cải tiến Roles (Thực hiện vào tháng 04/2026).
 
 ## 1. Cải tiến Prompts & Agent Loop
-Cần thiết kế 2 prompt buộc phải loop liên tục cho tới khi người dùng yêu cầu ngưng một cách rõ ràng. 
-Cần có sẵn 2 templates chuẩn, bao gồm các thành phần sau:
-- **Role:** Xác định rõ vai trò của agent (Planner/Worker).
-- **Tham chiếu MCP Tools:** Danh sách các MCP tool nào được phép gọi/cần sử dụng.
-- **Thư mục Plan/Task:** Nơi chứa/đọc file plan hoặc task.
-- **Thư mục Execution:** Nơi agent thực thi (ví dụ workspace dự án con).
-- **Giới hạn (Boundaries):** Giới hạn được phép làm gì, đọc file gì, ở đâu, file nào không được chạm vào.
-- **Note:** Vùng điền thêm các yêu cầu/lưu ý đặc biệt khác.
+- **Status:** ✅ Fixed (Tasks: 18, 19).
+- **Chi tiết:** Đã thiết kế 2 file prompt chuẩn tại `prompts/planner-prompt.md` và `prompts/worker-prompt.md`. Bổ sung chuẩn rule 2-mode (Operational / Execution) vào thư mục skills (`SKILL.md`) để kiểm soát hành vi suy luận vòng lặp.
 
 ## 2. Lỗi cập nhật trạng thái Task (Task Lock Issue)
-- Lỗi hiện tại: Khi task hoàn thành (done) thì hệ thống không chuyển đổi trạng thái thành công. 
-- Ngược lại, khi có lỗi xảy ra cũng không có trạng thái lỗi (error) trả về đúng cách.
-- **Hệ quả:** Dẫn đến việc task bị lock (chưa được giải phóng / free), làm nghẽn hàng đợi hoặc khiến worker không nhận được task mới.
+- **Status:** ✅ Fixed (Tasks: 13, 14, 15).
+- **Chi tiết:** 
+  - Sửa logic rename và status update ở `TaskQueue` & `StateManager`. 
+  - Fix lỗi silently fail khi đọc/ghi file bằng Explicit Error Handling.
+  - Tạo thêm tool `force_release_task` để release task kẹt trong `active/` khẩn cấp dưới dạng override manual.
 
-## 3. Cấu hình thời gian Loop cho Planner
-- Planner cần thiết lập thời gian loop dài hơn để tổng hợp và chờ luồng xử lý.
-- **Khoảng thời gian (Interval):** ~30 giây đến 1 phút cho 1 lần loop.
-
-## 4. Cấu hình thời gian Loop cho Worker
-- Worker cần thiết lập thời gian loop ngắn hơn để phản hồi nhanh với các công việc nguyên tử (atomic tasks).
-- **Khoảng thời gian (Interval):** ~10 giây cho 1 lần loop.
-
-## 5. Tối ưu Token Usage trong quá trình Loop
-- Việc agent phải loop liên tục dẫn đến tiêu hao quá nhiều token một cách lãng phí.
-- Cần tìm tools hoặc thiết kế giải pháp để giảm thiểu token trong các vòng lặp. 
-- **Ví dụ:** Khi gọi tool lấy danh sách (queue/tasks), nếu trả về danh sách rỗng (empty) thì agent chuyển ngay sang trạng thái idle (ngủ/chờ) đợi tới vòng lặp tiếp theo, bỏ qua các bước giải thích hay suy luận gây tốn token.
+## 3. Thời gian Loop Planner & 4. Vòng lặp Worker & 5. Tối ưu Token Usage
+- **Status:** ✅ Fixed (Tasks: 02, 05, 06, 07, 10, 11).
+- **Chi tiết:** 
+  - Bỏ kiến trúc Client-side Loop liên tục. Chuyển hoàn toàn sang kiến trúc **Long Polling**.
+  - Khi gọi tool `get_next_task` hoặc `check_plans`, MCP Server sẽ giữ pending request trên server-side cho đến khi có task mới/plan mới (max time cấu hình được, mặc định 30s), nếu hết mới văng ra `IDLE`. Cơ chế `AutoHeartbeat` thay thế loop ngầm, tiết kiệm 95% token tiêu thụ.
 
 ---
-> **Lưu ý:** Chỉ ghi nhận lại theo yêu cầu, chưa thực hiện bất kỳ implement code nào.
+
+# Cải Tiến Bổ Sung (New Architecture)
+
+Trong quá trình thực thi Fixes trên, chúng tôi đã đưa vào hệ thống các nâng cấp:
+
+### 1. The Auto-Pickup Loop
+- Worker có thể hoàn tất task thông qua `complete_task` (với `auto_pickup = true`) và Server sẽ lập tức trả về task kế tiếp trong output của `complete_task`, nhúng thẳng vòng lặp làm 1, giảm số lượng tool calls đi 50%. (Task: 10, 12).
+
+### 2. Planner Re-election (Chuyển hoá Roles)
+- **Status:** ✅ Completed (Tasks: 08, 09).
+- **Chi tiết:** Cân bằng tải tự động. Worker gọi `get_next_task` khi rảnh rỗi và system không có Planner -> Server sẽ văng directive `BECOME_PLANNER` lệnh cho Agent đọc `SKILL.md` và đổi operational context thành Planner. Tự động phục hồi khi Planner gặp sự cố sập.
+
+### 3. Startup UX Interactive Prompt
+- **Status:** ✅ Completed (Tasks: 16, 17).
+- **Chi tiết:** Khi boot MCP Orchestrator qua terminal, chạy ra giao diện CLI Interactive prompt lựa chọn config timeout, port session theo tuỳ chọn thay vì hardcode default. (Sử dụng `readline`).

@@ -1,6 +1,8 @@
 import { z } from 'zod';
+import fs from 'fs';
+import path from 'path';
 import { workerRegistry } from '../utils/worker-registry.mjs';
-import { TOOL_NAMES, STATE_EVENTS, TASK_STATUS, AGENT_ACTION, WORKER_ROLE } from '../constants.mjs';
+import { TOOL_NAMES, STATE_EVENTS, TASK_STATUS, AGENT_ACTION, WORKER_ROLE, FILE_PREFIXES } from '../constants.mjs';
 import { waitForTask, waitForPlan } from './poll-helpers.mjs';
 import { resolveIdleAction } from './idle-resolver.mjs';
 
@@ -445,6 +447,61 @@ export function registerTools(server, context) {
          return formatError(err);
       }
     })
+  );
+
+  server.registerTool(
+    TOOL_NAMES.FORCE_RELEASE_TASK,
+    {
+      description: "Forcefully release a locked task from active/ back to inbox/. Use when worker crashed and task is stuck. Does NOT check ownership or retry limits.",
+      inputSchema: {
+        task_id: z.string().describe("Task ID to release"),
+        reason: z.string().describe("Why you are forcing release")
+      }
+    },
+    async ({ task_id, reason }) => {
+      try {
+        // Check task exists in active/
+        const activePath = path.join(
+          context.config.exchange.active, 
+          `${FILE_PREFIXES.TASK}${task_id}.json`
+        );
+        
+        if (!fs.existsSync(activePath)) {
+          throw new Error(`Task ${task_id} not found in active/ directory`);
+        }
+        
+        // Force move back to inbox
+        stateManager.moveToInbox(task_id);
+        
+        // Clear worker assignment if any worker owns this task
+        for (const worker of workerRegistry.getAllWorkers()) {
+          if (worker.current_task === task_id) {
+            worker.current_task = null;
+            break;
+          }
+        }
+        
+        if (logger) {
+          logger.log('TASK_FORCE_RELEASED', { task_id, reason });
+        }
+        
+        stateManager.saveCheckpoint();
+        
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              released: true,
+              task_id,
+              moved_to: "inbox",
+              reason
+            })
+          }]
+        };
+      } catch (err) {
+        return formatError(err);
+      }
+    }
   );
 
 }

@@ -1,55 +1,21 @@
-# Tools
+# Orchestrator Operational Tools
 
-Scripts hỗ trợ Agent Orchestrator. Tất cả chạy từ **project root**.
+Scripts vận hành orchestrator. Chạy từ **project root**.
 
----
+## Danh sách
 
-## Bash Tools
+| Tool | Chức năng | Output |
+|------|-----------|--------|
+| `health-check.mjs` | Check MCP server status | `exchange/.tmp/health.md` |
+| `queue-status.mjs` | Đếm tasks trong `exchange/{inbox,active,outbox}` | `exchange/.tmp/queue-status.md` |
+| `init-exchange.mjs` | Tạo cấu trúc `exchange/` directory | *(console)* |
+| `task-scanner.mjs` | Liệt kê chi tiết metadata các task files | `exchange/.tmp/task-scan.md` |
+| `reset-exchange.mjs` | Xoá toàn bộ data trong exchange/ (giữ cấu trúc) | *(console)* |
 
-### git-push.sh — Push code
-
-```bash
-bash tools/git-push.sh "<type>(<scope>): <subject>"
-```
-
-Git add + commit + push. Không cần submodule.
-
----
-
-## Node.js Tools (Token-saving automation)
-
-Các scripts Node.js thay thế agent loops để tiết kiệm tokens.
-Agent gọi 1 lần → script làm hết → trả kết quả JSON.
-
-### health-check.mjs
+## Cách dùng
 
 ```bash
-node tools/health-check.mjs [--port 3847]
+node reference/tools/<script.mjs>
 ```
 
-Check MCP server status. Trả về JSON: `{ running, url, uptime }`.
-
-### queue-status.mjs
-
-```bash
-node tools/queue-status.mjs [--exchange ./exchange]
-```
-
-Scan exchange/ dirs → trả về summary: `{ inbox, active, outbox, total }`.
-
-### init-exchange.mjs
-
-```bash
-node tools/init-exchange.mjs [--root .]
-```
-
-Tạo exchange directory structure: `inbox/`, `active/`, `outbox/`, `checkpoints/`.
-
-### task-scanner.mjs
-
-```bash
-node tools/task-scanner.mjs [--exchange ./exchange] [--format table|json]
-```
-
-Scan & summarize tất cả tasks: ID, status, module, timestamps.
-Thay thế agent phải `ls` + `cat` từng file.
+Agent đọc output từ `exchange/.tmp/*.md` thay vì parse STDOUT → tiết kiệm tokens.

@@ -1,19 +1,24 @@
 import { startServer } from './mcp-server/index.mjs';
 import { loadConfig } from './config.mjs';
+import { promptConfig } from './utils/startup-prompt.mjs';
 
 const args = process.argv.slice(2);
 const isServe = args.includes('serve') || args.length === 0;
 const portIdx = args.indexOf('--port');
 
-const overrides = {};
+let overrides = {};
 if (portIdx !== -1 && args[portIdx + 1]) {
   overrides.port = parseInt(args[portIdx + 1], 10);
 }
 
-const config = loadConfig(overrides);
-
 if (isServe) {
-  startServer(config.server).catch(err => {
+  const promptOverrides = await promptConfig();
+  // CLI overrides take precedence
+  overrides = { ...promptOverrides, ...overrides };
+  
+  const config = loadConfig(overrides);
+  
+  startServer(config).catch(err => {
     console.error('Failed to start server:', err);
     process.exit(1);
   });

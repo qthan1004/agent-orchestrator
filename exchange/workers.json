@@ -7,5 +7,14 @@
     "current_task": null,
     "tasks_completed": 0,
     "status": "idle"
+  },
+  {
+    "id": "w-720fcd78",
+    "role": null,
+    "registered_at": "2026-04-06T07:12:15.219Z",
+    "last_heartbeat": "2026-04-06T07:12:15.219Z",
+    "current_task": null,
+    "tasks_completed": 0,
+    "status": "idle"
   }
 ]

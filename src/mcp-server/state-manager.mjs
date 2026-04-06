@@ -133,7 +133,10 @@ export class StateManager {
     const src = path.join(this.config.exchange.inbox, `${FILE_PREFIXES.TASK}${taskId}.json`);
     const dest = path.join(this.config.exchange.active, `${FILE_PREFIXES.TASK}${taskId}.json`);
 
-    moveFile(src, dest);
+    const moved = moveFile(src, dest);
+    if (!moved) {
+      throw new Error(`Failed to move task ${taskId} from inbox to active: file not found or permission error`);
+    }
     
     // Also update the status inside the file
     const taskData = readJSON(dest);
@@ -142,7 +145,7 @@ export class StateManager {
       writeJSON(dest, taskData);
     }
 
-    this.queue.completeTask(taskId, TASK_STATUS.ACTIVE);
+    this.queue.updateTaskStatus(taskId, TASK_STATUS.ACTIVE);
 
     if (this.logger) {
         this.logger.log(STATE_EVENTS.TASK_ACTIVATED, { message: `Moved task ${taskId} to active` });
@@ -153,7 +156,10 @@ export class StateManager {
     const src = path.join(this.config.exchange.active, `${FILE_PREFIXES.TASK}${taskId}.json`);
     const dest = path.join(this.config.exchange.outbox, `${FILE_PREFIXES.TASK}${taskId}.json`);
 
-    moveFile(src, dest);
+    const moved = moveFile(src, dest);
+    if (!moved) {
+      throw new Error(`Failed to move task ${taskId} from active to outbox: file not found or permission error`);
+    }
     
     // Also update the status inside the file
     const taskData = readJSON(dest);
@@ -165,7 +171,7 @@ export class StateManager {
     const resultPath = path.join(this.config.exchange.outbox, `${FILE_PREFIXES.RESULT}${taskId}.json`);
     writeJSON(resultPath, result);
 
-    this.queue.completeTask(taskId, result.status);
+    this.queue.updateTaskStatus(taskId, result.status);
 
     if (this.logger) {
         this.logger.log(STATE_EVENTS.TASK_COMPLETED, { message: `Moved task ${taskId} to outbox with status ${result.status}` });
