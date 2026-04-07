@@ -115,24 +115,29 @@ export class RecoveryManager {
 
     for (const taskId of orphans) {
       const retries = this._retryCounts.get(taskId) || 0;
+      const newRetry = retries + 1;
 
       if (retries >= this.maxRetries) {
+        // Reset counter — orphan != broken, keep retrying
+        this._retryCounts.set(taskId, 0);
+
         this.logger.log(RECOVERY_EVENTS.MAX_RETRIES_EXCEEDED, {
           task_id: taskId,
           retries,
-          message: `Task exceeded max retries (${this.maxRetries}), leaving in active/`
+          message: `Orphan task reached max retries (${this.maxRetries}), resetting counter and requeuing`
         });
-        continue;
+      } else {
+        this._retryCounts.set(taskId, newRetry);
+
+        this.logger.log(RECOVERY_EVENTS.ORPHAN_REQUEUED, {
+          task_id: taskId,
+          retry: newRetry,
+          message: `Orphan task requeued to inbox (attempt ${newRetry}/${this.maxRetries})`
+        });
       }
 
-      this._retryCounts.set(taskId, retries + 1);
+      // ALWAYS requeue — never leave stuck in active/
       this.stateManager.moveToInbox(taskId);
-
-      this.logger.log(RECOVERY_EVENTS.ORPHAN_REQUEUED, {
-        task_id: taskId,
-        retry: retries + 1,
-        message: `Orphan task requeued to inbox (attempt ${retries + 1}/${this.maxRetries})`
-      });
     }
 
     return orphans;
@@ -172,7 +177,9 @@ export class RecoveryManager {
   }
 
   /**
-   * Handle a stale worker's task — requeue if within retry limit.
+   * Handle a stale worker's task — ALWAYS requeue back to inbox.
+   * Stale detection is about worker health, not task correctness.
+   * The task itself is fine — only the worker went away.
    * @param {object} worker - stale worker info
    */
   _handleStaleTask(worker) {
@@ -180,35 +187,33 @@ export class RecoveryManager {
     if (!taskId) return;
 
     const retries = this._retryCounts.get(taskId) || 0;
+    const newRetry = retries + 1;
 
     if (retries >= this.maxRetries) {
+      // Reset counter — stale != broken, keep retrying indefinitely
+      this._retryCounts.set(taskId, 0);
+
       this.logger.log(RECOVERY_EVENTS.MAX_RETRIES_EXCEEDED, {
         task_id: taskId,
         worker_id: worker.id,
         retries,
-        message: `Task exceeded max retries (${this.maxRetries}), marking as failed`
-      });
-      // Move to outbox as FAILED
-      this.stateManager.moveToOutbox(taskId, {
-        task_id: taskId,
-        status: TASK_STATUS.FAILED,
-        summary: `Stale worker — exceeded max retries (${this.maxRetries})`,
-        worker_id: worker.id,
-        completed_at: new Date().toISOString()
+        message: `Task reached max retries (${this.maxRetries}), resetting counter and requeuing to inbox`
       });
     } else {
-      this._retryCounts.set(taskId, retries + 1);
-      this.stateManager.moveToInbox(taskId);
+      this._retryCounts.set(taskId, newRetry);
 
       this.logger.log(RECOVERY_EVENTS.ORPHAN_REQUEUED, {
         task_id: taskId,
         worker_id: worker.id,
-        retry: retries + 1,
-        message: `Stale task requeued (attempt ${retries + 1}/${this.maxRetries})`
+        retry: newRetry,
+        message: `Stale task requeued (attempt ${newRetry}/${this.maxRetries})`
       });
     }
 
-    // Clear worker's assignment and kill worker
+    // ALWAYS requeue back to inbox — never leave in outbox as failed
+    this.stateManager.moveToInbox(taskId);
+
+    // Clear worker's assignment and remove stale worker
     worker.current_task = null;
     this.workerRegistry.removeWorker(worker.id);
   }

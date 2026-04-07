@@ -99,8 +99,8 @@ export const RECOVERY_EVENTS = {
 };
 
 export const RECOVERY_DEFAULTS = {
-  MONITOR_INTERVAL_MS: 5_000, // 5s
-  STALE_THRESHOLD_MS: 10_000,  // 10 seconds
+  MONITOR_INTERVAL_MS: 30_000,    // 30s (check every 30s)
+  STALE_THRESHOLD_MS: 120_000,    // 2 minutes (agent tool calls can take 10-30s+)
   MAX_RETRIES: 3
 };
 

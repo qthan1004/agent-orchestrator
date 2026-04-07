@@ -226,13 +226,46 @@ export class StateManager {
     loadDir(this.config.exchange.active, TASK_STATUS.ACTIVE);
     loadDir(this.config.exchange.outbox, TASK_STATUS.DONE);
 
+    // Auto-recover FAILED tasks in outbox: move them back to inbox as PENDING
+    const failedTasks = [];
+    for (const [taskId, task] of rebuiltMap) {
+      if (task.status === TASK_STATUS.FAILED) {
+        failedTasks.push(taskId);
+      }
+    }
+
+    for (const taskId of failedTasks) {
+      const srcTask = path.join(this.config.exchange.outbox, `${FILE_PREFIXES.TASK}${taskId}.json`);
+      const destTask = path.join(this.config.exchange.inbox, `${FILE_PREFIXES.TASK}${taskId}.json`);
+
+      // Move task file from outbox → inbox
+      if (moveFile(srcTask, destTask)) {
+        // Update status inside file
+        const taskData = readJSON(destTask);
+        if (taskData) {
+          taskData.status = TASK_STATUS.PENDING;
+          writeJSON(destTask, taskData);
+        }
+        // Update in-memory map
+        rebuiltMap.get(taskId).status = TASK_STATUS.PENDING;
+
+        if (this.logger) {
+          this.logger.log(STATE_EVENTS.TASK_REQUEUED, {
+            message: `Auto-recovered failed task ${taskId} from outbox → inbox`
+          });
+        }
+      }
+    }
+
     const queuePath = path.join(this.config.exchange.base, FILE_PREFIXES.QUEUE);
     const graphData = readJSON(queuePath) || { groups: [] };
 
     this.queue.loadFromState(rebuiltMap, graphData);
 
     if (this.logger) {
-        this.logger.log(STATE_EVENTS.STATE_RESTORED, { message: 'Restored queue and tasks from files' });
+        this.logger.log(STATE_EVENTS.STATE_RESTORED, {
+          message: `Restored queue from files (recovered ${failedTasks.length} failed tasks)`
+        });
     }
   }
 
