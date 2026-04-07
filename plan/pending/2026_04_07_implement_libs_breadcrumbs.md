@@ -1,22 +1,14 @@
-# @thanh-libs/breadcrumb
+# Master Plan: Implement Breadcrumbs Library
 
-## Components
+## Objective
+Xây dựng một module `breadcrumbs` trong hệ thống library dùng chung của dự án. Module này sẽ cung cấp API đơn giản để track và render đường dẫn người dùng.
 
-### Breadcrumb
-| Props | Type | Description |
-|-------|------|-------------|
-| `separator` | `ReactNode` | Ký tự/icon phân cách giữa các item |
-| `maxItems` | `number` | Số item tối đa hiển thị |
-| `itemsBeforeCollapse` | `number` | Số item giữ lại trước dấu "..." |
-| `itemsAfterCollapse` | `number` | Số item giữ lại sau dấu "..." |
+## Yêu cầu
+1. Component hiển thị breadcrumbs UI.
+2. Store quản lý state của breadcrumbs (cập nhật khi chuyển trang).
+3. Test case đầy đủ cho component và store.
 
-### BreadcrumbItem
-| Props | Type | Description |
-|-------|------|-------------|
-| `href` | `string` | Link URL |
-| `onClick` | `() => void` | Click handler |
-| `icon` | `ReactNode` | Icon hiển thị trước label |
-| `active` | `boolean` | Đánh dấu item hiện tại (last crumb) |
-
-## Phụ thuộc
-- `@thanh-libs/theme`
+## Hướng dẫn cho Planner
+- Decompose plan này thành các task nhỏ (tối đa 20 task).
+- Áp dụng các rules trong `.agent/skills/` nếu có.
+- Khai báo dependency chính xác (vd: store phải làm trước component).
