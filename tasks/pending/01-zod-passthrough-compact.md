@@ -1,4 +1,4 @@
-# Task 04: Fix Zod passthrough & Token Optimization
+# Task 01: Fix Zod passthrough & Token Optimization
 
 ## Vấn đề
 Zod mặc định "strip" unknown keys, nên xoá mất nội dung quan trọng cùa task (`title`, `what_to_do`, `files`). Need to apply Option C (Compact inline).

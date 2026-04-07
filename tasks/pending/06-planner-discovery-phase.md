@@ -3,6 +3,9 @@
 ## Vấn đề
 Do các kiến thức và config riêng của workspace không được tìm và include trong các tasks, Worker không biết dùng convention/project rule nào.
 
+## Dependencies
+- Depends on Task 02 (workspace_root phải tồn tại để Planner biết discover `.agent/` ở đâu).
+
 ## Actions
 1. **[MODIFY] `prompts/agent-prompt.md`**
    - Cập nhật Step 3 của Section P (Mode B) của Planner.

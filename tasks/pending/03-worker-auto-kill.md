@@ -1,4 +1,4 @@
-# Task 05: Auto-kill Worker Disconnect & Task Requeue
+# Task 03: Auto-kill Worker Disconnect & Task Requeue
 
 ## Vấn đề
 Ngưỡng stale của worker để xử lý disconnected là 24h, quá lâu. Worker khác không thể tranh được task đang bị treo.
@@ -13,4 +13,7 @@ Ngưỡng stale của worker để xử lý disconnected là 24h, quá lâu. Wor
    - Sửa hàm `_handleStaleTask(worker)`.
    - Thêm lệnh kill worker (gọi `this.workerRegistry.removeWorker(worker.id)`).
 4. **[MODIFY] `src/utils/startup-prompt.mjs`**
-   - Update variable `staleMinutes: 30` -> `staleSeconds: 10`.
+   - Đổi `staleMinutes: 30` → `staleSeconds: 10` trong DEFAULTS.
+   - Đổi prompt text custom mode: `"Stale threshold (min)"` → `"Stale threshold (sec)"`.
+   - Đổi default display: `"${DEFAULTS.staleMinutes} minutes"` → `"${DEFAULTS.staleSeconds} seconds"`.
+   - Đổi conversion formula: `config.staleMinutes * 60_000` → `config.staleSeconds * 1_000`.

@@ -1,4 +1,4 @@
-# Task 03: Strengthen Idle Loop for Workers
+# Task 05: Strengthen Idle Loop for Workers
 
 ## Vấn đề
 Worker end chat khi nhận IDLE thay vì polling liên tục vì prompt hiện tại yếu (chỉ bảo "wait briefly").

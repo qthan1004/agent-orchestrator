@@ -1,4 +1,4 @@
-# Task 01: Add Path Context
+# Task 02: Add Path Context
 
 ## Vấn đề
 Agent không phân biệt được server root (chứa queue) và workspace root (project đích thực sự).
@@ -12,5 +12,6 @@ Agent không phân biệt được server root (chứa queue) và workspace root
 3. **[MODIFY] `src/utils/startup-prompt.mjs`**
    - Thêm câu hỏi cho người dùng: `? Workspace root (project path for agents) [current dir]: `.
    - Điền giá trị fallback là `process.cwd()`.
+   - Return `workspaceRoot` trong object output của `promptConfig()` để `index.mjs` pass vào `loadConfig(overrides)` qua spread operator.
 4. **[MODIFY] `prompts/agent-prompt.md`**
    - Thêm **Section 1.1 Path Context** và **1.2 Workspace Assets** hướng dẫn agent sử dụng đúng path.
