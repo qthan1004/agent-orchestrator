@@ -150,62 +150,79 @@ Strengthen Section I:
 
 ---
 
-## Issue 4: Token Optimization Analysis
+## Issue 4: Token Optimization — Option C (Compact Inline) ✅
 
-### 4.1 Inline task data vs file reference
+> **Status**: Đã đo lường thực tế — Chọn **Option C** (compact inline)
+> **Measurement**: `dev-docs/scripts/token-measure.mjs` — dùng dự án Personal-lib, 6 tasks realistic
 
-Hiện tại `get_next_task` trả **full task JSON inline** trong MCP response:
+### 4.1 Zod 4 Bug — CONFIRMED CRITICAL
 
-```json
-{
-  "action": "EXECUTE",
-  "task_id": "01-setup-env",
-  "task_details": { "/* full task object ~30-50 lines */" }
+`TaskDefSchema` chỉ khai báo 4 field, Zod 4 `z.object()` mặc định **strip unknown keys**:
+
+```
+Original:  [id, module, title, action, what_to_do, files, constraints, verification, done_criteria, dependencies]
+After Zod: [id, module, action, verification]  ← CHỈ CÒN 4/10 FIELDS
+
+STRIPPED:   title, what_to_do, files, constraints, done_criteria, dependencies
+            → Toàn bộ implementation instructions bị mất!
+```
+
+Worker hiện tại nhận task chỉ có 1 dòng `action` → **mù hoàn toàn**, không biết files nào, conventions nào, spec chi tiết gì.
+
+### 4.2 Measurement Results (6 tasks, realistic data)
+
+| Option | Tokens (6 tasks) | vs C | Correct? | Latency |
+|--------|-------------------|------|----------|---------|
+| A — Current (Zod stripped) | 791 | -69.8% | ❌ **BROKEN** | 0 |
+| A2 — Full inline (passthrough) | 3,117 | +19.2% | ✅ | 0 |
+| B — File reference | 3,551 | +35.7% | ✅ | +1 call/task |
+| **C — Compact inline** ⭐ | **2,616** | baseline | ✅ | 0 |
+
+- C saves **16.1%** vs A2, saves **26.3%** vs B
+- 2,616 tokens total = ~2% of 128K context window = **negligible**
+- Token cost không phải vấn đề; Zod bug mới là critical
+
+### 4.3 Fix: 2-step compact task response
+
+**Bước 1 — Fix Zod passthrough** (prerequisite):
+
+```diff
+// src/mcp-server/tools.mjs line 361-366
+  const TaskDefSchema = z.object({
+    id: z.string().regex(/^\d{2}-[a-z0-9-]+$/, "id must be in XX-kebab-case format"),
+    module: z.string(),
+    action: z.string(),
+    verification: z.string()
+- });
++ }).passthrough();  // giữ title, what_to_do, files, constraints, ...
+```
+
+**Bước 2 — compactTask() ở response**:
+
+```js
+const STRIP_FIELDS = ['status', 'assigned_to', 'priority', 'metadata', 'dependencies', 'done_criteria'];
+
+function compactTask(task) {
+  if (!task) return task;
+  const compact = {};
+  for (const [key, value] of Object.entries(task)) {
+    if (!STRIP_FIELDS.includes(key)) compact[key] = value;
+  }
+  return compact;
 }
 ```
 
-**Option A — Inline (hiện tại)**: ~200-500 tokens/task
-- ✅ Agent nhận được ngay, không cần tool call thêm
-- ❌ Tốn token nếu task lớn
+Apply ở 2 chỗ trong `tools.mjs`:
+- `get_next_task` → `task_details: compactTask(task)` (line ~171)
+- `complete_task` auto-pickup → `task_details: compactTask(nextTask)` (line ~231)
 
-**Option B — File reference**: ~50 tokens response + 200-500 tokens cho `view_file`
-- ✅ Response nhẹ hơn
-- ❌ Agent phải gọi thêm 1 tool call → latency + vẫn tốn token khi đọc file
-- ⚠️ **Net token = tương đương hoặc nhiều hơn** (thêm tool call overhead)
+**Flow sau khi fix:**
 
-**Option C — Compact inline** (đề xuất): ~100-200 tokens
-- Gửi task với chỉ các field cần thiết, không gửi metadata
-- Dùng field names ngắn
-
-> **Kết luận**: Inline compact là hiệu quả nhất. File reference **không tiết kiệm** token vì agent vẫn phải đọc file, thêm overhead tool call (~50 tokens mỗi call). Binary attachment không khả thi với MCP protocol text-only.
-
-### 4.2 Format comparison: JSON vs YAML vs MD
-
-| Metric | JSON | YAML | Markdown |
-|--------|------|------|----------|
-| Token/100 chars | ~25-30 | ~20-25 | ~20-25 |
-| Structural overhead | High (`{}`, `""`, `,`) | Low (indentation) | Lowest (headings) |
-| Agent parsing | Native ✅ | Good ✅ | Ambiguous ❌ |
-| Tool compatibility | MCP native ✅ | Need convert | Need convert |
-| Programmatic use | Direct ✅ | Need parser | Need parser |
-
-> **YAML tiết kiệm ~15-20% token** so với JSON nhờ bỏ được `{}`, `""`, `,` syntax. Nhưng MCP protocol bắt buộc JSON response. → **Dùng JSON compact cho MCP responses, YAML cho file storage** (plan files, task definitions).
-
-### 4.3 Recommended: Compact task response
-
-```diff
- // Hiện tại — full object (~40 fields)
- task_details: { id, title, module, action, status, assigned_to, priority, 
-                 what_to_do, files, constraints, dependencies, verification, 
-                 done_criteria, metadata }
-
- // Đề xuất — compact (~8 fields)  
- task_details: { id, title, module, action, what_to_do, files, verification, constraints }
 ```
-
-Bỏ: `status` (luôn ACTIVE), `assigned_to` (agent biết), `priority` (đã sorted), `metadata` (internal), `dependencies` (server đã resolve), `done_criteria` (nằm trong verification).
-
-**Tiết kiệm ~40-50% token per task.**
+Planner submit (N fields) → Zod passthrough (N fields giữ nguyên) → storeTasks (N + status)
+       ↓
+Worker get_next_task → compactTask() strip [status, ...] → gửi worker (N fields, không rác)
+```
 
 ---
 
