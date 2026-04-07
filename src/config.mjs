@@ -9,6 +9,7 @@ export function loadConfig(overrides = {}) {
   const root = overrides.root || resolve(__dirname, '..');
   return {
     root,
+    workspaceRoot: overrides.workspaceRoot || null,
     exchange: {
       base: join(root, DIR_NAMES.EXCHANGE),
       inbox: join(root, DIR_NAMES.EXCHANGE, DIR_NAMES.INBOX),

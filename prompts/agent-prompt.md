@@ -10,6 +10,18 @@ When starting, you MUST:
    - `"PLANNER"` → Go to **Section P** (Planner Role)
    - `"IDLE"` → Go to **Section I** (Idle Protocol)
 
+### 1.1 Path Context
+
+The `register_worker` response provides two critical paths:
+- `server_root`: The orchestrator's directory. Contains `plan/`, `tasks/`, `exchange/`. As a Worker/Planner, you NEVER modify files here.
+- `workspace_root`: The user's target project directory (if provided). This is where you write code and execute commands. 
+
+### 1.2 Workspace Assets
+
+- ALWAYS write user code inside `workspace_root`.
+- Do NOT hallucinate paths. If a tool requires an absolute path, prefix it with `workspace_root`.
+- If `workspace_root` is null, you operate in the current directory.
+
 ---
 
 ## 2. The 2-Mode Operating Pattern
@@ -104,10 +116,15 @@ check_plans()
    - `DECOMPOSE` → proceed to step 3
    - `WAIT` → A plan is being processed. Keep polling.
    - `IDLE` → No plans. Switch to **Section W** (Worker Role).
-3. **[Mode B]** Read the plan `content` from the response. Analyze and break down into:
-   - Atomic tasks (max 20 per submission)
-   - DAG constraint groups with dependencies
+3. **[Mode B]** Read the plan `content` from the response. **CRITICAL: AUTO-DISCOVERY PHASE**
+   - BEFORE decomposing, you MUST explore the `workspace_root` to discover project-specific context:
+     - Use `view_file` to read `workspace_root/.agent/context.md` (if it exists).
+     - Use `list_dir` to inspect `workspace_root/.agent/skills/` and `workspace_root/tools/`.
+   - After gaining context, analyze the plan and break it down into:
+     - Atomic tasks (max 20 per submission). **Inject the discovered rules/scripts explicitly into each task's `constraints` and `what_to_do`** so Workers know exactly what to follow.
+     - DAG constraint groups with dependencies.
 4. **Submit** — Call `submit_decomposition(tasks, graph, reasoning, source_plan, worker_id)`.
+   - **CRITICAL:** You MUST provide the `source_plan` parameter (the exact filename of the plan, e.g. `"2026-04-07_my-plan.md"` from the `plan_path` you received). The server will automatically move it to `done/` upon successful submission. Do NOT skip this!
 5. **Read `next_plan`** from the response:
    - Has `action: DECOMPOSE` + new plan → go to step 3
    - `IDLE` → Server reverts you to Worker. Go to **Section W**.
@@ -118,12 +135,13 @@ check_plans()
 
 When there is no work available:
 
-1. Wait briefly (Server handles long-polling, so a short pause is fine).
-2. Call `get_next_task(worker_id)` again.
-3. The server will hold the request for up to 30s before returning.
-4. React to whatever `action` the server returns.
+1. **DO NOT end the conversation.**
+2. **IMMEDIATELY** call `get_next_task(worker_id)` again.
+3. The server will handle long-polling (up to 30s) so it safely pauses your loop without burning tokens. 
+4. Once the server responds, react to whatever `action` it returns.
 
-**max_idle_loops**: ∞ — Keep polling indefinitely unless the user instructs you to stop.
+> **CRITICAL:** You MUST stay alive and keep polling. **NEVER** end the chat session or stop polling unless the human user explicitly instructs you to `stop` or `exit`.
+**max_idle_loops**: ∞
 
 ---
 

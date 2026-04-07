@@ -6,6 +6,17 @@ import { TOOL_NAMES, STATE_EVENTS, TASK_STATUS, AGENT_ACTION, WORKER_ROLE, FILE_
 import { waitForTask, waitForPlan } from './poll-helpers.mjs';
 import { resolveIdleAction } from './idle-resolver.mjs';
 
+const STRIP_FIELDS = ['status', 'assigned_to', 'priority', 'metadata', 'dependencies', 'done_criteria'];
+
+function compactTask(task) {
+  if (!task) return task;
+  const clone = { ...task };
+  for (const field of STRIP_FIELDS) {
+    delete clone[field];
+  }
+  return clone;
+}
+
 function formatError(err) {
   return {
     content: [{ type: "text", text: `Error: ${err.message}` }],
@@ -92,6 +103,8 @@ export function registerTools(server, context) {
             text: JSON.stringify({
               worker_id: worker.id,
               role: role,
+              server_root: context.config.root,
+              workspace_root: context.config.workspaceRoot || null,
               queue_summary: status,
               has_pending_plans: planStatus.hasPending || planStatus.hasProcessing
             })
@@ -168,7 +181,7 @@ export function registerTools(server, context) {
             text: JSON.stringify({
               action: AGENT_ACTION.EXECUTE,
               task_id: task.id,
-              task_details: task,
+              task_details: compactTask(task),
               context: {
                 group_id: findGroupForTask(task.id),
                 total_remaining: stateManager.queue.getStatus().pending
@@ -228,7 +241,7 @@ export function registerTools(server, context) {
               next_task: {
                 action: AGENT_ACTION.EXECUTE,
                 task_id: nextTask.id,
-                task_details: nextTask
+                task_details: compactTask(nextTask)
               }
             }) }] };
           }
@@ -363,7 +376,7 @@ export function registerTools(server, context) {
     module: z.string(),
     action: z.string(),
     verification: z.string()
-  });
+  }).passthrough();
 
   server.registerTool(
     TOOL_NAMES.SUBMIT_DECOMPOSITION,

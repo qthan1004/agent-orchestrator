@@ -208,8 +208,9 @@ export class RecoveryManager {
       });
     }
 
-    // Clear worker's assignment
+    // Clear worker's assignment and kill worker
     worker.current_task = null;
+    this.workerRegistry.removeWorker(worker.id);
   }
 
   // ─── Monitoring Lifecycle ──────────────────────────────────

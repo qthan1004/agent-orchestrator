@@ -53,6 +53,15 @@ export class WorkerRegistry {
     return Array.from(this.workers.values());
   }
 
+  removeWorker(id) {
+    if (this.workers.has(id)) {
+      this.workers.delete(id);
+      this._save();
+      return true;
+    }
+    return false;
+  }
+
   updateHeartbeat(id) {
     const worker = this.workers.get(id);
     if (worker) {
