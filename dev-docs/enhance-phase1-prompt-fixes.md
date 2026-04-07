@@ -309,6 +309,28 @@ Thêm config cho disconnect threshold:
 
 ---
 
+## Issue 6: Planner Context Auto-Discovery Phase
+
+**Vấn đề**: Mỗi project (workspace) có một bộ skills, workflows, tools và architecture context riêng biệt (giống như project `Personal-lib`). Nếu Planner không tự động "khám phá" (discover) các tài sản này trước khi phân rã task, danh sách task sinh ra sẽ rất generic. Worker khi nhận task sẽ không biết phải sử dụng convention nào hay đọc skill nào.
+
+**Giải pháp**: Bắt buộc Agent ở role Planner phải có bước "Discovery" tham chiếu trực tiếp đến `workspace_root` trước khi decompose. Thay đổi prompt của Planner trong Section P.
+
+### [MODIFY] `prompts/agent-prompt.md`
+
+Sửa **Step 3** của Section P thành quy trình Discovery & Breakdown:
+
+```diff
+-3. **[Mode B]** Read the plan `content` from the response. Analyze and break down into:
+-   - Atomic tasks (max 20 per submission)
+-   - DAG constraint groups with dependencies
++3. **[Mode B]** DISCOVERY & DECOMPOSITION:
++   - **Step 3a (Discover)**: Before generating tasks, you MUST read `workspace_root/.agent/context.md` (if it exists), and dynamically list contents inside `workspace_root/.agent/skills/` and `workspace_root/tools/`.
++   - **Step 3b (Analyze)**: Read the plan `content`. Decide which of the newly discovered project-specific skills, libraries, and workflows apply to this plan.
++   - **Step 3c (Decompose)**: Break down the plan into atomic tasks (max 20). **CRITICAL**: Explicitly map the paths of the discovered skills and workflows directly into the `what_to_do` and `constraints` fields of the generated tasks. This ensures Workers know exactly what workspace rules to follow.
+```
+
+---
+
 ## Verification Plan
 
 ### Manual Verification
@@ -318,3 +340,4 @@ Thêm config cho disconnect threshold:
 4. Agent idle → check agent keeps polling (not ending chat)
 5. Disconnect 1 worker đang busy > 10s → check task requeue + worker killed
 6. Worker 2 picks lại task đó → verify no conflict
+7. **Planner Auto-Discovery** → Tạo 1 plan test, xác nhận Agent (Planner) tự động dùng `list_dir` hoặc `view_file` vào thư mục `.agent` của `workspace_root` trước khi gọi `submit_decomposition` và các tasks sinh ra có chứa tên skill cụ thể của project.
