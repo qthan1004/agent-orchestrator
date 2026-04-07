@@ -1,7 +1,0 @@
-{
-  "id": "03-verify",
-  "module": "Verify",
-  "action": "[CONTEXT OVERRIDE]: Cwd bắt buộc là `d:\\workspace\\agent-orchestrator`. Từ đó, đi vào `d:\\workspace\\react-lib-workspace\\libs\\input`, chạy `npm install` và `npx vite build`. Xác thực compile pass. Bỏ qua Human Setup NPM_TOKEN nếu không có CI manual.",
-  "verification": "Lệnh vite build trả về exit code 0.",
-  "status": "pending"
-}
