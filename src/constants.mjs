@@ -77,6 +77,7 @@ export const STATE_EVENTS = {
   TASK_ACTIVATED: 'TASK_ACTIVATED',
   TASK_COMPLETED: 'TASK_COMPLETED',
   TASK_REQUEUED: 'TASK_REQUEUED',
+  TASK_PERMANENTLY_FAILED: 'TASK_PERMANENTLY_FAILED',
   STATE_RESTORED: 'STATE_RESTORED',
   TASK_ASSIGNED: 'TASK_ASSIGNED',
   PROGRESS: 'PROGRESS',
@@ -101,7 +102,8 @@ export const RECOVERY_EVENTS = {
 export const RECOVERY_DEFAULTS = {
   MONITOR_INTERVAL_MS: 30_000,    // 30s (check every 30s)
   STALE_THRESHOLD_MS: 120_000,    // 2 minutes (agent tool calls can take 10-30s+)
-  MAX_RETRIES: 3
+  MAX_RETRIES: 3,
+  MAX_TASK_RETRIES: 3             // Task-level: permanently fail after 3 explicit FAILED/BLOCKED
 };
 
 export const SHUTDOWN_MARKER_FILE = '.shutdown_clean';

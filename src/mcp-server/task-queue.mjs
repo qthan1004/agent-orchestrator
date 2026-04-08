@@ -1,7 +1,9 @@
+import { EventEmitter } from 'node:events';
 import { TASK_STATUS } from '../constants.mjs';
 
-export class TaskQueue {
+export class TaskQueue extends EventEmitter {
   constructor() {
+    super();
     this.tasks = new Map(); // id -> task with status
     this.groups = []; // Array of { group_id, tasks: [], depends_on: [] }
   }
@@ -61,6 +63,9 @@ export class TaskQueue {
         status: TASK_STATUS.PENDING
       });
     }
+
+    // Notify any waiting poll that tasks are available
+    this.emit('task-available');
   }
 
   /**
@@ -133,6 +138,7 @@ export class TaskQueue {
     const task = this.tasks.get(taskId);
     if (task) {
       task.status = TASK_STATUS.PENDING;
+      this.emit('task-available');
     }
   }
 

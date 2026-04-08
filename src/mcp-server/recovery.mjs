@@ -31,6 +31,7 @@ export class RecoveryManager {
     this.monitorIntervalMs = recoveryConfig.monitorIntervalMs ?? RECOVERY_DEFAULTS.MONITOR_INTERVAL_MS;
     this.staleThresholdMs = recoveryConfig.staleThresholdMs ?? RECOVERY_DEFAULTS.STALE_THRESHOLD_MS;
     this.maxRetries = recoveryConfig.maxRetries ?? RECOVERY_DEFAULTS.MAX_RETRIES;
+    this.maxTaskRetries = config.recovery?.maxTaskRetries ?? RECOVERY_DEFAULTS.MAX_TASK_RETRIES;
 
     this._monitorTimer = null;
 
@@ -177,6 +178,41 @@ export class RecoveryManager {
   }
 
   /**
+   * Safety net: scan outbox/ for FAILED tasks that shouldn't be there.
+   * Only requeues tasks with retry_count < maxTaskRetries.
+   * Permanently failed tasks (retry_count >= max) are left in outbox.
+   */
+  _requeueFailedFromOutbox() {
+    const outboxDir = this.config.exchange.outbox;
+    const taskFiles = listFiles(outboxDir, '.json')
+      .filter(f => f.startsWith(FILE_PREFIXES.TASK));
+
+    let requeuedCount = 0;
+
+    for (const file of taskFiles) {
+      const fullPath = path.join(outboxDir, file);
+      const data = readJSON(fullPath);
+      if (!data || data.status !== TASK_STATUS.FAILED) continue;
+
+      // Don't requeue permanently failed tasks
+      const retryCount = data.retry_count || 0;
+      if (retryCount >= this.maxTaskRetries) continue;
+
+      this.logger.log(RECOVERY_EVENTS.ORPHAN_REQUEUED, {
+        task_id: data.id,
+        retry_count: retryCount,
+        message: `Safety net: FAILED task found in outbox (retry ${retryCount}/${this.maxTaskRetries}), requeuing to inbox`
+      });
+
+      // Move to inbox without incrementing retry count (already counted when failed)
+      this.stateManager.moveToInbox(data.id);
+      requeuedCount++;
+    }
+
+    return requeuedCount;
+  }
+
+  /**
    * Handle a stale worker's task — ALWAYS requeue back to inbox.
    * Stale detection is about worker health, not task correctness.
    * The task itself is fine — only the worker went away.
@@ -226,6 +262,7 @@ export class RecoveryManager {
 
     this._monitorTimer = setInterval(() => {
       this.checkStaleWorkers();
+      this._requeueFailedFromOutbox();
     }, this.monitorIntervalMs);
 
     // Don't prevent Node.js from exiting

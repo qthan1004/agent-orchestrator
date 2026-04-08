@@ -1,5 +1,6 @@
 /**
  * Long poll: chờ task available hoặc timeout.
+ * Hybrid: event-driven (instant) + interval polling (safety net).
  * Nếu pollTimeoutMs = 0 → instant mode (fallback).
  */
 export function waitForTask(queue, { timeoutMs = 30000, checkIntervalMs = 2000 } = {}) {
@@ -8,24 +9,44 @@ export function waitForTask(queue, { timeoutMs = 30000, checkIntervalMs = 2000 }
     return Promise.resolve(queue.getNextTask());
   }
   
-  // Long poll
+  // Hybrid: event + interval poll
   return new Promise((resolve) => {
     // Check ngay lần đầu
     const immediate = queue.getNextTask();
     if (immediate) return resolve(immediate);
     
-    const start = Date.now();
-    const timer = setInterval(() => {
+    let resolved = false;
+    
+    const cleanup = () => {
+      resolved = true;
+      clearInterval(timer);
+      clearTimeout(timeout);
+      queue.removeListener('task-available', onTaskAvailable);
+    };
+    
+    const tryResolve = () => {
+      if (resolved) return;
       const task = queue.getNextTask();
       if (task) {
-        clearInterval(timer);
-        return resolve(task);
+        cleanup();
+        resolve(task);
       }
-      if (Date.now() - start >= timeoutMs) {
-        clearInterval(timer);
-        return resolve(null);
+    };
+    
+    // Event-driven: wake instantly when task becomes available
+    const onTaskAvailable = () => tryResolve();
+    queue.on('task-available', onTaskAvailable);
+    
+    // Fallback interval polling (safety net if event missed)
+    const timer = setInterval(tryResolve, checkIntervalMs);
+    
+    // Timeout → give up
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        cleanup();
+        resolve(null);
       }
-    }, checkIntervalMs);
+    }, timeoutMs);
   });
 }
 

@@ -2,7 +2,7 @@ import path from 'path';
 import { loadConfig } from '../config.mjs';
 import { readJSON, writeJSON, moveFile, listFiles, ensureDir, readFile } from '../utils/file-backend.mjs';
 import { TaskQueue } from './task-queue.mjs';
-import { TASK_STATUS, FILE_PREFIXES, STATE_EVENTS } from '../constants.mjs';
+import { TASK_STATUS, FILE_PREFIXES, STATE_EVENTS, RECOVERY_DEFAULTS } from '../constants.mjs';
 
 export class StateManager {
   constructor(logger) {
@@ -204,6 +204,63 @@ export class StateManager {
     }
   }
 
+  /**
+   * Get retry count for a task (reads from file on disk).
+   * Checks active/ first, then outbox/, then inbox/.
+   */
+  getTaskRetryCount(taskId) {
+    const dirs = [this.config.exchange.active, this.config.exchange.outbox, this.config.exchange.inbox];
+    for (const dir of dirs) {
+      const filePath = path.join(dir, `${FILE_PREFIXES.TASK}${taskId}.json`);
+      const data = readJSON(filePath);
+      if (data) return data.retry_count || 0;
+    }
+    // Fallback to in-memory
+    const task = this.queue.tasks.get(taskId);
+    return task?.retry_count || 0;
+  }
+
+  /**
+   * Requeue a task with incremented retry count.
+   * Increments retry_count in the file before moving to inbox.
+   * Returns the new retry count.
+   */
+  requeueWithRetry(taskId) {
+    // Find and increment retry_count in the task file
+    const dirs = [this.config.exchange.active, this.config.exchange.outbox];
+    let newRetryCount = 1;
+
+    for (const dir of dirs) {
+      const filePath = path.join(dir, `${FILE_PREFIXES.TASK}${taskId}.json`);
+      const data = readJSON(filePath);
+      if (data) {
+        newRetryCount = (data.retry_count || 0) + 1;
+        data.retry_count = newRetryCount;
+        writeJSON(filePath, data);
+        break;
+      }
+    }
+
+    // Move to inbox (handles file move + status=PENDING + queue.requeueTask)
+    this.moveToInbox(taskId);
+
+    // Sync retry_count to in-memory task
+    const task = this.queue.tasks.get(taskId);
+    if (task) {
+      task.retry_count = newRetryCount;
+    }
+
+    if (this.logger) {
+      this.logger.log(STATE_EVENTS.TASK_REQUEUED, {
+        task_id: taskId,
+        retry_count: newRetryCount,
+        message: `Task ${taskId} requeued with retry count ${newRetryCount}`
+      });
+    }
+
+    return newRetryCount;
+  }
+
   // Recovery (file-based)
   restoreFromFiles() {
     const rebuiltMap = new Map();
@@ -227,10 +284,23 @@ export class StateManager {
     loadDir(this.config.exchange.outbox, TASK_STATUS.DONE);
 
     // Auto-recover FAILED tasks in outbox: move them back to inbox as PENDING
+    // BUT respect retry_count — permanently failed tasks (>= MAX_TASK_RETRIES) stay in outbox
     const failedTasks = [];
+    const maxTaskRetries = RECOVERY_DEFAULTS.MAX_TASK_RETRIES;
     for (const [taskId, task] of rebuiltMap) {
       if (task.status === TASK_STATUS.FAILED) {
-        failedTasks.push(taskId);
+        const retryCount = task.retry_count || 0;
+        if (retryCount < maxTaskRetries) {
+          failedTasks.push(taskId);
+        } else {
+          if (this.logger) {
+            this.logger.log(STATE_EVENTS.TASK_PERMANENTLY_FAILED, {
+              task_id: taskId,
+              retry_count: retryCount,
+              message: `Task ${taskId} permanently failed (${retryCount} retries), skipping auto-recovery`
+            });
+          }
+        }
       }
     }
 

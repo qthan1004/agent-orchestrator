@@ -215,55 +215,98 @@ export function registerTools(server, context) {
         }
 
         const result = { task_id, status, summary, worker_id, completed_at: new Date().toISOString() };
-        stateManager.moveToOutbox(task_id, result);
-        
+
+        // ─── Helper: try auto-pickup next task ───
+        const tryAutoPickup = (responseBase) => {
+          if (!auto_pickup) {
+            return { content: [{ type: "text", text: JSON.stringify({
+              ...responseBase,
+              next_task: { action: AGENT_ACTION.IDLE }
+            }) }] };
+          }
+
+          const nextTask = stateManager.queue.getNextTask();
+          if (nextTask) {
+            stateManager.moveToActive(nextTask.id);
+            worker.current_task = nextTask.id;
+            return { content: [{ type: "text", text: JSON.stringify({
+              ...responseBase,
+              next_task: {
+                action: AGENT_ACTION.EXECUTE,
+                task_id: nextTask.id,
+                task_details: compactTask(nextTask),
+                context: {
+                  group_id: findGroupForTask(nextTask.id),
+                  total_remaining: stateManager.queue.getStatus().pending
+                }
+              }
+            }) }] };
+          }
+
+          // No more tasks → check planner re-election
+          const idleResult = resolveIdleAction({ 
+            stateManager, workerRegistry, workerId: worker_id, config: context.config 
+          });
+          return { content: [{ type: "text", text: JSON.stringify({
+            ...responseBase,
+            next_task: idleResult
+          }) }] };
+        };
+
+        // ─── DONE: move to outbox normally ───
+        if (status === TASK_STATUS.DONE) {
+          stateManager.moveToOutbox(task_id, result);
+          worker.current_task = null;
+          worker.tasks_completed++;
+          
+          if (logger) logger.log(STATE_EVENTS.TASK_COMPLETED, { task_id, status, worker_id });
+          stateManager.saveCheckpoint();
+          
+          return tryAutoPickup({ accepted: true, completed: task_id });
+        }
+
+        // ─── FAILED / BLOCKED: requeue to inbox for retry ───
+        const retryCount = stateManager.getTaskRetryCount(task_id);
+        const maxTaskRetries = context.config.recovery.maxTaskRetries;
+
+        if (retryCount >= maxTaskRetries) {
+          // Permanently failed → outbox (won't be auto-recovered)
+          result.permanently_failed = true;
+          result.retry_count = retryCount;
+          stateManager.moveToOutbox(task_id, result);
+          worker.current_task = null;
+          worker.tasks_completed++;
+          
+          if (logger) {
+            logger.log(STATE_EVENTS.TASK_PERMANENTLY_FAILED, {
+              task_id, status, worker_id, retry_count: retryCount, max_retries: maxTaskRetries,
+              message: `Task ${task_id} permanently failed after ${retryCount} attempts. Dependent tasks will be blocked.`
+            });
+          }
+          
+          stateManager.saveCheckpoint();
+          
+          return { content: [{ type: "text", text: JSON.stringify({
+            accepted: true,
+            permanently_failed: task_id,
+            retry_count: retryCount,
+            message: `Task permanently failed after ${retryCount} attempts. Dependent tasks blocked until manual intervention.`,
+            next_task: { action: AGENT_ACTION.IDLE }
+          }) }] };
+        }
+
+        // Under retry limit → requeue to inbox
+        const newRetryCount = stateManager.requeueWithRetry(task_id);
         worker.current_task = null;
         worker.tasks_completed++;
         
         if (logger) {
-            logger.log(STATE_EVENTS.TASK_COMPLETED, { task_id, status, worker_id });
+          logger.log(STATE_EVENTS.TASK_REQUEUED, { task_id, status, worker_id, retry_count: newRetryCount });
         }
-
+        
         stateManager.saveCheckpoint();
         
-        // Auto pickup next task?
-        if (auto_pickup && status === TASK_STATUS.DONE) {
-          const nextTask = stateManager.queue.getNextTask();
-          
-          if (nextTask) {
-            // Có task kế tiếp → assign ngay
-            stateManager.moveToActive(nextTask.id);
-            worker.current_task = nextTask.id;
-            
-            return { content: [{ type: "text", text: JSON.stringify({
-              accepted: true,
-              completed: task_id,
-              next_task: {
-                action: AGENT_ACTION.EXECUTE,
-                task_id: nextTask.id,
-                task_details: compactTask(nextTask)
-              }
-            }) }] };
-          }
-          
-          // Hết task → check planner re-election
-          const idleResult = resolveIdleAction({ 
-            stateManager, workerRegistry, workerId: worker_id, config: context.config 
-          });
-          
-          return { content: [{ type: "text", text: JSON.stringify({
-            accepted: true,
-            completed: task_id,
-            next_task: idleResult  // IDLE hoặc BECOME_PLANNER
-          }) }] };
-        }
-        
-        // FAILED/BLOCKED hoặc auto_pickup=false → không auto pickup
-        return { content: [{ type: "text", text: JSON.stringify({
-          accepted: true,
-          completed: task_id,
-          next_task: { action: AGENT_ACTION.IDLE }
-        }) }] };
+        return tryAutoPickup({ accepted: true, requeued: task_id, retry_count: newRetryCount });
       } catch (err) {
         return formatError(err);
       }

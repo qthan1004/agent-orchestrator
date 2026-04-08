@@ -45,6 +45,7 @@ export function loadConfig(overrides = {}) {
     },
     recovery: {
       staleThresholdMs: overrides.staleThresholdMs || RECOVERY_DEFAULTS.STALE_THRESHOLD_MS,
+      maxTaskRetries: overrides.maxTaskRetries || RECOVERY_DEFAULTS.MAX_TASK_RETRIES,
     }
   };
 }
