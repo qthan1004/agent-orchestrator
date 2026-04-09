@@ -1,19 +1,48 @@
-# Task Board — 2026-04-06T11:00:00
+# Task Board — 2026-04-09T16:20:00
 
 | Status | Count |
 |--------|-------|
-| ⬜ Pending | 20 |
+| ⬜ Pending | 10 |
 | 🔄 Processing | 0 |
-| ✅ Done | 19 |
-| **Total** | **39** |
+| ✅ Done | 28 |
+| **Total** | **38** |
 
-Progress: 19/39 (49%)
+Progress: 28/38 (74%)
 
 ---
 
-## ⬜ Pending — v2 Server Optimization & Bug Fixes
+## ⬜ Pending — TypeScript Migration (M-series)
 
-> Plan: `tasks/pending/plan-v2-server-optimization.md`
+> Ref: `dev-docs/migrate-to-typescript.md`
+> Prefix: `M` = Migration task
+
+### Group 1: Foundation (no deps)
+- `M01-ts-infra-setup.md` — tsconfig.json, devDeps, scripts, .gitignore
+- `M02-shared-types.md` → depends on M01 — `src/types.ts` shared interfaces
+
+### Group 2: File Migration (bottom-up layers)
+- `M03-migrate-layer1-leaves.md` → depends on M02 — constants, file-backend, logger
+- `M04-migrate-layer2-utils.md` → depends on M03 — config, bootstrap, worker-registry, startup-prompt
+- `M05-migrate-layer3-mcp-internals.md` → depends on M04 — task-queue, poll-helpers, idle-resolver, state-manager, recovery, plan-watcher
+- `M06-migrate-layer4-toplevel.md` → depends on M05 — server, tools ⭐, transport, index (entry points)
+
+### Group 3: Cleanup
+- `M07-cleanup-tests.md` → depends on M06 — delete root scripts, migrate tests/*.mjs → .ts
+
+### Group 4: Verification
+- `M08-verify-build-e2e.md` → depends on M07 — typecheck, build, serve, e2e test
+
+---
+
+## ⬜ Pending — Misc
+
+- `03-worker-auto-kill.md` — Auto-kill stale workers + task requeue
+
+---
+
+## ⬜ Done — v2 Server Optimization & Bug Fixes
+
+> Plan: `tasks/done/plan-v2-server-optimization.md`
 
 ### Phase 1: Server Core (Group 1-3)
 - `01-constants-roles-actions.md` — Constants: WORKER_ROLE, AGENT_ACTION, POLL_DEFAULTS
