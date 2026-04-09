@@ -53,19 +53,68 @@ export class WorkerRegistry {
     return Array.from(this.workers.values());
   }
 
-  removeWorker(id) {
-    if (this.workers.has(id)) {
-      this.workers.delete(id);
+  /**
+   * Count only non-disconnected workers.
+   */
+  getActiveWorkerCount() {
+    let count = 0;
+    for (const w of this.workers.values()) {
+      if (w.status !== WORKER_STATUS.DISCONNECTED) count++;
+    }
+    return count;
+  }
+
+  /**
+   * Mark worker as DISCONNECTED instead of deleting.
+   * Keeps the entry so late complete_task calls can still resolve.
+   * Clears current_task assignment.
+   * @returns {boolean} true if worker existed
+   */
+  markDisconnected(id) {
+    const worker = this.workers.get(id);
+    if (worker) {
+      worker.status = WORKER_STATUS.DISCONNECTED;
+      worker.current_task = null;
+      worker.disconnected_at = new Date().toISOString();
       this._save();
       return true;
     }
     return false;
   }
 
+  /**
+   * Remove all DISCONNECTED workers from registry.
+   * Call during startup to clean stale entries from previous runs.
+   * @returns {number} number of workers cleaned up
+   */
+  cleanupDisconnected() {
+    let count = 0;
+    for (const [id, worker] of this.workers) {
+      if (worker.status === WORKER_STATUS.DISCONNECTED) {
+        this.workers.delete(id);
+        count++;
+      }
+    }
+    if (count > 0) this._save();
+    return count;
+  }
+
+  /**
+   * @deprecated Use markDisconnected instead. Kept for backward compat.
+   */
+  removeWorker(id) {
+    return this.markDisconnected(id);
+  }
+
   updateHeartbeat(id) {
     const worker = this.workers.get(id);
     if (worker) {
       worker.last_heartbeat = new Date().toISOString();
+      // Re-activate a disconnected worker that comes back alive
+      if (worker.status === WORKER_STATUS.DISCONNECTED) {
+        worker.status = WORKER_STATUS.IDLE;
+        delete worker.disconnected_at;
+      }
       this._save();
       return true;
     }
@@ -85,7 +134,7 @@ export class WorkerRegistry {
   getActivePlanner(staleThresholdMs) {
     const now = Date.now();
     for (const w of this.workers.values()) {
-      if (w.role === WORKER_ROLE.PLANNER) {
+      if (w.role === WORKER_ROLE.PLANNER && w.status !== WORKER_STATUS.DISCONNECTED) {
         const elapsed = now - new Date(w.last_heartbeat).getTime();
         if (elapsed < staleThresholdMs) return w;
       }

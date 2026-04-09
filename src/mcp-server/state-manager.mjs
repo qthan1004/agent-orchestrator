@@ -1,12 +1,18 @@
 import path from 'path';
-import { loadConfig } from '../config.mjs';
+import fs from 'fs';
 import { readJSON, writeJSON, moveFile, listFiles, ensureDir, readFile } from '../utils/file-backend.mjs';
 import { TaskQueue } from './task-queue.mjs';
 import { TASK_STATUS, FILE_PREFIXES, STATE_EVENTS, RECOVERY_DEFAULTS } from '../constants.mjs';
 
+const MAX_CHECKPOINTS = 10;
+
 export class StateManager {
-  constructor(logger) {
-    this.config = loadConfig();
+  /**
+   * @param {import('../utils/logger.mjs').Logger} logger
+   * @param {object} config - Config from loadConfig(overrides)
+   */
+  constructor(logger, config) {
+    this.config = config;
     this.queue = new TaskQueue();
     this.logger = logger;
     this.plan = null;
@@ -178,6 +184,15 @@ export class StateManager {
     }
   }
 
+  /**
+   * Check if a task file exists in active/ directory.
+   * Used by recovery to guard against race conditions.
+   */
+  isTaskInActive(taskId) {
+    const activePath = path.join(this.config.exchange.active, `${FILE_PREFIXES.TASK}${taskId}.json`);
+    return fs.existsSync(activePath);
+  }
+
   moveToInbox(taskId) {
     const activePath = path.join(this.config.exchange.active, `${FILE_PREFIXES.TASK}${taskId}.json`);
     const outboxPath = path.join(this.config.exchange.outbox, `${FILE_PREFIXES.TASK}${taskId}.json`);
@@ -286,7 +301,7 @@ export class StateManager {
     // Auto-recover FAILED tasks in outbox: move them back to inbox as PENDING
     // BUT respect retry_count — permanently failed tasks (>= MAX_TASK_RETRIES) stay in outbox
     const failedTasks = [];
-    const maxTaskRetries = RECOVERY_DEFAULTS.MAX_TASK_RETRIES;
+    const maxTaskRetries = this.config.recovery?.maxTaskRetries ?? RECOVERY_DEFAULTS.MAX_TASK_RETRIES;
     for (const [taskId, task] of rebuiltMap) {
       if (task.status === TASK_STATUS.FAILED) {
         const retryCount = task.retry_count || 0;
@@ -346,6 +361,7 @@ export class StateManager {
 
   // Checkpointing
   saveCheckpoint() {
+    ensureDir(this.config.exchange.checkpoints);
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const checkpointFileName = `checkpoint-${timestamp}.json`;
     const checkpointPath = path.join(this.config.exchange.checkpoints, checkpointFileName);
@@ -353,10 +369,34 @@ export class StateManager {
     // Write serialized queue
     writeJSON(checkpointPath, this.queue.serialize());
 
+    // Rotate: keep only the newest MAX_CHECKPOINTS files
+    this._rotateCheckpoints();
+
     if (this.logger) {
       this.logger.log(STATE_EVENTS.CHECKPOINT_SAVED, { file: checkpointFileName });
     }
 
     return `checkpoints/${checkpointFileName}`;
+  }
+
+  /**
+   * Remove old checkpoint files, keeping only the newest MAX_CHECKPOINTS.
+   */
+  _rotateCheckpoints() {
+    try {
+      const files = listFiles(this.config.exchange.checkpoints, '.json')
+        .filter(f => f.startsWith('checkpoint-'))
+        .sort(); // lexicographic = chronological with ISO timestamp naming
+
+      if (files.length <= MAX_CHECKPOINTS) return;
+
+      const toDelete = files.slice(0, files.length - MAX_CHECKPOINTS);
+      for (const file of toDelete) {
+        const fullPath = path.join(this.config.exchange.checkpoints, file);
+        try { fs.unlinkSync(fullPath); } catch (_) { /* ignore */ }
+      }
+    } catch (_) {
+      // Non-critical — ignore rotation errors
+    }
   }
 }

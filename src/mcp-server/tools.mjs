@@ -1,8 +1,10 @@
 import { z } from 'zod';
 import fs from 'fs';
 import path from 'path';
-import { workerRegistry } from '../utils/worker-registry.mjs';
-import { TOOL_NAMES, STATE_EVENTS, TASK_STATUS, AGENT_ACTION, WORKER_ROLE, FILE_PREFIXES } from '../constants.mjs';
+import {
+  TOOL_NAMES, STATE_EVENTS, TASK_STATUS, AGENT_ACTION, WORKER_ROLE,
+  WORKER_STATUS, FILE_PREFIXES, VERSION
+} from '../constants.mjs';
 import { waitForTask, waitForPlan } from './poll-helpers.mjs';
 import { resolveIdleAction } from './idle-resolver.mjs';
 
@@ -27,18 +29,19 @@ function formatError(err) {
 /**
  * Middleware: auto-update heartbeat cho mọi tool call có worker_id.
  * Agent không cần gọi report_progress chỉ để keepalive.
+ * Uses workerRegistry from context (DI).
  */
-function withHeartbeat(handler) {
+function withHeartbeat(handler, context) {
   return async (params) => {
     if (params.worker_id) {
-      workerRegistry.updateHeartbeat(params.worker_id);
+      context.workerRegistry.updateHeartbeat(params.worker_id);
     }
     return handler(params);
   };
 }
 
 export function registerTools(server, context) {
-  const { stateManager, logger } = context;
+  const { stateManager, workerRegistry, logger } = context;
 
   function findGroupForTask(taskId) {
     for (const group of stateManager.queue.groups) {
@@ -128,10 +131,10 @@ export function registerTools(server, context) {
             type: "text",
             text: JSON.stringify({
               server: "orchestrator",
-              version: "0.1.0",
+              version: VERSION,
               uptime: process.uptime(),
               transport: "streamable-http",
-              connected_workers: workerRegistry.getAllWorkers().length
+              connected_workers: workerRegistry.getActiveWorkerCount()
             })
           }]
         };
@@ -192,7 +195,7 @@ export function registerTools(server, context) {
       } catch (err) {
         return formatError(err);
       }
-    })
+    }, context)
   );
 
   server.registerTool(
@@ -210,8 +213,50 @@ export function registerTools(server, context) {
     withHeartbeat(async ({ task_id, status, summary, worker_id, auto_pickup = true }) => {
       try {
         const worker = workerRegistry.getWorker(worker_id);
-        if (!worker || worker.current_task !== task_id) {
-          throw new Error("Worker does not own this task or invalid worker_id");
+        if (!worker) throw new Error("Invalid worker_id");
+
+        // Handle disconnected worker that comes back with a late result
+        if (worker.status === WORKER_STATUS.DISCONNECTED) {
+          // Re-activate the worker
+          worker.status = WORKER_STATUS.IDLE;
+          delete worker.disconnected_at;
+
+          if (logger) {
+            logger.log('WORKER_RECONNECTED', {
+              worker_id,
+              task_id,
+              message: `Disconnected worker ${worker_id} came back with result for task ${task_id}`
+            });
+          }
+
+          // Task may have been requeued by recovery — check if it's still valid
+          if (!stateManager.isTaskInActive(task_id)) {
+            // Task was already requeued or completed by another worker
+            if (logger) {
+              logger.log('LATE_RESULT_DISCARDED', {
+                worker_id,
+                task_id,
+                message: `Late result from reconnected worker discarded — task ${task_id} no longer in active/`
+              });
+            }
+            worker.current_task = null;
+            return {
+              content: [{ type: "text", text: JSON.stringify({
+                accepted: false,
+                reason: 'late_result',
+                task_id,
+                message: `Task ${task_id} was already requeued/completed. Your result was discarded.`,
+                next_task: { action: AGENT_ACTION.IDLE }
+              }) }]
+            };
+          }
+
+          // Task still in active — this worker's result is valid, re-assign ownership
+          worker.current_task = task_id;
+        }
+
+        if (worker.current_task !== task_id) {
+          throw new Error("Worker does not own this task");
         }
 
         const result = { task_id, status, summary, worker_id, completed_at: new Date().toISOString() };
@@ -275,7 +320,7 @@ export function registerTools(server, context) {
           result.retry_count = retryCount;
           stateManager.moveToOutbox(task_id, result);
           worker.current_task = null;
-          worker.tasks_completed++;
+          // Don't increment tasks_completed for permanent failures
           
           if (logger) {
             logger.log(STATE_EVENTS.TASK_PERMANENTLY_FAILED, {
@@ -298,7 +343,7 @@ export function registerTools(server, context) {
         // Under retry limit → requeue to inbox
         const newRetryCount = stateManager.requeueWithRetry(task_id);
         worker.current_task = null;
-        worker.tasks_completed++;
+        // Don't increment tasks_completed for failed/blocked tasks
         
         if (logger) {
           logger.log(STATE_EVENTS.TASK_REQUEUED, { task_id, status, worker_id, retry_count: newRetryCount });
@@ -310,7 +355,7 @@ export function registerTools(server, context) {
       } catch (err) {
         return formatError(err);
       }
-    })
+    }, context)
   );
 
   server.registerTool(
@@ -339,7 +384,7 @@ export function registerTools(server, context) {
       } catch (err) {
          return formatError(err);
       }
-    })
+    }, context)
   );
 
   server.registerTool(
@@ -350,7 +395,7 @@ export function registerTools(server, context) {
     async () => {
       try {
         const status = stateManager.getStatus();
-        status.workers = workerRegistry.getAllWorkers().length;
+        status.workers = workerRegistry.getActiveWorkerCount();
         return {
           content: [{ type: "text", text: JSON.stringify(status) }]
         };
@@ -478,7 +523,7 @@ export function registerTools(server, context) {
           content: [{ type: "text", text: JSON.stringify({ accepted: false, errors: [err.message] }) }]
         };
       }
-    })
+    }, context)
   );
 
   server.registerTool(
@@ -493,22 +538,29 @@ export function registerTools(server, context) {
     },
     withHeartbeat(async ({ task_id, reason, attempt }) => {
       try {
-        if (attempt > 3) throw new Error("Max retry attempt exceeded");
-        stateManager.moveToInbox(task_id);
+        const maxRetries = context.config.recovery.maxTaskRetries;
+        if (attempt > maxRetries) throw new Error(`Max retry attempt exceeded (max: ${maxRetries})`);
+
+        // Use requeueWithRetry to properly track retry count on disk
+        const newRetryCount = stateManager.requeueWithRetry(task_id);
         
         return {
-           content: [{ type: "text", text: JSON.stringify({ approved: true, file_path: `inbox/task-${task_id}.json` }) }]
+           content: [{ type: "text", text: JSON.stringify({
+             approved: true,
+             file_path: `inbox/task-${task_id}.json`,
+             retry_count: newRetryCount
+           }) }]
         };
       } catch(err) {
          return formatError(err);
       }
-    })
+    }, context)
   );
 
   server.registerTool(
     TOOL_NAMES.FORCE_RELEASE_TASK,
     {
-      description: "Forcefully release a locked task from active/ back to inbox/. Use when worker crashed and task is stuck. Does NOT check ownership or retry limits.",
+      description: "Forcefully release a locked task from active/ back to inbox/. Use when worker crashed and task is stuck. Does NOT increment retry count (manual intervention, not a failure).",
       inputSchema: {
         task_id: z.string().describe("Task ID to release"),
         reason: z.string().describe("Why you are forcing release")
@@ -526,7 +578,7 @@ export function registerTools(server, context) {
           throw new Error(`Task ${task_id} not found in active/ directory`);
         }
         
-        // Force move back to inbox
+        // Force move back to inbox (no retry increment — manual intervention)
         stateManager.moveToInbox(task_id);
         
         // Clear worker assignment if any worker owns this task
@@ -550,7 +602,8 @@ export function registerTools(server, context) {
               released: true,
               task_id,
               moved_to: "inbox",
-              reason
+              reason,
+              note: "Retry count NOT incremented (manual intervention)"
             })
           }]
         };

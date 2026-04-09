@@ -1,7 +1,6 @@
 import express from 'express';
 import { setupMcpRoutes } from './transport.mjs';
-import { SHUTDOWN_SIGNALS, API_ROUTES } from '../constants.mjs';
-import { loadConfig } from '../config.mjs';
+import { SHUTDOWN_SIGNALS, API_ROUTES, VERSION } from '../constants.mjs';
 import { StateManager } from './state-manager.mjs';
 import { RecoveryManager } from './recovery.mjs';
 import { PlanWatcher } from './plan-watcher.mjs';
@@ -25,7 +24,16 @@ export async function startServer(config) {
   }
 
   const logger = new Logger(config.exchange.logs);
-  const stateManager = new StateManager(logger);
+
+  // Cleanup disconnected workers from previous runs
+  const cleanedWorkers = workerRegistry.cleanupDisconnected();
+  if (cleanedWorkers > 0) {
+    console.log(`🧹 Cleaned ${cleanedWorkers} disconnected worker(s) from previous session.`);
+    logger.log('WORKERS_CLEANED', { count: cleanedWorkers });
+  }
+
+  // StateManager receives config with overrides (from startup-prompt)
+  const stateManager = new StateManager(logger, config);
 
   // Recovery manager — handles crash recovery + stale worker monitoring
   const recoveryManager = new RecoveryManager({
@@ -39,7 +47,7 @@ export async function startServer(config) {
   // 1. Check clean shutdown marker
   // 2. If unclean → detect & requeue orphans
   // 3. Restore state from files
-  // 4. Start monitoring interval (10s)
+  // 4. Start monitoring interval (5s)
   // 5. Clear marker
   const { wasClean, orphanCount } = recoveryManager.runStartupRecovery();
 
@@ -52,7 +60,8 @@ export async function startServer(config) {
   });
   planWatcher.start();
 
-  const context = { stateManager, logger, config, recoveryManager, planWatcher };
+  // Pass workerRegistry via context for DI (tools.mjs uses it from here)
+  const context = { stateManager, workerRegistry, logger, config, recoveryManager, planWatcher };
 
   const app = express();
 
@@ -83,9 +92,10 @@ export async function startServer(config) {
     res.json({
       status: "ok",
       uptime: process.uptime(),
-      version: "0.2.0",
+      version: VERSION,
       last_start_clean: wasClean,
       orphans_recovered: orphanCount,
+      connected_workers: workerRegistry.getActiveWorkerCount(),
       plan_watcher: planWatcher.getStats()
     });
   });
@@ -114,6 +124,7 @@ export async function startServer(config) {
     console.log(`│  Transport: Streamable HTTP       │`);
     console.log(`│  Endpoint: ${API_ROUTES.MCP.padEnd(23)}│`);
     console.log(`│  Health: ${API_ROUTES.HEALTH.padEnd(25)}│`);
+    console.log(`│  Version: ${VERSION.padEnd(24)}│`);
     console.log(`└───────────────────────────────────┘`);
     console.log(`  Recovery: ${recoveryStatus}`);
   });

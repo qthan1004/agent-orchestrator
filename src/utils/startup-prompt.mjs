@@ -2,7 +2,7 @@ import readline from 'readline/promises';
 
 const DEFAULTS = {
   port: 3847,
-  staleSeconds: 10,
+  staleSeconds: 30,
   pollTimeoutSec: 30,
   planWatcherSec: 30
 };

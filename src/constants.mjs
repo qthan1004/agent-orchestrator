@@ -1,3 +1,5 @@
+export const VERSION = '0.2.0';
+
 export const TOOL_NAMES = {
   HELLO_WORLD: "hello_world",
   REGISTER_WORKER: "register_worker",
@@ -31,7 +33,8 @@ export const SHUTDOWN_SIGNALS = [PROCESS_SIGNALS.INTERRUPT, PROCESS_SIGNALS.TERM
 export const WORKER_STATUS = {
   IDLE: 'idle',
   BUSY: 'busy',
-  OFFLINE: 'offline'
+  OFFLINE: 'offline',
+  DISCONNECTED: 'disconnected'
 };
 
 export const API_ROUTES = {
@@ -100,8 +103,8 @@ export const RECOVERY_EVENTS = {
 };
 
 export const RECOVERY_DEFAULTS = {
-  MONITOR_INTERVAL_MS: 30_000,    // 30s (check every 30s)
-  STALE_THRESHOLD_MS: 120_000,    // 2 minutes (agent tool calls can take 10-30s+)
+  MONITOR_INTERVAL_MS: 5_000,     // 5s (check every 5s)
+  STALE_THRESHOLD_MS: 30_000,    // 30s (safe for LLM agent thinking time 10-30s)
   MAX_RETRIES: 3,
   MAX_TASK_RETRIES: 3             // Task-level: permanently fail after 3 explicit FAILED/BLOCKED
 };

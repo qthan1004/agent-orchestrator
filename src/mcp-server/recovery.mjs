@@ -34,9 +34,6 @@ export class RecoveryManager {
     this.maxTaskRetries = config.recovery?.maxTaskRetries ?? RECOVERY_DEFAULTS.MAX_TASK_RETRIES;
 
     this._monitorTimer = null;
-
-    // Track per-task retry counts (persisted in memory, reset on startup)
-    this._retryCounts = new Map();
   }
 
   // ─── Shutdown Marker ────────────────────────────────────────
@@ -110,35 +107,30 @@ export class RecoveryManager {
 
   /**
    * Requeue all orphan tasks from active/ back to inbox/.
+   * Uses disk-based retry counting (unified with stateManager).
    */
   requeueOrphans() {
     const orphans = this.detectOrphans();
 
     for (const taskId of orphans) {
-      const retries = this._retryCounts.get(taskId) || 0;
-      const newRetry = retries + 1;
+      const retryCount = this.stateManager.getTaskRetryCount(taskId);
 
-      if (retries >= this.maxRetries) {
-        // Reset counter — orphan != broken, keep retrying
-        this._retryCounts.set(taskId, 0);
-
+      if (retryCount >= this.maxRetries) {
         this.logger.log(RECOVERY_EVENTS.MAX_RETRIES_EXCEEDED, {
           task_id: taskId,
-          retries,
-          message: `Orphan task reached max retries (${this.maxRetries}), resetting counter and requeuing`
-        });
-      } else {
-        this._retryCounts.set(taskId, newRetry);
-
-        this.logger.log(RECOVERY_EVENTS.ORPHAN_REQUEUED, {
-          task_id: taskId,
-          retry: newRetry,
-          message: `Orphan task requeued to inbox (attempt ${newRetry}/${this.maxRetries})`
+          retries: retryCount,
+          message: `Orphan task reached max retries (${this.maxRetries}), still requeuing (orphan != broken)`
         });
       }
 
-      // ALWAYS requeue — never leave stuck in active/
-      this.stateManager.moveToInbox(taskId);
+      // ALWAYS requeue orphans — use requeueWithRetry to track count on disk
+      const newRetryCount = this.stateManager.requeueWithRetry(taskId);
+
+      this.logger.log(RECOVERY_EVENTS.ORPHAN_REQUEUED, {
+        task_id: taskId,
+        retry: newRetryCount,
+        message: `Orphan task requeued to inbox (attempt ${newRetryCount})`
+      });
     }
 
     return orphans;
@@ -181,6 +173,7 @@ export class RecoveryManager {
    * Safety net: scan outbox/ for FAILED tasks that shouldn't be there.
    * Only requeues tasks with retry_count < maxTaskRetries.
    * Permanently failed tasks (retry_count >= max) are left in outbox.
+   * Guards against double-move race with complete_task.
    */
   _requeueFailedFromOutbox() {
     const outboxDir = this.config.exchange.outbox;
@@ -191,6 +184,10 @@ export class RecoveryManager {
 
     for (const file of taskFiles) {
       const fullPath = path.join(outboxDir, file);
+
+      // Guard: re-check file still exists (race with complete_task or other recovery)
+      if (!fs.existsSync(fullPath)) continue;
+
       const data = readJSON(fullPath);
       if (!data || data.status !== TASK_STATUS.FAILED) continue;
 
@@ -213,45 +210,44 @@ export class RecoveryManager {
   }
 
   /**
-   * Handle a stale worker's task — ALWAYS requeue back to inbox.
-   * Stale detection is about worker health, not task correctness.
-   * The task itself is fine — only the worker went away.
+   * Handle a stale worker's task — requeue back to inbox if task is still in active/.
+   * 
+   * RACE CONDITION GUARD: If complete_task already moved the file out of active/,
+   * we skip the requeue and only mark the worker as disconnected.
+   * 
    * @param {object} worker - stale worker info
    */
   _handleStaleTask(worker) {
     const taskId = worker.current_task;
     if (!taskId) return;
 
-    const retries = this._retryCounts.get(taskId) || 0;
-    const newRetry = retries + 1;
-
-    if (retries >= this.maxRetries) {
-      // Reset counter — stale != broken, keep retrying indefinitely
-      this._retryCounts.set(taskId, 0);
-
-      this.logger.log(RECOVERY_EVENTS.MAX_RETRIES_EXCEEDED, {
-        task_id: taskId,
+    // ─── Race condition guard ───
+    // Check if task file is STILL in active/ before requeuing.
+    // If complete_task already processed it, the file is gone → skip requeue.
+    if (!this.stateManager.isTaskInActive(taskId)) {
+      this.logger.log(RECOVERY_EVENTS.STALE_WORKER_DETECTED, {
         worker_id: worker.id,
-        retries,
-        message: `Task reached max retries (${this.maxRetries}), resetting counter and requeuing to inbox`
-      });
-    } else {
-      this._retryCounts.set(taskId, newRetry);
-
-      this.logger.log(RECOVERY_EVENTS.ORPHAN_REQUEUED, {
         task_id: taskId,
-        worker_id: worker.id,
-        retry: newRetry,
-        message: `Stale task requeued (attempt ${newRetry}/${this.maxRetries})`
+        message: `Task ${taskId} already moved from active/ (race with complete_task), skipping requeue`
       });
+
+      // Still mark worker as disconnected
+      this.workerRegistry.markDisconnected(worker.id);
+      return;
     }
 
-    // ALWAYS requeue back to inbox — never leave in outbox as failed
-    this.stateManager.moveToInbox(taskId);
+    // Task still in active/ → requeue with retry tracking (disk-based)
+    const newRetryCount = this.stateManager.requeueWithRetry(taskId);
 
-    // Clear worker's assignment and remove stale worker
-    worker.current_task = null;
-    this.workerRegistry.removeWorker(worker.id);
+    this.logger.log(RECOVERY_EVENTS.ORPHAN_REQUEUED, {
+      task_id: taskId,
+      worker_id: worker.id,
+      retry: newRetryCount,
+      message: `Stale task requeued to inbox (attempt ${newRetryCount})`
+    });
+
+    // Mark worker as disconnected (keeps entry for late complete_task)
+    this.workerRegistry.markDisconnected(worker.id);
   }
 
   // ─── Monitoring Lifecycle ──────────────────────────────────
