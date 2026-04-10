@@ -77,7 +77,7 @@ export function registerTools(server, context) {
         const worker = workerRegistry.register();
         const status = stateManager.getStatus();
         const planStatus = stateManager.checkPlansQuick();
-        const { staleThresholdMs } = context.config.recovery;
+        const { plannerAliveThresholdMs } = context.config.recovery;
         
         // Determine role — SINGLE PLANNER enforced
         let role = WORKER_ROLE.WORKER;
@@ -86,7 +86,7 @@ export function registerTools(server, context) {
           // No tasks in queue
           if (planStatus.hasPending || planStatus.hasProcessing) {
             // Plans available → need planner?
-            const activePlanner = workerRegistry.getActivePlanner(staleThresholdMs);
+            const activePlanner = workerRegistry.getActivePlanner(plannerAliveThresholdMs);
             if (!activePlanner) {
               role = WORKER_ROLE.PLANNER;
             } else {

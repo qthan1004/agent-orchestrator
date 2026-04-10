@@ -23,11 +23,11 @@ export async function promptConfig() {
   if (mode === 'custom') {
     const workspaceRoot = (await rl.question(`  ? Workspace root (project path for agents) [current dir]: `)) || process.cwd();
     const port = parseInt((await rl.question(`  ? Server port [${DEFAULTS.port}]: `)) || DEFAULTS.port);
-    const staleSeconds = parseInt((await rl.question(`  ? Stale threshold (sec) [${DEFAULTS.staleSeconds}]: `)) || DEFAULTS.staleSeconds);
+    const staleWorkerSeconds = parseInt((await rl.question(`  ? Worker stale threshold (sec) [${DEFAULTS.staleSeconds}]: `)) || DEFAULTS.staleSeconds);
     const pollTimeoutSec = parseInt((await rl.question(`  ? Long poll timeout (sec) [${DEFAULTS.pollTimeoutSec}]: `)) || DEFAULTS.pollTimeoutSec);
     const planWatcherSec = parseInt((await rl.question(`  ? Plan watcher (sec) [${DEFAULTS.planWatcherSec}]: `)) || DEFAULTS.planWatcherSec);
     
-    config = { workspaceRoot, port, staleSeconds, pollTimeoutSec, planWatcherSec };
+    config = { workspaceRoot, port, staleWorkerSeconds, pollTimeoutSec, planWatcherSec };
     
     console.log('\n  ✅ Custom config applied (session-only)\n');
   } else {
@@ -57,7 +57,7 @@ export async function promptConfig() {
     workspaceRoot: config.workspaceRoot,
     port: config.port,
     host: '127.0.0.1',
-    staleThresholdMs: config.staleSeconds * 1_000,
+    staleWorkerThresholdMs: (config.staleWorkerSeconds || DEFAULTS.staleSeconds) * 1_000,
     pollTimeoutMs: config.pollTimeoutSec * 1_000,
     planWatcherIntervalMs: config.planWatcherSec * 1_000
   };

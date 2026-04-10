@@ -44,7 +44,8 @@ export function loadConfig(overrides = {}) {
       planPollTimeoutMs: overrides.planPollTimeoutMs || POLL_DEFAULTS.PLAN_POLL_TIMEOUT_MS,
     },
     recovery: {
-      staleThresholdMs: overrides.staleThresholdMs || RECOVERY_DEFAULTS.STALE_THRESHOLD_MS,
+      staleWorkerThresholdMs: overrides.staleWorkerThresholdMs || RECOVERY_DEFAULTS.STALE_WORKER_THRESHOLD_MS,
+      plannerAliveThresholdMs: overrides.plannerAliveThresholdMs || RECOVERY_DEFAULTS.PLANNER_ALIVE_THRESHOLD_MS,
       maxTaskRetries: overrides.maxTaskRetries || RECOVERY_DEFAULTS.MAX_TASK_RETRIES,
     }
   };

@@ -104,7 +104,8 @@ export const RECOVERY_EVENTS = {
 
 export const RECOVERY_DEFAULTS = {
   MONITOR_INTERVAL_MS: 5_000,     // 5s (check every 5s)
-  STALE_THRESHOLD_MS: 30_000,    // 30s (safe for LLM agent thinking time 10-30s)
+  STALE_WORKER_THRESHOLD_MS: 90_000,   // 90s — worker task stuck detection
+  PLANNER_ALIVE_THRESHOLD_MS: 45_000,  // 45s — planner heartbeat check
   MAX_RETRIES: 3,
   MAX_TASK_RETRIES: 3             // Task-level: permanently fail after 3 explicit FAILED/BLOCKED
 };

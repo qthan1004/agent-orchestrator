@@ -131,12 +131,12 @@ export class WorkerRegistry {
     return false;
   }
 
-  getActivePlanner(staleThresholdMs) {
+  getActivePlanner(plannerAliveThresholdMs) {
     const now = Date.now();
     for (const w of this.workers.values()) {
       if (w.role === WORKER_ROLE.PLANNER && w.status !== WORKER_STATUS.DISCONNECTED) {
         const elapsed = now - new Date(w.last_heartbeat).getTime();
-        if (elapsed < staleThresholdMs) return w;
+        if (elapsed < plannerAliveThresholdMs) return w;
       }
     }
     return null;

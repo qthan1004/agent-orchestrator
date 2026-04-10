@@ -1,13 +1,36 @@
-# Task Board — 2026-04-09T16:20:00
+# Task Board — 2026-04-10T11:45:00
 
 | Status | Count |
 |--------|-------|
-| ⬜ Pending | 10 |
+| ⬜ Pending | 17 |
 | 🔄 Processing | 0 |
 | ✅ Done | 28 |
-| **Total** | **38** |
+| **Total** | **45** |
 
-Progress: 28/38 (74%)
+Progress: 28/45 (62%)
+
+---
+
+## ⬜ Pending — Improve Planner & Task Quality (PQ-series)
+
+> Ref: `dev-docs/plan_improve-planner-task-quality_from-test-4.5.md`
+> Prefix: `PQ` = Planner Quality improvement
+> Target: Nâng task quality từ 4.5/10 → ≥8.5/10
+
+### Group 1: Server — Tách Stale Threshold (no deps)
+- `PQ01-split-stale-threshold-constants.md` — Tách STALE_THRESHOLD_MS → 2 constants
+- `PQ02-update-consumers-new-threshold.md` → depends on PQ01 — Update 4 consumer files
+
+### Group 2: Prompt — agent-prompt.md rewrite (no deps, parallel OK)
+- `PQ03-prompt-planner-step3-rewrite.md` — Rewrite Section P Step 3 (5 sub-steps)
+- `PQ04-prompt-worker-step3-expand.md` — Expand Section W Step 3 (Pre-flight + Self-Validation)
+- `PQ05-prompt-add-rules-7-12.md` — Thêm rules 7-12
+
+### Group 3: Prompt — Appendix (depends on Group 2)
+- `PQ06-prompt-add-appendices.md` → depends on PQ03-05 — Appendix A (Bad/Good) + B (Cache)
+
+### Group 4: Verification (depends on all)
+- `PQ07-verify-server-start-tests.md` → depends on PQ01-06 — Full verification suite
 
 ---
 

@@ -1,0 +1,8 @@
+{
+  "id": "02-models-constants",
+  "module": "libs/switch",
+  "action": "Create src/lib/models/index.ts (SwitchProps, sizes, colors) and src/lib/constants/index.ts (SWITCH_SIZE_MAP, SWITCH_DEFAULTS). CONSTRAINT: Strict scope - do exactly what is specified in plan.",
+  "verification": "Compile passes.",
+  "status": "done",
+  "retry_count": 1
+}

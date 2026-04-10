@@ -29,7 +29,7 @@ export class RecoveryManager {
     this.config = config;
 
     this.monitorIntervalMs = recoveryConfig.monitorIntervalMs ?? RECOVERY_DEFAULTS.MONITOR_INTERVAL_MS;
-    this.staleThresholdMs = recoveryConfig.staleThresholdMs ?? RECOVERY_DEFAULTS.STALE_THRESHOLD_MS;
+    this.staleThresholdMs = recoveryConfig.staleWorkerThresholdMs ?? config.recovery?.staleWorkerThresholdMs ?? RECOVERY_DEFAULTS.STALE_WORKER_THRESHOLD_MS;
     this.maxRetries = recoveryConfig.maxRetries ?? RECOVERY_DEFAULTS.MAX_RETRIES;
     this.maxTaskRetries = config.recovery?.maxTaskRetries ?? RECOVERY_DEFAULTS.MAX_TASK_RETRIES;
 

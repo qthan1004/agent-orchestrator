@@ -9,7 +9,7 @@ export function resolveIdleAction({ stateManager, workerRegistry, workerId, conf
   const planStatus = stateManager.checkPlansQuick();
   
   if (planStatus.hasPending || planStatus.hasProcessing) {
-    const activePlanner = workerRegistry.getActivePlanner(config.recovery.staleThresholdMs);
+    const activePlanner = workerRegistry.getActivePlanner(config.recovery.plannerAliveThresholdMs);
     
     if (!activePlanner) {
       // Promote worker → planner
