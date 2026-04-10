@@ -113,10 +113,10 @@ grep -c "Quality Self-Check" prompts/agent-prompt.md
 ```
 
 ## Done Criteria
-- [ ] Step 3A (Workspace Discovery) có trong file
-- [ ] Step 3B (Reference Implementation Study) có trong file
-- [ ] Step 3C (Plan Validation) có trong file, bao gồm 5 checks
-- [ ] Step 3D (Task Decomposition) có trong file, format action gồm Goal/Files/What to Do/Constraints/Done Criteria
-- [ ] Step 3E (Quality Self-Check) có trong file, 6 checkbox items
-- [ ] Step 1, 2, 4 không bị thay đổi
-- [ ] Markdown render đúng (indentation check)
+- [x] Step 3A (Workspace Discovery) có trong file
+- [x] Step 3B (Reference Implementation Study) có trong file
+- [x] Step 3C (Plan Validation) có trong file, bao gồm 5 checks
+- [x] Step 3D (Task Decomposition) có trong file, format action gồm Goal/Files/What to Do/Constraints/Done Criteria
+- [x] Step 3E (Quality Self-Check) có trong file, 6 checkbox items
+- [x] Step 1, 2, 4 không bị thay đổi
+- [x] Markdown render đúng (indentation check)

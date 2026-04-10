@@ -65,10 +65,10 @@ grep -c "Heartbeat for long tasks" prompts/agent-prompt.md
 ```
 
 ## Done Criteria
-- [ ] Rule 7 "Plan is NOT gospel" có trong file
-- [ ] Rule 8 "Self-contained tasks" có trong file
-- [ ] Rule 9 "Reference-first coding" có trong file
-- [ ] Rule 10 "Verification means execution" có trong file
-- [ ] Rule 11 "Self-check before done" có trong file
-- [ ] Rule 12 "Heartbeat for long tasks" có trong file
-- [ ] Rules 1-6 không bị thay đổi
+- [x] Rule 7 "Plan is NOT gospel" có trong file
+- [x] Rule 8 "Self-contained tasks" có trong file
+- [x] Rule 9 "Reference-first coding" có trong file
+- [x] Rule 10 "Verification means execution" có trong file
+- [x] Rule 11 "Self-check before done" có trong file
+- [x] Rule 12 "Heartbeat for long tasks" có trong file
+- [x] Rules 1-6 không bị thay đổi

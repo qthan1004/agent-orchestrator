@@ -60,9 +60,9 @@ grep -c "report_progress" prompts/agent-prompt.md
 ```
 
 ## Done Criteria
-- [ ] Pre-flight section có 3 bullet points
-- [ ] Implementation section có 3 bullet points
-- [ ] Self-Validation section có 3 numbered steps
-- [ ] CRITICAL callout block có trong step 3
-- [ ] Step 4 mention `report_progress` và `> 60 seconds`
-- [ ] Section W Step 1, 2 không bị thay đổi
+- [x] Pre-flight section có 3 bullet points
+- [x] Implementation section có 3 bullet points
+- [x] Self-Validation section có 3 numbered steps
+- [x] CRITICAL callout block có trong step 3
+- [x] Step 4 mention `report_progress` và `> 60 seconds`
+- [x] Section W Step 1, 2 không bị thay đổi

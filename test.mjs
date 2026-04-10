@@ -4,7 +4,23 @@ import { StateManager } from './src/mcp-server/state-manager.mjs';
 import { registerTools } from './src/mcp-server/tools.mjs';
 import { workerRegistry } from './src/utils/worker-registry.mjs';
 
-const sm = new StateManager(console);
+const dummyConfig = {
+    exchange: { 
+      inbox: 'exchange/inbox', 
+      active: 'exchange/active', 
+      outbox: 'exchange/outbox', 
+      base: 'exchange',
+      checkpoints: 'exchange/checkpoints'
+    },
+    plans: {
+      pending: 'plan/tasks/pending',
+      processing: 'plan/tasks/processing',
+      done: 'plan/tasks/done'
+    },
+    recovery: {},
+    polling: {}
+};
+const sm = new StateManager(console, dummyConfig);
 const server = {
     tools: {},
     registerTool: function(name, schema, handler) {
@@ -12,7 +28,7 @@ const server = {
     }
 };
 
-registerTools(server, { stateManager: sm, logger: console, config: { exchange: sm.config.exchange, recovery: {}, polling: {} } });
+registerTools(server, { stateManager: sm, workerRegistry: workerRegistry, logger: console, config: dummyConfig });
 
 async function runTest() {
     console.log("Starting test...");

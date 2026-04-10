@@ -12,7 +12,8 @@ export const TOOL_NAMES = {
   CHECK_PLANS: "check_plans",
   SUBMIT_DECOMPOSITION: "submit_decomposition",
   REQUEST_RETRY: "request_retry",
-  FORCE_RELEASE_TASK: "force_release_task"
+  FORCE_RELEASE_TASK: "force_release_task",
+  GET_TEMPLATE: "get_template"
 };
 
 /**

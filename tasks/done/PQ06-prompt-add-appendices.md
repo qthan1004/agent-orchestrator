@@ -80,9 +80,9 @@ grep -c "Workspace Discovery Cache" prompts/agent-prompt.md
 ```
 
 ## Done Criteria
-- [ ] Appendix A header "Task Quality — Bad vs Good" có trong file
-- [ ] BAD task JSON example có trong file
-- [ ] GOOD task JSON example có trong file, bao gồm: Goal, Files, What to Do, Constraints, Done criteria, PLAN DEVIATION
-- [ ] Appendix B header "Workspace Discovery Cache" có trong file
-- [ ] 4 bullet points về cache strategy có trong file
-- [ ] Content hiện tại không bị thay đổi
+- [x] Appendix A header "Task Quality — Bad vs Good" có trong file
+- [x] BAD task JSON example có trong file
+- [x] GOOD task JSON example có trong file, bao gồm: Goal, Files, What to Do, Constraints, Done criteria, PLAN DEVIATION
+- [x] Appendix B header "Workspace Discovery Cache" có trong file
+- [x] 4 bullet points về cache strategy có trong file
+- [x] Content hiện tại không bị thay đổi

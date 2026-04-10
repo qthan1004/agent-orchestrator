@@ -1,7 +1,0 @@
-{
-  "id": "04-switch-component",
-  "module": "libs/switch",
-  "action": "Create src/lib/Switch.tsx component with controlled/uncontrolled state, keyboard/click handlers, accessibility. CONSTRAINT: Strict scope.",
-  "verification": "Compile passes.",
-  "status": "done"
-}

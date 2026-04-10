@@ -1,7 +1,0 @@
-{
-  "task_id": "01-scaffold",
-  "status": "done",
-  "summary": "Scaffolded libs/switch directory. Copied tsconfig and tests. Adapted vite config and package.json. Added src/index.ts.",
-  "worker_id": "w-bb5527bf",
-  "completed_at": "2026-04-10T03:41:17.130Z"
-}

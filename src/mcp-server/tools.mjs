@@ -613,4 +613,26 @@ export function registerTools(server, context) {
     }
   );
 
+  server.registerTool(
+    TOOL_NAMES.GET_TEMPLATE,
+    {
+      description: "Get a standardized template by name from the orchestrator",
+      inputSchema: { template_name: z.string().describe("Name of the template file (e.g. knowledge.md)") }
+    },
+    async ({ template_name }) => {
+      try {
+        const templatePath = path.join(context.config.root, DIR_NAMES.TEMPLATES, template_name);
+        if (!fs.existsSync(templatePath)) {
+          throw new Error(`Template not found: ${template_name}`);
+        }
+        const content = fs.readFileSync(templatePath, 'utf8');
+        return {
+          content: [{ type: "text", text: content }]
+        };
+      } catch (err) {
+        return formatError(err);
+      }
+    }
+  );
+
 }

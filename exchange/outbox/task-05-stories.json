@@ -1,7 +1,0 @@
-{
-  "id": "05-stories",
-  "module": "libs/switch",
-  "action": "Create src/lib/stories/Switch.stories.tsx for Basic, Sizes, Colors, WithLabel, Controlled, Disabled, Playground. CONSTRAINT: Strict scope.",
-  "verification": "Stories build correctly.",
-  "status": "done"
-}

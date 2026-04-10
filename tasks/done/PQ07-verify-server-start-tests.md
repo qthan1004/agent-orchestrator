@@ -56,12 +56,12 @@ Không modify — chỉ verify
 Tất cả commands ở trên phải pass.
 
 ## Done Criteria
-- [ ] Không còn `STALE_THRESHOLD_MS` (old constant) trong src/
-- [ ] Không còn `staleThresholdMs` (old config key) trong src/
-- [ ] `config.recovery` có `staleWorkerThresholdMs` = 90000 và `plannerAliveThresholdMs` = 45000
-- [ ] `node test.mjs` pass
-- [ ] Server start không throw error
-- [ ] 5 planner sub-steps (3A-3E) có trong prompt
-- [ ] Worker protocol (Pre-flight, Self-Validation) có trong prompt
-- [ ] 6 rules mới (7-12) có trong prompt
-- [ ] 2 appendices (A, B) có trong prompt
+- [x] Không còn `STALE_THRESHOLD_MS` (old constant) trong src/
+- [x] Không còn `staleThresholdMs` (old config key) trong src/
+- [x] `config.recovery` có `staleWorkerThresholdMs` = 90000 và `plannerAliveThresholdMs` = 45000
+- [x] `node test.mjs` pass
+- [x] Server start không throw error
+- [x] 5 planner sub-steps (3A-3E) có trong prompt
+- [x] Worker protocol (Pre-flight, Self-Validation) có trong prompt
+- [x] 6 rules mới (7-12) có trong prompt
+- [x] 2 appendices (A, B) có trong prompt

@@ -29,7 +29,7 @@ export class RecoveryManager {
     this.config = config;
 
     this.monitorIntervalMs = recoveryConfig.monitorIntervalMs ?? RECOVERY_DEFAULTS.MONITOR_INTERVAL_MS;
-    this.staleThresholdMs = recoveryConfig.staleWorkerThresholdMs ?? config.recovery?.staleWorkerThresholdMs ?? RECOVERY_DEFAULTS.STALE_WORKER_THRESHOLD_MS;
+    this.staleWorkerThresholdMs = recoveryConfig.staleWorkerThresholdMs ?? config.recovery?.staleWorkerThresholdMs ?? RECOVERY_DEFAULTS.STALE_WORKER_THRESHOLD_MS;
     this.maxRetries = recoveryConfig.maxRetries ?? RECOVERY_DEFAULTS.MAX_RETRIES;
     this.maxTaskRetries = config.recovery?.maxTaskRetries ?? RECOVERY_DEFAULTS.MAX_TASK_RETRIES;
 
@@ -151,14 +151,14 @@ export class RecoveryManager {
       const lastBeat = new Date(worker.last_heartbeat).getTime();
       const elapsed = now - lastBeat;
 
-      if (elapsed > this.staleThresholdMs) {
+      if (elapsed > this.staleWorkerThresholdMs) {
         staleWorkers.push(worker);
 
         this.logger.log(RECOVERY_EVENTS.STALE_WORKER_DETECTED, {
           worker_id: worker.id,
           task_id: worker.current_task,
           elapsed_ms: elapsed,
-          threshold_ms: this.staleThresholdMs,
+          threshold_ms: this.staleWorkerThresholdMs,
           message: `Worker ${worker.id} stale for ${Math.round(elapsed / 1000)}s`
         });
 
@@ -266,7 +266,7 @@ export class RecoveryManager {
 
     this.logger.log(RECOVERY_EVENTS.MONITORING_STARTED, {
       interval_ms: this.monitorIntervalMs,
-      stale_threshold_ms: this.staleThresholdMs,
+      stale_threshold_ms: this.staleWorkerThresholdMs,
       message: `Recovery monitoring started (every ${this.monitorIntervalMs / 1000}s)`
     });
   }
