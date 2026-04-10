@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import {
   TOOL_NAMES, STATE_EVENTS, TASK_STATUS, AGENT_ACTION, WORKER_ROLE,
-  WORKER_STATUS, FILE_PREFIXES, VERSION
+  WORKER_STATUS, FILE_PREFIXES, VERSION, DIR_NAMES
 } from '../constants.mjs';
 import { waitForTask, waitForPlan } from './poll-helpers.mjs';
 import { resolveIdleAction } from './idle-resolver.mjs';
@@ -440,9 +440,13 @@ export function registerTools(server, context) {
         }
         
         if (result.status === 'busy') {
+          // A plan is already in processing/. This could be because PlanWatcher auto-moved it, 
+          // or a previous planner crashed. We should give it to the current planner to decompose.
           return { content: [{ type: "text", text: JSON.stringify({ 
-            action: AGENT_ACTION.WAIT, 
-            current: result.current 
+            action: AGENT_ACTION.DECOMPOSE, 
+            plan_path: result.plan_path,
+            content: result.content,
+            pending_count: result.pending_count
           }) }] };
         }
         
@@ -621,10 +625,25 @@ export function registerTools(server, context) {
     },
     async ({ template_name }) => {
       try {
-        const templatePath = path.join(context.config.root, DIR_NAMES.TEMPLATES, template_name);
+        // Prevent path traversal by extracting just the base name
+        const normalizedName = path.basename(template_name);
+        let templatePath = path.join(context.config.root, DIR_NAMES.TEMPLATES, normalizedName);
+
+        // Auto-resolve if extension was omitted
         if (!fs.existsSync(templatePath)) {
-          throw new Error(`Template not found: ${template_name}`);
+          if (fs.existsSync(`${templatePath}.md`)) {
+            templatePath = `${templatePath}.md`;
+          } else if (fs.existsSync(`${templatePath}.template.json`)) {
+            templatePath = `${templatePath}.template.json`;
+          } else if (fs.existsSync(`${templatePath}.json`)) {
+            templatePath = `${templatePath}.json`;
+          }
         }
+
+        if (!fs.existsSync(templatePath)) {
+          throw new Error(`Template not found: ${normalizedName}`);
+        }
+        
         const content = fs.readFileSync(templatePath, 'utf8');
         return {
           content: [{ type: "text", text: content }]
@@ -633,6 +652,23 @@ export function registerTools(server, context) {
         return formatError(err);
       }
     }
+  );
+
+  server.registerTool(
+    TOOL_NAMES.PING,
+    {
+      description: "Ping the orchestrator to keep the worker session alive",
+      inputSchema: { worker_id: z.string().describe("Your worker UUID") }
+    },
+    withHeartbeat(async ({ worker_id }) => {
+      try {
+        return {
+          content: [{ type: "text", text: JSON.stringify({ status: "alive" }) }]
+        };
+      } catch (err) {
+        return formatError(err);
+      }
+    }, context)
   );
 
 }

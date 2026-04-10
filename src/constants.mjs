@@ -13,7 +13,8 @@ export const TOOL_NAMES = {
   SUBMIT_DECOMPOSITION: "submit_decomposition",
   REQUEST_RETRY: "request_retry",
   FORCE_RELEASE_TASK: "force_release_task",
-  GET_TEMPLATE: "get_template"
+  GET_TEMPLATE: "get_template",
+  PING: "ping"
 };
 
 /**
@@ -106,7 +107,7 @@ export const RECOVERY_EVENTS = {
 export const RECOVERY_DEFAULTS = {
   MONITOR_INTERVAL_MS: 5_000,     // 5s (check every 5s)
   STALE_WORKER_THRESHOLD_MS: 90_000,   // 90s — worker task stuck detection
-  PLANNER_ALIVE_THRESHOLD_MS: 45_000,  // 45s — planner heartbeat check
+  PLANNER_ALIVE_THRESHOLD_MS: 90_000,  // 90s — planner heartbeat check (ping every 30-40s)
   MAX_RETRIES: 3,
   MAX_TASK_RETRIES: 3             // Task-level: permanently fail after 3 explicit FAILED/BLOCKED
 };
