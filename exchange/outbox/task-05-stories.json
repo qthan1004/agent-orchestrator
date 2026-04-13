@@ -1,0 +1,7 @@
+{
+  "id": "05-stories",
+  "module": "switch",
+  "action": "Goal: Add Storybook stories.\n\nFiles:\n- NEW: libs/switch/src/lib/stories/Switch.stories.tsx\n\nWhat to Do:\n- Implement Stories: Basic, Sizes, Colors, WithLabel, Controlled, Disabled, Playground.\n\nConstraints:\n- Use CSF format natively supported by Storybook.\n\nDone Criteria:\n- [ ] All 7 stories created.\n- [ ] Executable verification passes.",
+  "verification": "cd libs/switch && npx tsc --noEmit -p tsconfig.storybook.json",
+  "status": "done"
+}

@@ -71,8 +71,12 @@ export function registerTools(server, context) {
     TOOL_NAMES.REGISTER_WORKER,
     {
       description: "Register a new worker and get a unique UUID",
+      inputSchema: {
+        workspace_path: z.string().optional()
+          .describe("Absolute path to the target project workspace. Overrides server config.")
+      }
     },
-    async () => {
+    async ({ workspace_path } = {}) => {
       try {
         const worker = workerRegistry.register();
         const status = stateManager.getStatus();
@@ -100,6 +104,9 @@ export function registerTools(server, context) {
         
         workerRegistry.setRole(worker.id, role);
         
+        // Priority: agent param > server config > null
+        const resolvedWorkspace = workspace_path || context.config.workspaceRoot || null;
+
         return {
           content: [{
             type: "text",
@@ -107,7 +114,7 @@ export function registerTools(server, context) {
               worker_id: worker.id,
               role: role,
               server_root: context.config.root,
-              workspace_root: context.config.workspaceRoot || null,
+              workspace_root: resolvedWorkspace,
               queue_summary: status,
               has_pending_plans: planStatus.hasPending || planStatus.hasProcessing
             })

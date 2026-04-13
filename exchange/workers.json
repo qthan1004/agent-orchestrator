@@ -7,5 +7,23 @@
     "current_task": null,
     "tasks_completed": 0,
     "status": "idle"
+  },
+  {
+    "id": "w-9ed18392",
+    "role": "PLANNER",
+    "registered_at": "2026-04-13T03:02:33.639Z",
+    "last_heartbeat": "2026-04-13T03:02:33.639Z",
+    "current_task": null,
+    "tasks_completed": 0,
+    "status": "idle"
+  },
+  {
+    "id": "w-dcbdd8e1",
+    "role": "WORKER",
+    "registered_at": "2026-04-13T03:14:36.091Z",
+    "last_heartbeat": "2026-04-13T03:21:05.781Z",
+    "current_task": null,
+    "tasks_completed": 5,
+    "status": "idle"
   }
 ]

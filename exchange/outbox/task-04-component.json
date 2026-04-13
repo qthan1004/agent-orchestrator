@@ -1,0 +1,7 @@
+{
+  "id": "04-component",
+  "module": "switch",
+  "action": "Goal: Implement Switch component and barrel export.\n\nFiles:\n- NEW: libs/switch/src/lib/Switch.tsx\n- NEW: libs/switch/src/index.ts\n\nWhat to Do:\n- Implement internal/controlled state logic exactly as in the plan.\n- Render `SwitchRootStyled`, `SwitchTrackStyled`, `SwitchThumbStyled` inside `Switch.tsx`.\n- Implement Keyboard and Click events on the `SwitchTrackStyled` elements per plan.\n- In `src/index.ts`: Export `Switch`, `SwitchProps`, `SwitchSize`, `SwitchColor` using named exports.\n\nConstraints:\n- Read: `.agent/skills/component-patterns/SKILL.md`\n- Use `forwardRef` and Arrow syntax.\n- Export format must be named exports.\n\nDone Criteria:\n- [ ] `Switch` uses `forwardRef`.\n- [ ] Handlers correctly map toggle behavior.\n- [ ] `Switch.displayName` is set.\n- [ ] Executable verification passes.",
+  "verification": "cd libs/switch && npx tsc --noEmit -p tsconfig.lib.json",
+  "status": "done"
+}

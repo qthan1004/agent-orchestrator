@@ -30,3 +30,21 @@
 ### 4.2. [Tên Nhóm Kỹ Thuật 2, ví dụ: CSS-in-JS Setup]
 - **Issue/Context**: [...]
 - **Mandatory Rule**: [...]
+
+## 5. Shared Utilities (Functions / Helpers dùng chung)
+*(Liệt kê tất cả utility functions được import across modules)*
+
+| Utility | Package | Mô tả | Ví dụ |
+|---------|---------|-------|-------|
+| `[tên]` | `[package]` | [...] | `[usage example]` |
+
+## 6. Styling Token Convention (Khi nào dùng token vs hardcode)
+*(Document quy tắc sử dụng design tokens từ theme)*
+
+### 6.1. Spacing
+- **Tokens available**: [...] (e.g. `spacing.tiny`, `spacing.small`)
+- **Rule**: [...] (e.g. "ALWAYS use spacing tokens for gap, padding, margin. NEVER hardcode pxToRem for spacing values.")
+
+### 6.2. Palette Access
+- **Pattern**: [...] (e.g. `palette?.[color]?.main` with optional chaining)
+- **Rule**: [...]
