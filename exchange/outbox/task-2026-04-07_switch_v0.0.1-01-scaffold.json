@@ -1,7 +1,0 @@
-{
-  "id": "2026-04-07_switch_v0.0.1-01-scaffold",
-  "module": "libs/switch",
-  "action": "Goal: Scaffold @thanh-libs/switch library mimicking libs/chip's structure.\nFiles:\n- NEW: libs/switch/package.json\n- NEW: libs/switch/vite.config.mts\n- NEW: libs/switch/tsconfig.json\n- NEW: libs/switch/tsconfig.lib.json\n- NEW: libs/switch/tsconfig.spec.json\n- NEW: libs/switch/tsconfig.storybook.json\n- NEW: libs/switch/tests/setup.ts\n- NEW: libs/switch/README.md\n- NEW: libs/switch/CHANGELOG.md\n\nWhat to Do:\n1. Copy standard-version, scripts, devDependencies, and exports from libs/chip/package.json, but adapt package name.\n2. Add peerDependencies for @emotion, @thanh-libs/theme, @thanh-libs/utils, react, and react-dom.\n3. Create vite.config.mts and tsconfigs copying from chip.\n4. Create tests/setup.ts copying from chip.\n\nConstraints:\n- Read: .agent/skills/component-patterns/SKILL.md\n- tests/ must be at library root, not inside src.\n\nDone criteria:\n- [ ] 9 scaffold files created.\n- [ ] package.json exports correctly.\n- [ ] tsconfig.storybook.json exists.\n- [ ] README.md and CHANGELOG.md exist.",
-  "verification": "cd libs/switch && cat package.json | grep '\"name\": \"@thanh-libs/switch\"'",
-  "status": "done"
-}

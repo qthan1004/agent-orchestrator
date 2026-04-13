@@ -16,7 +16,7 @@ Migrate 5 top-level files. Đây là layer cuối — sau task này TOÀN BỘ `
 - MCP SDK types (McpServer)
 - Export factory function typed
 
-### 2. `mcp-server/tools.mjs` → `tools.ts` ⭐ (High — ~682 LOC)
+### 2. `mcp-server/tools.mjs` → `tools.ts` ⭐ (High — 698 LOC)
 - **File lớn nhất!** Cần cẩn thận.
 - Tool input parameter types (Zod schemas đã có, chỉ cần annotate)
 - Tool handler return types → `ToolResponse`
@@ -27,7 +27,7 @@ Migrate 5 top-level files. Đây là layer cuối — sau task này TOÀN BỘ `
 - Express `Request`, `Response` types
 - Import `@types/express`
 
-### 4. `mcp-server/index.mjs` → `mcp-server/index.ts` (Low)
+### 4. `mcp-server/index.mjs` → `mcp-server/index.ts` (154 LOC, Low)
 - Express `Application` type
 - `startServer()` function signature
 - Wire all deps with proper types

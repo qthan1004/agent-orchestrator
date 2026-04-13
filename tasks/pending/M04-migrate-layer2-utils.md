@@ -22,10 +22,11 @@ Migrate 4 files phụ thuộc Layer 1:
 - Parameter type `AppConfig` cho main function
 - Return type `BootstrapResult`
 
-### 3. `src/utils/worker-registry.mjs` → `src/utils/worker-registry.ts`
+### 3. `src/utils/worker-registry.mjs` → `src/utils/worker-registry.ts` (147 LOC)
 - Import `WorkerInfo` từ `../types.js`
 - Class properties: `workers: Map<string, WorkerInfo>`
 - Method signatures: param + return types
+- **Lưu ý:** File này đã lớn hơn nhất định so với plan gốc (từ 90 → 147 LOC) do thêm role tracking, `getActivePlanner()`, và planner heartbeat management trong v2 optimization
 - Export class với `WorkerRegistry` type
 
 ### 4. `src/utils/startup-prompt.mjs` → `src/utils/startup-prompt.ts`

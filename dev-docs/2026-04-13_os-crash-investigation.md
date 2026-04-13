@@ -35,3 +35,11 @@ Mã lỗi `139` (SIGSEGV) liên tục xuất hiện. Dù không làm sập OS tr
 1. **Dừng/Vô hiệu hóa tiến trình của bên thứ 3**: Cân nhắc gỡ bỏ (hoặc disable trong cron) `/usr/local/desktopcentralagent/bin/dcagentupgrader` khi đang chạy thực thi Agent tránh sung đột I/O.
 2. **Review Concurrency Level**: Hạn chế số lượng Worker chạy cùng lúc. Càng nhiều Worker xử lý plan sẽ dễ dàng chạm mốc Memory Limit của System.
 3. **Giảm thiểu tracking I/O**: Các log và metadata file ở folder `exchange/` nếu sinh ra quá nhiều và liên tục sẽ làm chết `fileWatcher`. Có thể setting để ignore những file này trong cấu hình IDE.
+
+### 4. Kết quả từ Background Watcher (15:54 Crash)
+Qua theo dõi bằng script `mem-watcher.log` chạy ngầm, file log ghi nhận trạng thái hệ thống tới `15:53:29` trước khi bị nhồi một loạt null bytes do mất điện / hard reset. Tại thời điểm cuối cùng:
+- **RAM**: Used ~11.9GB / Total 31.8GB (còn trống rất nhiều)
+- **Swap**: 0 used
+- **CPU**: `antigravity` chỉ chiếm khoảng 10-15% mỗi process, không kịch trần.
+
+Đáng chú ý là `journalctl` đã ngưng ghi log từ `15:51:32`, nhưng watcher (chạy trên RAM) vẫn tiếp tục in ra được thêm 2 phút. Điều này khẳng định Kernel/IO/Disk đã bị treo (hung task / IO deadlock) từ 15:51, hệ thống không rơi vào tình trạng OOM (tràn RAM). Đóng băng IO có thể vẫn bắt nguồn từ sự xung đột của các agent bên thứ 3 (ManageEngine) hoặc ổ cứng.

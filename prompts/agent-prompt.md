@@ -219,13 +219,22 @@ check_plans()
       (e.g., `chip` for `switch`, `button` for `icon-button`, existing module for a fix)
    2. READ the actual source code of key files relevant to the plan
    3. Extract the REAL patterns used:
-      - How does the codebase access theme? (useTheme vs theme arg?)
+      - How does the codebase access theme? (Are `useTheme` and `styled` imported from `@emotion/react` or the internal UI library?)
+      - How are components wrapped in test files? (Crucial: Which exact library provides the `ThemeProvider` wrap in `.spec.tsx`?)
       - What types/interfaces patterns? (import type?)
       - What dependencies are actually imported vs declared?
       - HTML element choices, naming conventions
       - Exact file & directory structure (Crucial: where are `.spec.tsx` test files placed? where are stories placed?)
    4. Use these REAL patterns as ground truth — NOT the plan's code,
       if plan contradicts actual codebase patterns.
+
+    **Test & Story File Location Discovery (CRITICAL — MUST DO):**
+    5. For the TARGET module AND at least ONE reference module, explicitly check:
+       - `list_dir` the module root to see if a `tests/` folder exists at root level (sibling of `src/`)
+       - `list_dir` `src/lib/` to confirm NO `.spec.tsx`/`.test.tsx` files exist there
+       - If the target module already has test files, note their EXACT path and import patterns
+    6. Record the discovered test file convention as a binding constraint for Step 3D.
+       > **CRITICAL**: If existing tests live in `<module>/tests/`, ALL new/modified tests MUST go there too. NEVER place tests inside `src/` or `src/lib/` even if tsconfig technically allows it.
 
    ### Step 3C — Plan Validation (MANDATORY — DO NOT SKIP)
 
@@ -253,6 +262,7 @@ check_plans()
 
    a) **Goal**: 1 sentence — what this task achieves
    b) **Files**: Exact workspace-relative paths to create/modify/delete
+      > **CRITICAL for test files**: Use the EXACT test directory discovered in Step 3B (e.g., `tests/Component.spec.tsx`, NOT `src/lib/Component.spec.tsx`). Cross-reference with existing test files in the target module.
    c) **What to Do**: Detailed instructions including:
    - Code patterns from reference implementation (Step 3B), NOT plan if plan had bugs
    - Specific type signatures, import paths
@@ -261,11 +271,16 @@ check_plans()
    - ALWAYS include skill paths to read (from Step 3A)
    - Task-specific conventions discovered
    - If plan had bugs: "PLAN DEVIATION: [what to do instead]"
+   - For test tasks: "Test files MUST be placed in `tests/` directory (root level, sibling of `src/`)"
      e) **Done Criteria**: 3-8 checkable items specific to this task
 
    Each task `verification` field MUST contain:
    - Exact executable shell commands (e.g., "cd libs/switch && npx tsc --noEmit")
    - NEVER vague phrases like "Compile passes"
+   - NEVER use `--passWithNoTests` — if tests exist, they MUST actually run and pass
+
+   **Task Naming (CRITICAL):**
+   - DO NOT use slashes `/` or backslashes `\` in task `id`s. Use hyphens `-` instead. (e.g., `breadcrumb-enhancements-01-models`, NOT `plan/processing/breadcrumb-01`).
 
    **Mandatory Tasks for Library Plans:**
    Every plan that creates a new lib MUST include ALL of the following task types:
@@ -287,6 +302,7 @@ check_plans()
 
    Before calling submit_decomposition, verify:
    - [ ] Every task has file paths in its action
+   - [ ] Task `id`s do not contain any slashes (`/` or `\`)
    - [ ] Every task references relevant skills
    - [ ] Every task has executable verification commands
    - [ ] Every task has 3+ done criteria
@@ -299,9 +315,11 @@ check_plans()
    - [ ] `aria-current` is specified for navigation components (breadcrumb, tabs, nav)
    - [ ] Tasks with no real dependency are grouped in parallel DAG groups
    - [ ] MANIFEST uses actual git commit hash (not `new`, `initial`, etc.)
+   - [ ] **Test file paths match discovered convention** (e.g., `tests/X.spec.tsx` NOT `src/lib/X.spec.tsx`)
+   - [ ] **No verification command uses `--passWithNoTests`**
 
 4. **Submit** — Call `submit_decomposition(tasks, graph, reasoning, source_plan, worker_id)`.
-   - **CRITICAL:** You MUST provide the `source_plan` parameter (the exact filename of the plan, e.g. `"2026-04-07_my-plan.md"` from the `plan_path` you received). The server will automatically move it to `done/` upon successful submission. Do NOT skip this!
+   - **CRITICAL:** You MUST extract and provide ONLY the base filename for the `source_plan` parameter (e.g. `"breadcrumb_enhancements.md"`, NOT `"plan/processing/breadcrumb_enhancements.md"`). The server backend uses this exact filename to find the file and move it to `done/` upon successful submission. Do NOT skip this or pass slashes!
 5. **Read `next_plan`** from the response:
    - Has `action: DECOMPOSE` + new plan → go to step 3
    - `IDLE` → Server reverts you to Worker. Go to **Section W**.

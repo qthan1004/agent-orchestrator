@@ -1,8 +1,0 @@
-{
-  "id": "2026-04-13_breadcrumb_v0.0.1-05-components",
-  "module": "libs/breadcrumb",
-  "action": "Goal: Implement components + WAI-ARIA semantics.\nFiles:\n- NEW: libs/breadcrumb/src/lib/Breadcrumb.tsx\n- NEW: libs/breadcrumb/src/lib/BreadcrumbItem.tsx\n- NEW: libs/breadcrumb/src/index.ts\n\nWhat to Do:\n1. Breadcrumb.tsx: `forwardRef` using BreadcrumbNavStyled (`aria-label=\\\"breadcrumb\\\"`), BreadcrumbListStyled. Using computeDisplayItems helper to render item children and ellipsis.\n2. BreadcrumbItem.tsx: `forwardRef` using BreadcrumbItemStyled. If `active` is true, add `aria-current=\\\"page\\\"` to the link/span.\n3. src/index.ts: barrel export components.\n\nConstraints:\n- Read: .agent/skills/component-patterns/SKILL.md\n- PLAN DEVIATION: MUST include `aria-label=\\\"breadcrumb\\\"` on nav wrapper and `aria-current=\\\"page\\\"` on the active item! This is an accessibility requirement not in the plan.\n- The ellipsis button must have aria-label and aria-expanded attributes.\n\nDone criteria:\n- [ ] aria-label=\\\"breadcrumb\\\" added.\n- [ ] aria-current=\\\"page\\\" is added if active.\n- [ ] Barrel export uses named exports.",
-  "verification": "cd libs/breadcrumb && cat src/lib/BreadcrumbItem.tsx | grep 'aria-current=\\\"page\\\"'",
-  "status": "done",
-  "retry_count": 1
-}

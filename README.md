@@ -113,12 +113,14 @@ agent-orchestrator/
 │       └── bootstrap.mjs     ← Directory initialization
 │
 ├── prompts/                  ← 📋 Agent prompt templates
+│   ├── README.md             ← Hướng dẫn sử dụng prompt
 │   └── agent-prompt.md       ← Unified prompt (Dynamic Role Switching)
 │
 ├── plan/                     ← 📝 Kế hoạch của bạn
 │   ├── pending/              ← ⬜ BỎ FILE .md MỚI VÀO ĐÂY
 │   ├── processing/           ← 🔄 Đang được Planner decompose (tối đa 1)
-│   └── done/                 ← ✅ Plan đã xong (lưu trữ)
+│   ├── done/                 ← ✅ Plan đã xong (lưu trữ)
+│   └── bugs/                 ← 🐛 Bug reports
 │
 ├── exchange/                 ← 📁 File IPC — Data Provider Layer
 │   ├── inbox/                ← 📥 Task mới vào đây
@@ -128,11 +130,6 @@ agent-orchestrator/
 │   ├── checkpoints/          ← 💾 Bản sao lưu tự động
 │   ├── _queue.json           ← 🗂️ Cấu trúc DAG (thứ tự task)
 │   └── workers.json          ← 👥 Registry các worker đang hoạt động
-│
-├── tasks/                    ← 📊 Task lifecycle tracking
-│   ├── pending/              ← ⬜ Task đang chờ
-│   ├── processing/           ← 🔄 Task đang xử lý
-│   └── done/                 ← ✅ Task đã hoàn tất
 │
 ├── reference/                ← 📦 Ships with product (đi kèm orchestrator)
 │   ├── tools/                ← Script vận hành (health-check, queue-status...)
@@ -145,12 +142,28 @@ agent-orchestrator/
 │   ├── checkpoint.template.json
 │   ├── plan-output.template.json
 │   ├── archive-entry.template.json
-│   └── knowledge.md          ← Template cho file dũ liệu dự án
+│   └── knowledge.md          ← Template cho file dữ liệu dự án
+│
+├── dev-docs/                 ← 📝 Tài liệu kỹ thuật dev (KHÔNG ship)
+│   ├── migrate-to-typescript.md  ← Migration plan .mjs → .ts
+│   ├── agent-orchestrator_technical_docs_v0.1.0.md
+│   └── ...                   ← Architecture docs, improvement plans
+│
+├── tasks/                    ← 🔧 Dev task board (KHÔNG ship)
+│   ├── README.md             ← Task board dashboard
+│   ├── pending/              ← ⬜ Task đang chờ
+│   ├── processing/           ← 🔄 Task đang xử lý
+│   └── done/                 ← ✅ Task đã hoàn tất
+│
+├── tests/                    ← 🧪 Test files
+│   ├── e2e-flow.mjs          ← Full E2E via HTTP
+│   ├── test-check-plans.mjs  ← Plan lifecycle test
+│   └── test-visual-queue.mjs ← Visual queue test
 │
 └── .agent/                   ← 🔧 Dev-only (KHÔNG ship với product)
-    ├── skills/               ← Dev skills (git-commit, token-optimization)
+    ├── skills/               ← Dev skills (folder-convention, safe-deletion...)
     ├── workflows/            ← Dev workflows (slash commands)
-    └── tools/                ← Dev tools (git-push, task-board...)
+    └── tools/                ← Dev tools
 ```
 
 ---

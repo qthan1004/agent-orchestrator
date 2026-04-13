@@ -12,12 +12,12 @@
 
 Migrate 6 MCP internal modules:
 
-### 1. `mcp-server/task-queue.mjs` → `task-queue.ts` (Medium)
+### 1. `mcp-server/task-queue.mjs` → `task-queue.ts` (194 LOC, Medium)
 - `Map<string, TaskDef>` cho internal storage
 - `TaskGraph` cho DAG input
 - Method return types
 
-### 2. `mcp-server/poll-helpers.mjs` → `poll-helpers.ts` (Low)
+### 2. `mcp-server/poll-helpers.mjs` → `poll-helpers.ts` (78 LOC, Low)
 - Generic function signatures
 - Callback types: `() => Promise<T | null>`
 - Timeout/interval param types

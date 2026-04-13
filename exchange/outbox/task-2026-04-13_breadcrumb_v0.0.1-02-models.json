@@ -1,7 +1,0 @@
-{
-  "id": "2026-04-13_breadcrumb_v0.0.1-02-models",
-  "module": "libs/breadcrumb",
-  "action": "Goal: Define models and constants.\nFiles:\n- NEW: libs/breadcrumb/src/lib/models/index.ts\n- NEW: libs/breadcrumb/src/lib/constants/index.ts\n\nWhat to Do:\n1. models/index.ts: Define BreadcrumbProps (separator: ReactNode, maxItems: number, itemsBeforeCollapse: number, itemsAfterCollapse: number) and BreadcrumbItemProps (href, onClick, icon, active).\n2. constants/index.ts: Define default values (e.g. maxItems: 8, itemsBeforeCollapse: 1, itemsAfterCollapse: 1, separator: '/').\n\nConstraints:\n- Read: .agent/skills/component-patterns/SKILL.md\n\nDone criteria:\n- [ ] Types defined and exported.\n- [ ] Constants defined.",
-  "verification": "cd libs/breadcrumb && npx tsc --noEmit -p tsconfig.lib.json || true",
-  "status": "done"
-}

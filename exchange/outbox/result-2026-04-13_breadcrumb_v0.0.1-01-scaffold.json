@@ -1,7 +1,0 @@
-{
-  "task_id": "2026-04-13_breadcrumb_v0.0.1-01-scaffold",
-  "status": "done",
-  "summary": "Scaffolded @thanh-libs/breadcrumb using structure from libs/chip. Created package.json, vite.config.mts, 4 tsconfig files, tests/setup.ts, README.md, and CHANGELOG.md. Modified the package names to match breadcrumb.",
-  "worker_id": "w-f8ddf0c2",
-  "completed_at": "2026-04-13T07:34:41.321Z"
-}

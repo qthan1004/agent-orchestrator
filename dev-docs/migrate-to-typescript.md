@@ -11,7 +11,7 @@
 | Metric | Value |
 |---|---|
 | **Total `.mjs` files** | 21 (15 src + 3 root scripts + 3 tests) |
-| **Total LOC** | ~2,100 lines |
+| **Total LOC** | ~3,300 lines |
 | **Dependencies** | `@modelcontextprotocol/sdk`, `express`, `zod` |
 | **Module system** | ESM (`"type": "module"` in package.json) |
 | **Runtime** | Node.js (no bundler) |
@@ -20,36 +20,36 @@
 
 ```
 src/                                   ← 15 files, core logic
-├── index.mjs               (29 LOC)  — Entry point
-├── config.mjs               (50 LOC)  — Config loader
-├── constants.mjs           (128 LOC)  — All constants
+├── index.mjs                (28 LOC)  — Entry point
+├── config.mjs               (52 LOC)  — Config loader
+├── constants.mjs           (135 LOC)  — All constants (incl. VERSION, PLANNER_ALIVE_THRESHOLD_MS)
 ├── mcp-server/
-│   ├── index.mjs           (140 LOC)  — Server bootstrap
+│   ├── index.mjs           (154 LOC)  — Server bootstrap
 │   ├── server.mjs           (12 LOC)  — MCP server factory
-│   ├── tools.mjs           (~682 LOC)  — Tool registrations (get_template, ping) ⭐
-│   ├── transport.mjs        (64 LOC)  — Streamable HTTP
-│   ├── state-manager.mjs   (~411 LOC)  — State machine (requeueWithRetry)
-│   ├── task-queue.mjs      (165 LOC)  — DAG-based queue
-│   ├── recovery.mjs        (~354 LOC)  — Crash recovery
-│   ├── plan-watcher.mjs    (133 LOC)  — Auto-poll plans
-│   ├── poll-helpers.mjs     (58 LOC)  — Long polling
-│   └── idle-resolver.mjs   (37 LOC)  — Idle resolver
+│   ├── tools.mjs           (698 LOC)  — Tool registrations (get_template, ping) ⭐
+│   ├── transport.mjs        (63 LOC)  — Streamable HTTP
+│   ├── state-manager.mjs   (415 LOC)  — State machine (requeueWithRetry)
+│   ├── task-queue.mjs      (194 LOC)  — DAG-based queue
+│   ├── recovery.mjs        (353 LOC)  — Crash recovery
+│   ├── plan-watcher.mjs    (132 LOC)  — Auto-poll plans
+│   ├── poll-helpers.mjs     (78 LOC)  — Long polling
+│   └── idle-resolver.mjs    (36 LOC)  — Idle resolver
 └── utils/
-    ├── file-backend.mjs    (138 LOC)  — File I/O
-    ├── logger.mjs           (56 LOC)  — Daily logs
-    ├── bootstrap.mjs        (72 LOC)  — Dir bootstrapper
-    ├── worker-registry.mjs  (90 LOC)  — Worker registry
-    └── startup-prompt.mjs   (62 LOC)  — Interactive prompt
+    ├── file-backend.mjs    (137 LOC)  — File I/O
+    ├── logger.mjs           (55 LOC)  — Daily logs
+    ├── bootstrap.mjs        (71 LOC)  — Dir bootstrapper
+    ├── worker-registry.mjs (147 LOC)  — Worker registry (roles, heartbeat, planner tracking)
+    └── startup-prompt.mjs   (64 LOC)  — Interactive prompt
 
 Root scripts (sẽ xử lý):       ← 3 files
-├── test.mjs                 (57 LOC)  — Unit test force_release
-├── test-tools.mjs           (16 LOC)  — Smoke test tool registration
-├── verify.mjs               (16 LOC)  — Quick verify idle-resolver
+├── test.mjs                 (72 LOC)  — Unit test force_release
+├── test-tools.mjs           (15 LOC)  — Smoke test tool registration
+├── verify.mjs               (15 LOC)  — Quick verify idle-resolver
 
 tests/                                 ← 3 files, integration
-├── e2e-flow.mjs            (236 LOC)  — Full E2E via HTTP
-├── test-check-plans.mjs     (65 LOC)  — Plan lifecycle test
-└── test-visual-queue.mjs    (97 LOC)  — Visual queue test
+├── e2e-flow.mjs            (235 LOC)  — Full E2E via HTTP
+├── test-check-plans.mjs     (64 LOC)  — Plan lifecycle test
+└── test-visual-queue.mjs    (96 LOC)  — Visual queue test
 ```
 
 ---
@@ -247,7 +247,11 @@ export interface AppConfig {
     checkIntervalMs: number;
     planPollTimeoutMs: number;
   };
-  recovery: { staleThresholdMs: number; maxTaskRetries: number; };
+  recovery: {
+    staleThresholdMs: number;
+    plannerAliveThresholdMs: number;
+    maxTaskRetries: number;
+  };
 }
 
 export interface ConfigOverrides {
@@ -259,6 +263,7 @@ export interface ConfigOverrides {
   checkIntervalMs?: number;
   planPollTimeoutMs?: number;
   staleThresholdMs?: number;
+  plannerAliveThresholdMs?: number;
   maxTaskRetries?: number;
 }
 
@@ -375,7 +380,9 @@ All imports: `.mjs` → `.js`
 + export type TaskStatusValue = typeof TASK_STATUS[keyof typeof TASK_STATUS];
 ```
 
-Áp dụng cho: `TASK_STATUS`, `WORKER_STATUS`, `WORKER_ROLE`, `AGENT_ACTION`, `STATE_EVENTS`, `RECOVERY_EVENTS`, `TOOL_NAMES`, `DIR_NAMES`, `API_ROUTES`, `FILE_PREFIXES`, `POLL_DEFAULTS`, `RECOVERY_DEFAULTS`, `PROCESS_SIGNALS`, `SHUTDOWN_SIGNALS`, `SHUTDOWN_MARKER_FILE`.
+Áp dụng cho: `VERSION`, `TASK_STATUS`, `WORKER_STATUS`, `WORKER_ROLE`, `AGENT_ACTION`, `STATE_EVENTS`, `RECOVERY_EVENTS`, `TOOL_NAMES`, `DIR_NAMES`, `API_ROUTES`, `FILE_PREFIXES`, `POLL_DEFAULTS`, `RECOVERY_DEFAULTS`, `PROCESS_SIGNALS`, `SHUTDOWN_SIGNALS`, `SHUTDOWN_MARKER_FILE`.
+
+> **Note:** `VERSION` là string literal, chỉ cần `as const`. `RECOVERY_DEFAULTS` giờ có thêm `PLANNER_ALIVE_THRESHOLD_MS` và `MAX_TASK_RETRIES`.
 
 ---
 
@@ -480,14 +487,14 @@ npx tsx tests/e2e-flow.ts
 | Phase | Time | Description |
 |---|---|---|
 | Phase 1: TS infra | 15 min | tsconfig, deps, scripts, gitignore |
-| Phase 2: Types | 20 min | `src/types.ts` |
-| Phase 3: Migration | 2-3 hours | 18 files rename + annotations |
+| Phase 2: Types | 25 min | `src/types.ts` (14+ interfaces, incl. plannerAliveThresholdMs) |
+| Phase 3: Migration | 3-4 hours | 18 files rename + annotations (~3,300 LOC total) |
 | Phase 4: Imports | 10 min | Bulk `.mjs` → `.js` |
-| Phase 5: Const assertions | 15 min | `as const` + type unions |
+| Phase 5: Const assertions | 15 min | `as const` + type unions (16+ constant objects) |
 | Phase 6: Cleanup | 15 min | Delete root tests, migrate tests/ |
 | Phase 7: Verify | 30 min | Build, typecheck, run, e2e |
-| **Total** | **~4 hours** | |
+| **Total** | **~5 hours** | |
 
 ---
 
-*Created: 2026-04-07 | Updated: 2026-04-07*
+*Created: 2026-04-07 | Updated: 2026-04-13*

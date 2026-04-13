@@ -1,7 +1,0 @@
-{
-  "id": "2026-04-07_switch_v0.0.1-04-component",
-  "module": "libs/switch",
-  "action": "Goal: Implement main Switch component and barrel export.\nFiles:\n- NEW: libs/switch/src/lib/Switch.tsx\n- NEW: libs/switch/src/index.ts\n\nWhat to Do:\n1. src/lib/Switch.tsx: implement Switch via forwardRef and arrow function.\n2. Add WAI-ARIA properties (role=\"switch\", aria-checked, aria-disabled).\n3. Handle Keyboard events (Enter/Space).\n4. src/index.ts: export Switch and models.\n\nConstraints:\n- Read: .agent/skills/component-patterns/SKILL.md\n\nDone criteria:\n- [ ] Switch uses forwardRef.\n- [ ] WAI-ARIA assigned to Track.\n- [ ] Keyboard events handled.\n- [ ] Named exports in src/index.ts.",
-  "verification": "cd libs/switch && cat src/lib/Switch.tsx | grep 'role=\\\"switch\\\"'",
-  "status": "done"
-}

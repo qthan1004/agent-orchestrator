@@ -17,7 +17,8 @@ Migrate 3 leaf modules (không có internal deps) từ `.mjs` → `.ts`:
 - Rename file
 - Thêm `as const` cho tất cả constant objects
 - Tạo type unions từ const objects: `export type TaskStatusValue = typeof TASK_STATUS[keyof typeof TASK_STATUS]`
-- Áp dụng cho: `TASK_STATUS`, `WORKER_STATUS`, `WORKER_ROLE`, `AGENT_ACTION`, `STATE_EVENTS`, `RECOVERY_EVENTS`, `TOOL_NAMES`, `DIR_NAMES`, `API_ROUTES`, `FILE_PREFIXES`, `POLL_DEFAULTS`, `RECOVERY_DEFAULTS`, `PROCESS_SIGNALS`, `SHUTDOWN_SIGNALS`, `SHUTDOWN_MARKER_FILE`
+- Áp dụng cho: `VERSION`, `TASK_STATUS`, `WORKER_STATUS`, `WORKER_ROLE`, `AGENT_ACTION`, `STATE_EVENTS`, `RECOVERY_EVENTS`, `TOOL_NAMES`, `DIR_NAMES`, `API_ROUTES`, `FILE_PREFIXES`, `POLL_DEFAULTS`, `RECOVERY_DEFAULTS`, `PROCESS_SIGNALS`, `SHUTDOWN_SIGNALS`, `SHUTDOWN_MARKER_FILE`
+- **Lưu ý:** `RECOVERY_DEFAULTS` giờ có thêm `PLANNER_ALIVE_THRESHOLD_MS` và `MAX_TASK_RETRIES` (không có trong plan gốc, đã thêm trong v2 optimization)
 
 ### 2. `src/utils/file-backend.mjs` → `src/utils/file-backend.ts`
 

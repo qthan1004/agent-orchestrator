@@ -1,7 +1,0 @@
-{
-  "id": "2026-04-13_breadcrumb_v0.0.1-04-styled",
-  "module": "libs/breadcrumb",
-  "action": "Goal: Create Styled components for Breadcrumb.\nFiles:\n- NEW: libs/breadcrumb/src/lib/styled.tsx\n\nWhat to Do:\n1. Export BreadcrumbNavStyled (nav), BreadcrumbListStyled (ol), BreadcrumbItemStyled (li).\n2. Read palette/spacing using `useTheme()` with optional chaining.\n\nConstraints:\n- Read: .agent/skills/component-patterns/SKILL.md\n- Use semantic HTML tags (nav, ol, li).\n\nDone criteria:\n- [ ] 3 styled components exported.\n- [ ] useTheme() pattern used.\n- [ ] nav, ol, li tags targeted.",
-  "verification": "cd libs/breadcrumb && cat src/lib/styled.tsx | grep 'const { palette'",
-  "status": "done"
-}
