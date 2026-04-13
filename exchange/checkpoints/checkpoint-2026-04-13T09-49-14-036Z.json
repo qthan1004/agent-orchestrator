@@ -1,0 +1,15 @@
+{
+  "graph": {
+    "groups": []
+  },
+  "tasks": {
+    "breadcrumb_enhancements-01-breadcrumb-models": {
+      "id": "breadcrumb_enhancements-01-breadcrumb-models",
+      "module": "libs/breadcrumb",
+      "action": "Goal: Update models to support route array mapping and custom rendering.\n\nFiles:\n- MODIFY: libs/breadcrumb/src/lib/models/index.ts\n\nWhat to Do:\n1. Define and export `BreadcrumbRouteInfo`: `{ path: string; label?: string; icon?: React.ReactNode; render?: (route: BreadcrumbRouteInfo) => React.ReactNode; [key: string]: any; }`.\n2. Update `BreadcrumbProps` to include:\n   - `routes?: BreadcrumbRouteInfo[];`\n   - `itemRender?: (route: BreadcrumbRouteInfo, index: number, isLast: boolean) => React.ReactNode;`\n3. Do not modify other properties. Ensure `ReactNode` is used from `react`.\n\nConstraints:\n- Read: .agent/skills/strict-scope/SKILL.md\n- Maintain all existing exported types.\n\nDone criteria:\n- [ ] `BreadcrumbRouteInfo` interface is exported.\n- [ ] `BreadcrumbProps` includes `routes` and `itemRender`.\n- [ ] Executable verification passes.",
+      "verification": "cd libs/breadcrumb && npx tsc --noEmit -p tsconfig.lib.json",
+      "status": "done",
+      "retry_count": 1
+    }
+  }
+}
