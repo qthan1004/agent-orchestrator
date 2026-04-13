@@ -1,7 +1,0 @@
-{
-  "id": "06-stories",
-  "module": "libs/breadcrumb",
-  "action": "Goal: Create Storybook stories for the Breadcrumb.\n\nFiles:\n- NEW: libs/breadcrumb/src/lib/stories/Breadcrumb.stories.tsx\n\nWhat to Do:\n1. Create stories for basic usage, custom separator, collapsed mode (e.g. 5+ items), and with icons.\n2. Apply `Template.bind({})` pattern or CSF3 format.\n\nConstraints:\n- Read .agent/skills/component-patterns/SKILL.md\n\nDone criteria:\n- [ ] Basic story exists\n- [ ] Collapsed story exists\n- [ ] Custom Separator story exists",
-  "verification": "cd libs/breadcrumb && npx tsc --noEmit -p tsconfig.storybook.json",
-  "status": "pending"
-}

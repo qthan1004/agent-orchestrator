@@ -27,8 +27,8 @@ Danh sách interfaces cần tạo:
 | `TaskGraph` | Full DAG graph (groups[]) |
 | `ExchangeConfig` | Exchange directory paths |
 | `DirConfig` | Generic dir config (base, pending, processing, done) |
-| `AppConfig` | Full application config |
-| `ConfigOverrides` | Partial config for overrides |
+| `AppConfig` | Full application config (cập nhật recovery.maxTaskRetries) |
+| `ConfigOverrides` | Partial config for overrides (thêm maxTaskRetries) |
 | `PlanCheckResult` | Plan check response |
 | `PlanQuickStatus` | Quick plan status |
 | `ServerContext` | Server-wide dependencies container |

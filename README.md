@@ -144,7 +144,8 @@ agent-orchestrator/
 │   ├── task.template.json    ← Cấu trúc chuẩn 1 task
 │   ├── checkpoint.template.json
 │   ├── plan-output.template.json
-│   └── archive-entry.template.json
+│   ├── archive-entry.template.json
+│   └── knowledge.md          ← Template cho file dũ liệu dự án
 │
 └── .agent/                   ← 🔧 Dev-only (KHÔNG ship với product)
     ├── skills/               ← Dev skills (git-commit, token-optimization)
@@ -209,7 +210,7 @@ Server sẽ hỏi bạn cấu hình:
 | Tham số | Giá trị | Ý nghĩa |
 |---------|---------|---------|
 | Port | `3847` | Cổng server |
-| Stale threshold | `30 min` | Worker không heartbeat > 30 phút = stale |
+| Stale threshold | `90 sec` | Worker không heartbeat > 90 giây = stale |
 | Long poll timeout | `30 sec` | Server giữ kết nối tối đa 30s khi chờ task |
 | Plan watcher | `30 sec` | Quét `plan/pending/` mỗi 30s |
 
@@ -327,6 +328,9 @@ Hoặc hỏi chi tiết hơn:
 ---
 
 ## 🖥️ Hướng dẫn Multi-Session (2+ cửa sổ Antigravity)
+
+> [!WARNING]
+> **Hiện tại hiệu năng tốt nhất và ổn định nhất là 1 Agent Session duy nhất.** Do cơ chế của Antigravity giới hạn số lượng request (Rate limit) để tránh spam, việc chạy 2 cửa sổ trở lên sẽ rất dễ bị chặn hoặc gây lỗi kết nối API. Các hướng dẫn mở nhiều cửa sổ dưới đây có thể áp dụng nếu bạn dùng server/AI không hạn chế rate limit. Khuyến nghị bạn ưu tiên dùng cấu hình 1 cửa sổ!
 
 ### Khái niệm cốt lõi
 
@@ -607,10 +611,12 @@ exchange/inbox/task-XX.json    ──►  exchange/active/task-XX.json    ──
 | Tool | Chức năng | Tham số |
 |------|----------|---------|
 | `hello_world` | Test kết nối server | `name` (string) |
-| `register_worker` | Đăng ký Agent, nhận `worker_id` + `role` | *(không có)* |
+| `register_worker` | Đăng ký Agent, nhận `worker_id` + `role` | `workspace_path` (optional) |
 | `get_status` | Xem thông tin server (version, uptime, workers) | *(không có)* |
 | `get_queue_status` | Xem tổng quan queue (pending/active/done count) | *(không có)* |
 | `get_checkpoint` | Lưu checkpoint trạng thái hiện tại | *(không có)* |
+| `get_template` | Lấy content của file template chuẩn từ orchestrator | `template_name` |
+| `ping` | Báo cáo hoạt động để giữ session không bị đánh dấu stale | `worker_id` |
 
 ### Tools cho Worker
 
@@ -833,7 +839,7 @@ Server sẽ: lấy task → đẩy lại vào inbox → Worker tự động kéo
 | Tình huống | Hệ thống xử lý |
 |------------|----------------|
 | Server crash, khởi động lại | Tự quét orphan task trong `exchange/active/` → requeue |
-| Worker treo quá 30 phút | Đánh dấu "stale", requeue cho Worker khác |
+| Worker treo quá 90 giây | Đánh dấu "stale", requeue cho Worker khác |
 | Tắt đột ngột (không Ctrl+C) | Phát hiện "unclean shutdown" → full recovery scan |
 | Tắt bình thường (Ctrl+C) | Ghi marker "clean shutdown" |
 

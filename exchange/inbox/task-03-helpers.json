@@ -1,7 +1,0 @@
-{
-  "id": "03-helpers",
-  "module": "libs/breadcrumb",
-  "action": "Goal: Create a helper function to collapse breadcrumbs.\n\nFiles:\n- NEW: libs/breadcrumb/src/lib/helpers/index.ts\n\nWhat to Do:\n1. Create and export `collapseBreadcrumbs<T>(items: T[], maxItems: number, itemsBeforeCollapse: number, itemsAfterCollapse: number): (T | '...')[]`.\n\nConstraints:\n- Make it a pure function independently testable\n- Ensure default parameters are handled gracefully.\n\nDone criteria:\n- [ ] Logical splitting is correct\n- [ ] Function is exported\n- [ ] Executable verification passes",
-  "verification": "cd libs/breadcrumb && npx tsc --noEmit -p tsconfig.lib.json",
-  "status": "pending"
-}

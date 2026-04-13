@@ -1,7 +1,0 @@
-{
-  "id": "01-scaffold",
-  "module": "libs/breadcrumb",
-  "action": "Goal: Scaffold the breadcrumb library.\n\nFiles:\n- NEW: libs/breadcrumb/\n\nWhat to Do:\n1. Execute `./tools/gen-lib.sh breadcrumb` from the workspace root.\n2. The script clones necessary config files (tsconfig.json, vite.config.mts, package.json) from `tools/templates`.\n3. The package name should strictly be `@thanh-libs/breadcrumb`.\n\nConstraints:\n- Read .agent/workflows/create-lib.md if unsure about scaffold output.\n\nDone criteria:\n- [ ] `gen-lib.sh` ran successfully\n- [ ] `tsconfig.storybook.json` exists in `libs/breadcrumb/`\n- [ ] `libs/breadcrumb/package.json` contains correct package name",
-  "verification": "cd libs/breadcrumb && ls tsconfig.storybook.json && grep \"breadcrumb\" package.json",
-  "status": "active"
-}

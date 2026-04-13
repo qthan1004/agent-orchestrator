@@ -26,11 +26,11 @@ src/                                   ← 15 files, core logic
 ├── mcp-server/
 │   ├── index.mjs           (140 LOC)  — Server bootstrap
 │   ├── server.mjs           (12 LOC)  — MCP server factory
-│   ├── tools.mjs           (508 LOC)  — Tool registrations ⭐ largest
+│   ├── tools.mjs           (~682 LOC)  — Tool registrations (get_template, ping) ⭐
 │   ├── transport.mjs        (64 LOC)  — Streamable HTTP
-│   ├── state-manager.mjs   (260 LOC)  — State machine
+│   ├── state-manager.mjs   (~411 LOC)  — State machine (requeueWithRetry)
 │   ├── task-queue.mjs      (165 LOC)  — DAG-based queue
-│   ├── recovery.mjs        (315 LOC)  — Crash recovery
+│   ├── recovery.mjs        (~354 LOC)  — Crash recovery
 │   ├── plan-watcher.mjs    (133 LOC)  — Auto-poll plans
 │   ├── poll-helpers.mjs     (58 LOC)  — Long polling
 │   └── idle-resolver.mjs   (37 LOC)  — Idle resolver
@@ -187,6 +187,7 @@ export interface WorkerInfo {
   current_task: string | null;
   tasks_completed: number;
   status: string;
+  disconnected_at?: string;
 }
 
 // ─── Task ────────────────────────────────────────
@@ -246,7 +247,7 @@ export interface AppConfig {
     checkIntervalMs: number;
     planPollTimeoutMs: number;
   };
-  recovery: { staleThresholdMs: number };
+  recovery: { staleThresholdMs: number; maxTaskRetries: number; };
 }
 
 export interface ConfigOverrides {
@@ -258,6 +259,7 @@ export interface ConfigOverrides {
   checkIntervalMs?: number;
   planPollTimeoutMs?: number;
   staleThresholdMs?: number;
+  maxTaskRetries?: number;
 }
 
 // ─── Plan ────────────────────────────────────────
@@ -336,7 +338,7 @@ export interface BootstrapResult {
 | # | From → To | Effort | Changes |
 |---|---|---|---|
 | 14 | `mcp-server/server.mjs` → `server.ts` | Low | SDK types |
-| 15 | `mcp-server/tools.mjs` → `tools.ts` | **High** | Tool param types (508 LOC) |
+| 15 | `mcp-server/tools.mjs` → `tools.ts` | **High** | Tool param types (~682 LOC) |
 | 16 | `mcp-server/transport.mjs` → `transport.ts` | Low | Express types |
 | 17 | `mcp-server/index.mjs` → `index.ts` | Low | Express app |
 | 18 | `index.mjs` → `index.ts` | Low | Entry point |
@@ -373,7 +375,7 @@ All imports: `.mjs` → `.js`
 + export type TaskStatusValue = typeof TASK_STATUS[keyof typeof TASK_STATUS];
 ```
 
-Áp dụng cho: `TASK_STATUS`, `WORKER_STATUS`, `WORKER_ROLE`, `AGENT_ACTION`, `STATE_EVENTS`, `RECOVERY_EVENTS`, `TOOL_NAMES`, `DIR_NAMES`, `API_ROUTES`, `FILE_PREFIXES`, `POLL_DEFAULTS`, `RECOVERY_DEFAULTS`.
+Áp dụng cho: `TASK_STATUS`, `WORKER_STATUS`, `WORKER_ROLE`, `AGENT_ACTION`, `STATE_EVENTS`, `RECOVERY_EVENTS`, `TOOL_NAMES`, `DIR_NAMES`, `API_ROUTES`, `FILE_PREFIXES`, `POLL_DEFAULTS`, `RECOVERY_DEFAULTS`, `PROCESS_SIGNALS`, `SHUTDOWN_SIGNALS`, `SHUTDOWN_MARKER_FILE`.
 
 ---
 
