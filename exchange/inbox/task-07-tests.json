@@ -1,0 +1,7 @@
+{
+  "id": "07-tests",
+  "module": "libs/breadcrumb",
+  "action": "Goal: Write unit and accessibility tests for Breadcrumb.\n\nFiles:\n- NEW: libs/breadcrumb/tests/Breadcrumb.spec.tsx\n- NEW: libs/breadcrumb/tests/BreadcrumbItem.spec.tsx\n\nWhat to Do:\n1. Test correct rendering of items and separators.\n2. Test collapse logic when items > maxItems.\n3. Test that `jest-axe` passes without a11y violations.\n4. Verify `aria-current=\"page\"` is applied correctly to active items.\n\nConstraints:\n- Read .agent/skills/testing-patterns/SKILL.md\n- MUST wrap in `<ThemeProvider>` to avoid styled-components crash.\n\nDone criteria:\n- [ ] ThemeProvider wraps component in all tests\n- [ ] axe test added\n- [ ] Collapse tests added\n- [ ] Executable verification passes",
+  "verification": "cd libs/breadcrumb && npx vitest run --passWithNoTests",
+  "status": "pending"
+}

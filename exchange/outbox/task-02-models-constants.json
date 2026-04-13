@@ -1,8 +1,0 @@
-{
-  "id": "02-models-constants",
-  "module": "switch",
-  "action": "Goal: Implement Switch models and constants.\n\nFiles:\n- NEW: libs/switch/src/lib/models/index.ts\n- NEW: libs/switch/src/lib/constants/index.ts\n\nWhat to Do:\n- Implement `SwitchSize`, `SwitchColor`, and `SwitchProps` in `models/index.ts` exactly as specified in the plan.\n- Implement `SWITCH_SIZE_MAP` and `SWITCH_DEFAULTS` in `constants/index.ts` as specified in the plan.\n\nConstraints:\n- Export types explicitly.\n\nDone Criteria:\n- [ ] Models and constants exactly match specs.\n- [ ] Export is correct.\n- [ ] Executable verification passes.",
-  "verification": "npx tsc --noEmit -p libs/switch/tsconfig.lib.json",
-  "status": "done",
-  "retry_count": 1
-}

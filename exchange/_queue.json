@@ -4,12 +4,16 @@
       "group_id": 1,
       "tasks": [
         "01-scaffold"
-      ]
+      ],
+      "depends_on": []
     },
     {
       "group_id": 2,
       "tasks": [
-        "02-models-constants"
+        "02-models",
+        "03-helpers",
+        "04-styled",
+        "08-docs"
       ],
       "depends_on": [
         1
@@ -18,7 +22,7 @@
     {
       "group_id": 3,
       "tasks": [
-        "03-styled-components"
+        "05-components"
       ],
       "depends_on": [
         2
@@ -27,19 +31,11 @@
     {
       "group_id": 4,
       "tasks": [
-        "04-component"
+        "06-stories",
+        "07-tests"
       ],
       "depends_on": [
         3
-      ]
-    },
-    {
-      "group_id": 5,
-      "tasks": [
-        "05-stories"
-      ],
-      "depends_on": [
-        4
       ]
     }
   ]

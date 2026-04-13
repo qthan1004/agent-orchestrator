@@ -1,29 +1,12 @@
 [
   {
-    "id": "w-c3d32c5e",
-    "role": "PLANNER",
-    "registered_at": "2026-04-10T10:46:21.423Z",
-    "last_heartbeat": "2026-04-10T10:46:21.423Z",
-    "current_task": null,
-    "tasks_completed": 0,
-    "status": "idle"
-  },
-  {
-    "id": "w-9ed18392",
-    "role": "PLANNER",
-    "registered_at": "2026-04-13T03:02:33.639Z",
-    "last_heartbeat": "2026-04-13T03:02:33.639Z",
-    "current_task": null,
-    "tasks_completed": 0,
-    "status": "idle"
-  },
-  {
-    "id": "w-dcbdd8e1",
+    "id": "w-9eb3cf11",
     "role": "WORKER",
-    "registered_at": "2026-04-13T03:14:36.091Z",
-    "last_heartbeat": "2026-04-13T03:21:05.781Z",
+    "registered_at": "2026-04-13T04:18:54.196Z",
+    "last_heartbeat": "2026-04-13T04:21:20.810Z",
     "current_task": null,
-    "tasks_completed": 5,
-    "status": "idle"
+    "tasks_completed": 0,
+    "status": "disconnected",
+    "disconnected_at": "2026-04-13T04:21:55.806Z"
   }
 ]

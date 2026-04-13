@@ -1,0 +1,7 @@
+{
+  "id": "08-docs",
+  "module": "libs/breadcrumb",
+  "action": "Goal: Create documentation files.\n\nFiles:\n- NEW: libs/breadcrumb/README.md\n- NEW: libs/breadcrumb/CHANGELOG.md\n\nWhat to Do:\n1. Write README.md with basic code snippets describing how to use Breadcrumb.\n2. Initialize CHANGELOG.md with `0.0.1` release notes.\n\nConstraints:\n- Provide clear syntax.\n\nDone criteria:\n- [ ] README.md contains a code example\n- [ ] CHANGELOG is created",
+  "verification": "cd libs/breadcrumb && ls README.md CHANGELOG.md",
+  "status": "pending"
+}

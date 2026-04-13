@@ -1,0 +1,7 @@
+{
+  "id": "02-models",
+  "module": "libs/breadcrumb",
+  "action": "Goal: Define the types for Breadcrumb and BreadcrumbItem.\n\nFiles:\n- NEW: libs/breadcrumb/src/lib/models/index.ts\n\nWhat to Do:\n1. Define BreadcrumbItemProps extending HTMLAttributes<HTMLAnchorElement | HTMLSpanElement>. Props: href?: string; icon?: React.ReactNode; active?: boolean;\n2. Define BreadcrumbProps extending HTMLAttributes<HTMLElement>. Props: separator?: React.ReactNode; maxItems?: number; itemsBeforeCollapse?: number; itemsAfterCollapse?: number;\n\nConstraints:\n- Read .agent/skills/component-patterns/SKILL.md\n- Add JSDocs for each exported type.\n\nDone criteria:\n- [ ] Both types are exported\n- [ ] Extended from HTMLAttributes\n- [ ] JSDocs present\n- [ ] Executable verification passes",
+  "verification": "cd libs/breadcrumb && npx tsc --noEmit -p tsconfig.lib.json",
+  "status": "pending"
+}

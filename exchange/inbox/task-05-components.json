@@ -1,0 +1,7 @@
+{
+  "id": "05-components",
+  "module": "libs/breadcrumb",
+  "action": "Goal: Implement Breadcrumb and BreadcrumbItem components.\n\nFiles:\n- NEW: libs/breadcrumb/src/lib/Breadcrumb.tsx\n- NEW: libs/breadcrumb/src/lib/BreadcrumbItem.tsx\n- NEW: libs/breadcrumb/src/index.ts\n\nWhat to Do:\n1. Breadcrumb: Renders `BreadcrumbRootStyled` (nav) wrapping `BreadcrumbListStyled` (ol). Converts React children to array, collapses them if length > maxItems, injects separators.\n2. BreadcrumbItem: Renders `BreadcrumbItemStyled` (li). If `href` exists, renders `BreadcrumbLinkStyled as=\"a\"`, otherwise `BreadcrumbTextStyled`.\n3. Export both components from `index.ts`.\n\nConstraints:\n- Read .agent/skills/component-patterns/SKILL.md\n- PLAN DEVIATION: Must include `aria-label=\"breadcrumb\"` on the nav wrapper.\n- PLAN DEVIATION: Must include `aria-current=\"page\"` on the active BreadcrumbItem styled wrapper or text.\n- Use `forwardRef` and `displayName`.\n\nDone criteria:\n- [ ] Uses nav and ol elements properly\n- [ ] `aria-label=\"breadcrumb\"` applied\n- [ ] `aria-current=\"page\"` applied to active item\n- [ ] Component exported\n- [ ] Executable verification passes",
+  "verification": "cd libs/breadcrumb && npx tsc --noEmit -p tsconfig.lib.json",
+  "status": "pending"
+}

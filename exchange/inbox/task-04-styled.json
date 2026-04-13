@@ -1,0 +1,7 @@
+{
+  "id": "04-styled",
+  "module": "libs/breadcrumb",
+  "action": "Goal: Create styled components for the Breadcrumb using Emotion.\n\nFiles:\n- NEW: libs/breadcrumb/src/lib/styled.tsx\n\nWhat to Do:\n1. BreadcrumbRootStyled (nav): flex.\n2. BreadcrumbListStyled (ol): flex, list-style none, margin 0, padding 0.\n3. BreadcrumbItemStyled (li): flex, align-items center.\n4. BreadcrumbLinkStyled (a): color uses primary.main, transition effects.\n5. BreadcrumbTextStyled (span): uses text.primary.\n6. BreadcrumbSeparatorStyled (li): applies margin.\n\nConstraints:\n- Read .agent/skills/styled-theme-convention/SKILL.md\n- ALWAYS call `const { palette, spacing } = useTheme()`\n- Return `: CSSObject` from styling callbacks.\n\nDone criteria:\n- [ ] 6 styled components exported\n- [ ] All components end in `Styled`\n- [ ] `useTheme()` is used\n- [ ] Executable verification passes",
+  "verification": "cd libs/breadcrumb && npx tsc --noEmit -p tsconfig.lib.json",
+  "status": "pending"
+}

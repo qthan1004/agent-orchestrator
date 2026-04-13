@@ -203,7 +203,13 @@ check_plans()
    2. **Type safety check**: Are nullable types accessed with optional chaining?
    3. **HTML semantics check**: Are elements correct? (No `<label>` wrapping interactive elements)
    4. **Dependency audit**: Do declared dependencies match actual imports?
-   5. **Accessibility check**: role, aria-\*, keyboard handling per skill rules
+   5. **Accessibility check**: Verify the plan includes correct ARIA semantics for EACH interactive element:
+      - **Identify the element's purpose** → match to the correct WAI-ARIA pattern (e.g., switch, breadcrumb, dialog, tabs, menu)
+      - **State attributes**: Does the element have a "current", "selected", "checked", "expanded", or "pressed" state? → ensure the matching `aria-*` attribute is specified (e.g., `aria-current="page"`, `aria-checked`, `aria-expanded`, `aria-selected`)
+      - **Roles**: Is a non-default role needed? (e.g., `role="switch"`, `role="tablist"`, `role="navigation"`)
+      - **Keyboard**: What keys should trigger actions? (Enter, Space, Escape, Arrow keys) — verify they are handled
+      - **Labels**: Are interactive elements without visible text labeled via `aria-label` or `aria-labelledby`?
+      - If the plan omits ANY of the above for an interactive element, record it as a `plan_issue` and inject a corrective PLAN DEVIATION into the affected task
 
    Record ALL issues as `plan_issues` in your `reasoning` field.
    For each issue, inject a **CORRECTIVE instruction** into the affected task's `action` field.
@@ -232,9 +238,15 @@ check_plans()
 
    **Mandatory Tasks for Library Plans:**
    Every plan that creates a new lib MUST include ALL of the following task types:
-   - **Scaffold task**: config files, package.json, tsconfig files, AND supporting files (.gitignore, check-deps.mjs) cloned from reference lib
+   - **Scaffold task**: config files, package.json, tsconfig files (including `tsconfig.storybook.json`), AND supporting files (.gitignore, check-deps.mjs) cloned from reference lib
+   - **Stories task**: Storybook stories covering core variants (sizes, colors, states, controlled/uncontrolled, playground with argTypes)
    - **Unit test task**: at minimum test render, props, a11y (jest-axe), and keyboard interaction
    - **Documentation task**: README.md (from reference lib template), CHANGELOG.md
+
+   **Helpers Extraction:**
+   If a component has non-trivial logic (e.g., collapse/expand, color computation, item filtering),
+   extract it into a `helpers.ts` file following existing codebase patterns (e.g., `getColorPalette()` in chip).
+   Include this as part of the component task or as a separate helpers task.
 
    **DAG Parallelism:**
    Identify tasks that have NO real data dependency and group them as parallel.
@@ -249,8 +261,11 @@ check_plans()
    - [ ] Every task has 3+ done criteria
    - [ ] Plan bugs are noted and corrected in task constraints
    - [ ] Tasks are self-contained: Worker can execute without reading the plan
+   - [ ] Stories task is included (for lib plans)
    - [ ] Unit test task is included (for lib plans)
    - [ ] Documentation task is included (for lib plans)
+   - [ ] Scaffold includes `tsconfig.storybook.json` (for lib plans)
+   - [ ] `aria-current` is specified for navigation components (breadcrumb, tabs, nav)
    - [ ] Tasks with no real dependency are grouped in parallel DAG groups
    - [ ] MANIFEST uses actual git commit hash (not `new`, `initial`, etc.)
 
