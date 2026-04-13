@@ -135,6 +135,10 @@ export async function startServer(config) {
     // Stop plan watcher
     planWatcher.stop();
 
+    // Clear all workers since server is dying
+    workerRegistry.workers.clear();
+    workerRegistry._save();
+
     // Run graceful shutdown (stop monitoring, checkpoint, marker)
     recoveryManager.runGracefulShutdown();
 

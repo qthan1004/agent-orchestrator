@@ -54,8 +54,9 @@ export class TaskQueue extends EventEmitter {
    * Build internal queue from decomposition output.
    */
   loadFromGraph(tasks, graph) {
-    this.groups = (graph?.groups || []).sort((a, b) => a.group_id - b.group_id);
-    this.tasks.clear();
+    if (!this.groups) this.groups = [];
+    const newGroups = graph?.groups || [];
+    this.groups.push(...newGroups);
 
     for (const task of tasks) {
       this.tasks.set(task.id, {
@@ -73,7 +74,7 @@ export class TaskQueue extends EventEmitter {
    * tasksMap: Map<id, task>
    */
   loadFromState(tasksMap, graph) {
-    this.groups = (graph?.groups || []).sort((a, b) => a.group_id - b.group_id);
+    this.groups = (graph?.groups || []).sort((a, b) => String(a.group_id).localeCompare(String(b.group_id)));
     this.tasks = tasksMap;
   }
 
@@ -140,6 +141,29 @@ export class TaskQueue extends EventEmitter {
       task.status = TASK_STATUS.PENDING;
       this.emit('task-available');
     }
+  }
+
+  /**
+   * Remove groups where ALL tasks are DONE or FAILED (terminated).
+   * Drops them from memory to prevent DAG/queue bloat.
+   */
+  pruneCompletedGroups() {
+    let prunedCount = 0;
+    this.groups = this.groups.filter(group => {
+      const allTerminated = group.tasks.every(taskId => {
+        const task = this.tasks.get(taskId);
+        return task && (task.status === TASK_STATUS.DONE || task.status === TASK_STATUS.FAILED);
+      });
+      if (allTerminated) {
+        for (const taskId of group.tasks) {
+          this.tasks.delete(taskId);
+        }
+        prunedCount++;
+        return false;
+      }
+      return true;
+    });
+    return prunedCount;
   }
 
   /**

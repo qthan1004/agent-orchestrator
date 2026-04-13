@@ -1,0 +1,7 @@
+{
+  "task_id": "2026-04-07_switch_v0.0.1-05-tests",
+  "status": "done",
+  "summary": "Added unit tests in tests/Switch.spec.tsx including a11y axe-core checks, keyboard interaction, controlled, and uncontrolled states. Created Storybook stories covering all SwitchVariants (Basic, Sizes, Colors, WithLabel, Controlled, Disabled, and Playground).",
+  "worker_id": "w-f8ddf0c2",
+  "completed_at": "2026-04-13T07:33:14.836Z"
+}

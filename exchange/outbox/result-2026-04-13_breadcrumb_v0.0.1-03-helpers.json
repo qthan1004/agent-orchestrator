@@ -1,0 +1,7 @@
+{
+  "task_id": "2026-04-13_breadcrumb_v0.0.1-03-helpers",
+  "status": "done",
+  "summary": "Created src/lib/helpers.ts with computeDisplayItems helper to calculate visibility indices to handle itemsBeforeCollapse and itemsAfterCollapse.",
+  "worker_id": "w-f8ddf0c2",
+  "completed_at": "2026-04-13T07:35:26.255Z"
+}

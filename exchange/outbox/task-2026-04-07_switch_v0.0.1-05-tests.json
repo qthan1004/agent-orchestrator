@@ -1,0 +1,8 @@
+{
+  "id": "2026-04-07_switch_v0.0.1-05-tests",
+  "module": "libs/switch",
+  "action": "Goal: Add unit tests and Storybook stories.\nFiles:\n- NEW: libs/switch/tests/Switch.spec.tsx\n- NEW: libs/switch/src/lib/stories/Switch.stories.tsx\n\nWhat to Do:\n1. tests/Switch.spec.tsx: Wait, must test WAI-ARIA, keyboard events, controlled/uncontrolled state.\n2. src/lib/stories/Switch.stories.tsx: export Basic, Sizes, Colors, WithLabel, Controlled, Disabled variants.\n\nConstraints:\n- Read: .agent/skills/testing-patterns/SKILL.md\n\nDone criteria:\n- [ ] Test file and story file created.\n- [ ] Tests include keyboard interactions and a11y (axe).\n- [ ] Storybook exports all variants.",
+  "verification": "cd libs/switch && npx vitest run --passWithNoTests",
+  "status": "done",
+  "retry_count": 1
+}

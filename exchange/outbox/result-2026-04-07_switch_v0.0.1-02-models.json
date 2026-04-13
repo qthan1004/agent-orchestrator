@@ -1,0 +1,7 @@
+{
+  "task_id": "2026-04-07_switch_v0.0.1-02-models",
+  "status": "done",
+  "summary": "Created models (SwitchProps, SwitchSize, SwitchColor) and constants (SWITCH_SIZE_MAP, SWITCH_DEFAULTS) successfully.",
+  "worker_id": "w-f8ddf0c2",
+  "completed_at": "2026-04-13T07:31:19.520Z"
+}

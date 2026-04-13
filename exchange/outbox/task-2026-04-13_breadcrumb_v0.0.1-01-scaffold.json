@@ -1,0 +1,8 @@
+{
+  "id": "2026-04-13_breadcrumb_v0.0.1-01-scaffold",
+  "module": "libs/breadcrumb",
+  "action": "Goal: Scaffold @thanh-libs/breadcrumb library using the same structure as chip and switch.\nFiles:\n- NEW: libs/breadcrumb/package.json\n- NEW: libs/breadcrumb/vite.config.mts\n- NEW: libs/breadcrumb/tsconfig.json\n- NEW: libs/breadcrumb/tsconfig.lib.json\n- NEW: libs/breadcrumb/tsconfig.spec.json\n- NEW: libs/breadcrumb/tsconfig.storybook.json\n- NEW: libs/breadcrumb/tests/setup.ts\n- NEW: libs/breadcrumb/README.md\n- NEW: libs/breadcrumb/CHANGELOG.md\n\nWhat to Do:\n1. Copy devDependencies, exports, and release scripts from libs/chip/package.json, adapt the internal package name.\n2. Add peerDependencies: @emotion/react, @emotion/styled, @thanh-libs/theme, react, react-dom.\n3. Include configuration for test setup.\n\nConstraints:\n- Read: .agent/skills/component-patterns/SKILL.md\n- tests/ directory MUST be at the root.\n\nDone criteria:\n- [ ] Scaffold files created.\n- [ ] package.json exports properly set.",
+  "verification": "cd libs/breadcrumb && cat package.json | grep '\\\"name\\\": \\\"@thanh-libs/breadcrumb\\\"'",
+  "status": "done",
+  "retry_count": 1
+}

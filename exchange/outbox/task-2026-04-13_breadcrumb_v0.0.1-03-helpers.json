@@ -1,0 +1,7 @@
+{
+  "id": "2026-04-13_breadcrumb_v0.0.1-03-helpers",
+  "module": "libs/breadcrumb",
+  "action": "Goal: Extract collapse logic helper.\nFiles:\n- NEW: libs/breadcrumb/src/lib/helpers.ts\n\nWhat to Do:\n1. Create a `computeDisplayItems` function that calculates visible elements based on children length, maxItems, itemsBeforeCollapse, and itemsAfterCollapse.\n2. Export the helper logic.\n\nConstraints:\n- PLAN DEVIATION: Because of item collapse computation logic, extracting into `helpers.ts` is explicitly required.\n\nDone criteria:\n- [ ] Helper function exports logic for collapsing items.",
+  "verification": "cd libs/breadcrumb && cat src/lib/helpers.ts | grep 'export'",
+  "status": "done"
+}

@@ -1,0 +1,8 @@
+{
+  "id": "2026-04-07_switch_v0.0.1-02-models",
+  "module": "libs/switch",
+  "action": "Goal: Define models and constants for the Switch component.\nFiles:\n- NEW: libs/switch/src/lib/models/index.ts\n- NEW: libs/switch/src/lib/constants/index.ts\n\nWhat to Do:\n1. src/lib/models/index.ts: Export SwitchSize, SwitchColor, and SwitchProps. SwitchProps overrides onChange from HTMLAttributes<HTMLButtonElement>.\n2. src/lib/constants/index.ts: Export SWITCH_SIZE_MAP mapping sizes and SWITCH_DEFAULTS.\n\nConstraints:\n- Read: .agent/skills/component-patterns/SKILL.md\n\nDone criteria:\n- [ ] models/index.ts exports types correctly.\n- [ ] constants/index.ts exports constants correctly.\n- [ ] Types extend HTMLAttributes<HTMLButtonElement>.",
+  "verification": "cd libs/switch && npx tsc --noEmit -p tsconfig.lib.json || true",
+  "status": "done",
+  "retry_count": 1
+}

@@ -173,13 +173,43 @@ check_plans()
 
    **Knowledge Base Smart Scan (`workspace_root/.agent/knowledge/`)**:
    4. **Template Retrieval (MANDATORY)**: BEFORE creating or analyzing any knowledge, you MUST call `get_template` with `template_name: "knowledge.md"` to understand the standard architecture outline required by the Orchestrator.
-   5. **Check Manifest**: Look for `MANIFEST.md`. If it doesn't exist, create it to track global config hashes and scanned module scopes. 
-   6. **Invalidation Check**: Run `git log -1 --format="%H" -- <module_path>` to get the ACTUAL commit hash. If it differs from the MANIFEST, OR if the plan explicitly mentions "Refactor/Upgrade", you MUST break the cache.
+   5. **Check Manifest**: Look for `MANIFEST.md`. If it doesn't exist, create it to track global config hashes and scanned module scopes.
+
+   6. **Cold Start Detection (CRITICAL — FULL DISCOVERY)**:
+      Check if `workspace_root/.agent/knowledge/project_knowledge.md` exists.
+
+      **IF IT DOES NOT EXIST → You are in Cold Start mode. MANDATORY FULL WORKSPACE DISCOVERY:**
+
+      > ⚠️ **WARNING**: Scanning only the target module on a Cold Start produces dangerously incomplete knowledge. For example, if the plan targets `libs/switch` but the workspace also has `libs/theme`, `libs/core`, `libs/shared-utils`, etc., you will miss critical shared utilities, design tokens, and patterns — leading to duplicated code, wrong imports, and broken builds.
+
+      You MUST perform a **comprehensive top-down scan** of the ENTIRE workspace:
+      a) `list_dir` at `workspace_root/` to discover ALL top-level directories (`libs/`, `apps/`, `packages/`, `core/`, `shared/`, etc.)
+      b) For EACH top-level directory that contains code modules, `list_dir` its children to map the full module tree
+      c) For EACH discovered module, read its key entry points:
+         - `package.json` (name, dependencies, exports)
+         - `src/index.ts` or `src/index.tsx` (public API surface)
+         - Any `src/lib/` directory listing (to understand internal structure)
+      d) Read workspace-level config files: root `package.json`, `tsconfig.base.json`, `nx.json` / `turbo.json` / `lerna.json` (if monorepo)
+      e) Identify and document:
+         - **Shared utilities**: Helper functions, hooks, HOCs available across modules
+         - **Theme/Design tokens**: Colors, spacing, typography, shadows
+         - **Common patterns**: Styling approach (emotion/styled-components/CSS modules), state management, component composition
+         - **Directory Structure & File Placement**: Exact locations for source code vs test files (e.g. are test files inside `src/` or a separate `tests/` directory?), and stories.
+         - **Cross-module dependencies**: Which modules depend on which
+      f) Create both `MANIFEST.md` (with git hashes for ALL scanned modules) and `project_knowledge.md` (filled from the `knowledge.md` template with FULL workspace context)
+
+      > **CRITICAL**: Do NOT skip any module during Cold Start. The cost of scanning everything ONCE is far less than the cost of producing wrong code from incomplete knowledge. Token optimization (Lazy Scan) only applies AFTER the initial full scan.
+
+      After Full Discovery is complete, proceed to **Step 7** (Invalidation Check) for future runs.
+
+   **IF `project_knowledge.md` ALREADY EXISTS → Incremental mode (steps 7–9 below):**
+
+   7. **Invalidation Check**: Run `git log -1 --format="%H" -- <module_path>` to get the ACTUAL commit hash. If it differs from the MANIFEST, OR if the plan explicitly mentions "Refactor/Upgrade", you MUST break the cache.
       > **CRITICAL**: You MUST use the REAL git commit hash (e.g. `a1b2c3d`). Values like `new`, `initial`, `unknown`, or any non-hash string are REJECTED. If git is not available or the module has no commits, use `untracked` and ALWAYS perform a Deep Discovery.
-   7. **Lazy Scan (TOKEN OPTIMIZATION)**: Only scan the specific module targeted by the plan.
-   - **Cache Hit**: If the module hash matches MANIFEST and is marked `[x]`, **DO NOT read its source code again** (to save tokens). Your knowledge is already up-to-date in `project_knowledge.md`.
-   - **Cache Miss**: If hash differs or is missing, perform Deep Discovery (read actual source code of the module to find architectural patterns).
-   8. **Meticulous Merge**: When updating, NEVER overwrite blindly. Fill out the retrieved `knowledge.md` template, merge it into the unified `workspace_root/.agent/knowledge/project_knowledge.md`, and **update the MANIFEST hash with a `[x]` checkmark** to definitively mark it as scanned. Do NOT save anything in the orchestrator directory.
+   8. **Lazy Scan (TOKEN OPTIMIZATION)**: Only scan the specific module targeted by the plan.
+      - **Cache Hit**: If the module hash matches MANIFEST and is marked `[x]`, **DO NOT read its source code again** (to save tokens). Your knowledge is already up-to-date in `project_knowledge.md`.
+      - **Cache Miss**: If hash differs or is missing, perform Deep Discovery (read actual source code of the module to find architectural patterns).
+   9. **Meticulous Merge**: When updating, NEVER overwrite blindly. Fill out the retrieved `knowledge.md` template, merge it into the unified `workspace_root/.agent/knowledge/project_knowledge.md`, and **update the MANIFEST hash with a `[x]` checkmark** to definitively mark it as scanned. Do NOT save anything in the orchestrator directory.
       > Knowledge MUST document ALL shared utilities (e.g. `pxToRem`, `alpha`), theme tokens (spacing, palette, shadows), and styling conventions discovered during Deep Discovery.
 
    ### Step 3B — Reference Implementation Study (MANDATORY — every plan)
@@ -192,7 +222,8 @@ check_plans()
       - How does the codebase access theme? (useTheme vs theme arg?)
       - What types/interfaces patterns? (import type?)
       - What dependencies are actually imported vs declared?
-      - HTML element choices, naming conventions, file structure
+      - HTML element choices, naming conventions
+      - Exact file & directory structure (Crucial: where are `.spec.tsx` test files placed? where are stories placed?)
    4. Use these REAL patterns as ground truth — NOT the plan's code,
       if plan contradicts actual codebase patterns.
 

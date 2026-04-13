@@ -497,6 +497,23 @@ export function registerTools(server, context) {
     },
     withHeartbeat(async ({ tasks, graph, reasoning, source_plan, worker_id }) => {
       try {
+         // Auto-prefix task IDs with Plan name to prevent collision across multiple plans
+         const planPrefix = source_plan.replace(/\.md$/, '') + '-';
+         for (const task of tasks) {
+           task.id = planPrefix + task.id;
+         }
+         if (graph && graph.groups) {
+           for (const group of graph.groups) {
+             group.group_id = planPrefix + group.group_id;
+             if (group.depends_on) {
+               group.depends_on = group.depends_on.map(id => planPrefix + id);
+             }
+             if (group.tasks) {
+               group.tasks = group.tasks.map(id => planPrefix + id);
+             }
+           }
+         }
+
          // Throws if circular deps
          stateManager.storeTasks(tasks, graph);
          stateManager.completePlan(source_plan);

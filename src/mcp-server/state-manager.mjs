@@ -128,7 +128,7 @@ export class StateManager {
 
     // Write graph metadata to exchange/_queue.json
     const queuePath = path.join(this.config.exchange.base, FILE_PREFIXES.QUEUE);
-    writeJSON(queuePath, { groups: graph.groups });
+    writeJSON(queuePath, { groups: this.queue.groups });
 
     if (this.logger) {
         this.logger.log(STATE_EVENTS.TASKS_STORED, { message: 'Stored new tasks and queue metadata' });
@@ -178,6 +178,13 @@ export class StateManager {
     writeJSON(resultPath, result);
 
     this.queue.updateTaskStatus(taskId, result.status);
+    
+    // Garbage collection on the DAG queue
+    const prunedCount = this.queue.pruneCompletedGroups();
+    if (prunedCount > 0) {
+      const queuePath = path.join(this.config.exchange.base, FILE_PREFIXES.QUEUE);
+      writeJSON(queuePath, { groups: this.queue.groups });
+    }
 
     if (this.logger) {
         this.logger.log(STATE_EVENTS.TASK_COMPLETED, { message: `Moved task ${taskId} to outbox with status ${result.status}` });
@@ -346,10 +353,16 @@ export class StateManager {
     const graphData = readJSON(queuePath) || { groups: [] };
 
     this.queue.loadFromState(rebuiltMap, graphData);
+    
+    // GC on startup: prune old DONE tasks loaded from outbox
+    const prunedCount = this.queue.pruneCompletedGroups();
+    if (prunedCount > 0) {
+      writeJSON(queuePath, { groups: this.queue.groups });
+    }
 
     if (this.logger) {
         this.logger.log(STATE_EVENTS.STATE_RESTORED, {
-          message: `Restored queue from files (recovered ${failedTasks.length} failed tasks)`
+          message: `Restored queue from files (recovered ${failedTasks.length} failed tasks, pruned ${prunedCount} old groups)`
         });
     }
   }

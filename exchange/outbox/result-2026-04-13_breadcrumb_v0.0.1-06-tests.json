@@ -1,0 +1,7 @@
+{
+  "task_id": "2026-04-13_breadcrumb_v0.0.1-06-tests",
+  "status": "done",
+  "summary": "Added automated unit tests using Vitest and React Testing Library in tests/Breadcrumb.spec.tsx, checking axe a11y, collapse logic, and aria-current=\"page\". Added Storybook stories in src/lib/stories/Breadcrumb.stories.tsx covering Basic, CustomSeparator, Collapsed, and WithIcons variants.",
+  "worker_id": "w-f8ddf0c2",
+  "completed_at": "2026-04-13T07:37:14.551Z"
+}

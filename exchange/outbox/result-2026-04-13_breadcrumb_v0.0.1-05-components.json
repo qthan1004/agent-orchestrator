@@ -1,0 +1,7 @@
+{
+  "task_id": "2026-04-13_breadcrumb_v0.0.1-05-components",
+  "status": "done",
+  "summary": "Implemented Breadcrumb and BreadcrumbItem components. Integrated ARIA semantics: <nav aria-label=\"breadcrumb\">, ellipsis button aria-label=\"Show more\" aria-expanded={false}, and BreadcrumbItem with aria-current=\"page\" when active=true. Extracted components correctly via named barrel exports.",
+  "worker_id": "w-f8ddf0c2",
+  "completed_at": "2026-04-13T07:36:42.858Z"
+}

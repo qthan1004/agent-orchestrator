@@ -1,0 +1,7 @@
+{
+  "task_id": "2026-04-07_switch_v0.0.1-04-component",
+  "status": "done",
+  "summary": "Implemented the Switch component logic with forwardRef, uncontrolled/controlled state handling, and proper WAI-ARIA (role=\"switch\", aria-checked, keyboard space/enter handlers). Exported everything via src/index.ts.",
+  "worker_id": "w-f8ddf0c2",
+  "completed_at": "2026-04-13T07:32:17.655Z"
+}

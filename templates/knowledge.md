@@ -14,6 +14,7 @@
 - **Special Agent Workflows**: [...] (nếu nằm trong `.agent/workflows/`)
 
 ## 3. Directory Map (Phân chia directory ra sao)
+*(Bắt buộc phải ghi rõ quy luật vị trí của source code, test files, và stories cho mỗi module. Ví dụ: test files phải nằm ở thư mục `tests/` cấp ngoài cùng của lib thay vì nằm trong `src/lib/`)*
 - `src/`: [...]
   - `components/`: [...]
   - `utils/`: [...]
