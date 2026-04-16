@@ -57,8 +57,8 @@ npx tsx -e "import { loadConfig } from './src/config.js'; console.log(typeof loa
 ```
 
 ## Done Criteria
-- [ ] 4 files đã rename sang `.ts`
-- [ ] Import `types.js` đúng
-- [ ] Tất cả class props, method params, return types đều typed
-- [ ] Import paths dùng `.js`
-- [ ] Không thay đổi logic runtime
+- [x] 4 files đã rename sang `.ts`
+- [x] Import `types.js` đúng
+- [x] Tất cả class props, method params, return types đều typed
+- [x] Import paths dùng `.js`
+- [x] Không thay đổi logic runtime

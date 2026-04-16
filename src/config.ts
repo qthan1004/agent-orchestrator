@@ -1,11 +1,12 @@
 import { resolve, join } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { DIR_NAMES, POLL_DEFAULTS, RECOVERY_DEFAULTS } from './constants.mjs';
+import { DIR_NAMES, POLL_DEFAULTS, RECOVERY_DEFAULTS } from './constants.js';
+import type { AppConfig, ConfigOverrides } from './models/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-export function loadConfig(overrides = {}) {
+export function loadConfig(overrides: ConfigOverrides = {}): AppConfig {
   const root = overrides.root || resolve(__dirname, '..');
   return {
     root,

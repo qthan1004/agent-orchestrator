@@ -1,22 +1,25 @@
 import crypto from 'crypto';
 import path from 'path';
-import { WORKER_STATUS, WORKER_ROLE } from '../constants.mjs';
-import { loadConfig } from '../config.mjs';
-import { readJSON, writeJSON, ensureDir } from './file-backend.mjs';
+import { WORKER_STATUS, WORKER_ROLE } from '../constants.js';
+import { loadConfig } from '../config.js';
+import { readJSON, writeJSON, ensureDir } from './file-backend.js';
+import type { WorkerInfo } from '../models/index.js';
 
 const config = loadConfig();
 const registryFilePath = path.join(config.exchange.base, 'workers.json');
 
-export const generateWorkerId = () => `w-${crypto.randomBytes(4).toString('hex')}`;
+export const generateWorkerId = (): string => `w-${crypto.randomBytes(4).toString('hex')}`;
 
 export class WorkerRegistry {
+  private workers: Map<string, WorkerInfo>;
+
   constructor() {
-    this.workers = new Map();
+    this.workers = new Map<string, WorkerInfo>();
     this._load();
   }
 
-  _load() {
-    const data = readJSON(registryFilePath);
+  private _load(): void {
+    const data = readJSON<WorkerInfo[]>(registryFilePath);
     if (data && Array.isArray(data)) {
       for (const w of data) {
         this.workers.set(w.id, w);
@@ -24,14 +27,14 @@ export class WorkerRegistry {
     }
   }
 
-  _save() {
+  private _save(): void {
     ensureDir(path.dirname(registryFilePath));
     writeJSON(registryFilePath, Array.from(this.workers.values()));
   }
 
-  register() {
+  register(): WorkerInfo {
     const id = generateWorkerId();
-    const workerInfo = {
+    const workerInfo: WorkerInfo = {
       id,
       role: null,
       registered_at: new Date().toISOString(),
@@ -45,18 +48,18 @@ export class WorkerRegistry {
     return workerInfo;
   }
 
-  getWorker(id) {
+  getWorker(id: string): WorkerInfo | undefined {
     return this.workers.get(id);
   }
 
-  getAllWorkers() {
+  getAllWorkers(): WorkerInfo[] {
     return Array.from(this.workers.values());
   }
 
   /**
    * Count only non-disconnected workers.
    */
-  getActiveWorkerCount() {
+  getActiveWorkerCount(): number {
     let count = 0;
     for (const w of this.workers.values()) {
       if (w.status !== WORKER_STATUS.DISCONNECTED) count++;
@@ -68,9 +71,9 @@ export class WorkerRegistry {
    * Mark worker as DISCONNECTED instead of deleting.
    * Keeps the entry so late complete_task calls can still resolve.
    * Clears current_task assignment.
-   * @returns {boolean} true if worker existed
+   * @returns true if worker existed
    */
-  markDisconnected(id) {
+  markDisconnected(id: string): boolean {
     const worker = this.workers.get(id);
     if (worker) {
       worker.status = WORKER_STATUS.DISCONNECTED;
@@ -85,9 +88,9 @@ export class WorkerRegistry {
   /**
    * Remove all DISCONNECTED workers from registry.
    * Call during startup to clean stale entries from previous runs.
-   * @returns {number} number of workers cleaned up
+   * @returns number of workers cleaned up
    */
-  cleanupDisconnected() {
+  cleanupDisconnected(): number {
     let count = 0;
     for (const [id, worker] of this.workers) {
       if (worker.status === WORKER_STATUS.DISCONNECTED) {
@@ -102,11 +105,11 @@ export class WorkerRegistry {
   /**
    * @deprecated Use markDisconnected instead. Kept for backward compat.
    */
-  removeWorker(id) {
+  removeWorker(id: string): boolean {
     return this.markDisconnected(id);
   }
 
-  updateHeartbeat(id) {
+  updateHeartbeat(id: string): boolean {
     const worker = this.workers.get(id);
     if (worker) {
       worker.last_heartbeat = new Date().toISOString();
@@ -121,7 +124,7 @@ export class WorkerRegistry {
     return false;
   }
 
-  setRole(workerId, role) {
+  setRole(workerId: string, role: typeof WORKER_ROLE[keyof typeof WORKER_ROLE]): boolean {
     const w = this.workers.get(workerId);
     if (w) {
       w.role = role;
@@ -131,7 +134,7 @@ export class WorkerRegistry {
     return false;
   }
 
-  getActivePlanner(plannerAliveThresholdMs) {
+  getActivePlanner(plannerAliveThresholdMs: number): WorkerInfo | null {
     const now = Date.now();
     for (const w of this.workers.values()) {
       if (w.role === WORKER_ROLE.PLANNER && w.status !== WORKER_STATUS.DISCONNECTED) {

@@ -1,5 +1,6 @@
 import fs from 'fs';
-import { ensureDir } from './file-backend.mjs';
+import { ensureDir } from './file-backend.js';
+import type { AppConfig, BootstrapResult } from '../models/index.js';
 
 /**
  * Khởi tạo toàn bộ cây thư mục cần thiết cho hệ thống.
@@ -8,10 +9,10 @@ import { ensureDir } from './file-backend.mjs';
  * - Nếu tất cả thư mục đã tồn tại → bỏ qua hoàn toàn.
  * - Nếu thiếu → chỉ tạo bổ sung những thư mục chưa có.
  *
- * @param {object} config - Config object từ loadConfig()
- * @returns {{ created: string[], failed: string[], skipped: number }}
+ * @param config - Config object từ loadConfig()
+ * @returns Object chứa created, failed, skipped
  */
-export function bootstrapDirectories(config) {
+export function bootstrapDirectories(config: AppConfig): BootstrapResult {
   const dirs = [
     // exchange/ tree
     config.exchange.base,
@@ -38,8 +39,8 @@ export function bootstrapDirectories(config) {
   ];
 
   // Phân loại: đã tồn tại vs chưa tồn tại
-  const existing = [];
-  const missing = [];
+  const existing: string[] = [];
+  const missing: string[] = [];
 
   for (const dir of dirs) {
     if (fs.existsSync(dir)) {
@@ -55,8 +56,8 @@ export function bootstrapDirectories(config) {
   }
 
   // Thiếu → chỉ tạo bổ sung
-  const created = [];
-  const failed = [];
+  const created: string[] = [];
+  const failed: string[] = [];
 
   for (const dir of missing) {
     const ok = ensureDir(dir);

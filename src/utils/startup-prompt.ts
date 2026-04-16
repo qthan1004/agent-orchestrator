@@ -1,4 +1,5 @@
 import readline from 'readline/promises';
+import type { ConfigOverrides } from '../models/index.js';
 
 const DEFAULTS = {
   port: 3847,
@@ -7,7 +8,7 @@ const DEFAULTS = {
   planWatcherSec: 30
 };
 
-export async function promptConfig() {
+export async function promptConfig(): Promise<ConfigOverrides> {
   const rl = readline.createInterface({ 
     input: process.stdin, 
     output: process.stdout 
@@ -18,14 +19,21 @@ export async function promptConfig() {
 
   const mode = (await rl.question('? Configuration (default/custom) [default]: ')).trim().toLowerCase() || 'default';
 
-  let config;
+  let config: {
+    workspaceRoot?: string;
+    port?: number;
+    staleWorkerSeconds?: number;
+    pollTimeoutSec?: number;
+    planWatcherSec?: number;
+    [key: string]: any;
+  } = {};
 
   if (mode === 'custom') {
     const workspaceRoot = (await rl.question(`  ? Workspace root (project path for agents) [current dir]: `)) || process.cwd();
-    const port = parseInt((await rl.question(`  ? Server port [${DEFAULTS.port}]: `)) || DEFAULTS.port);
-    const staleWorkerSeconds = parseInt((await rl.question(`  ? Worker stale threshold (sec) [${DEFAULTS.staleSeconds}]: `)) || DEFAULTS.staleSeconds);
-    const pollTimeoutSec = parseInt((await rl.question(`  ? Long poll timeout (sec) [${DEFAULTS.pollTimeoutSec}]: `)) || DEFAULTS.pollTimeoutSec);
-    const planWatcherSec = parseInt((await rl.question(`  ? Plan watcher (sec) [${DEFAULTS.planWatcherSec}]: `)) || DEFAULTS.planWatcherSec);
+    const port = parseInt((await rl.question(`  ? Server port [${DEFAULTS.port}]: `)) || DEFAULTS.port.toString());
+    const staleWorkerSeconds = parseInt((await rl.question(`  ? Worker stale threshold (sec) [${DEFAULTS.staleSeconds}]: `)) || DEFAULTS.staleSeconds.toString());
+    const pollTimeoutSec = parseInt((await rl.question(`  ? Long poll timeout (sec) [${DEFAULTS.pollTimeoutSec}]: `)) || DEFAULTS.pollTimeoutSec.toString());
+    const planWatcherSec = parseInt((await rl.question(`  ? Plan watcher (sec) [${DEFAULTS.planWatcherSec}]: `)) || DEFAULTS.planWatcherSec.toString());
     
     config = { workspaceRoot, port, staleWorkerSeconds, pollTimeoutSec, planWatcherSec };
     
@@ -58,7 +66,7 @@ export async function promptConfig() {
     port: config.port,
     host: '127.0.0.1',
     staleWorkerThresholdMs: (config.staleWorkerSeconds || DEFAULTS.staleSeconds) * 1_000,
-    pollTimeoutMs: config.pollTimeoutSec * 1_000,
-    planWatcherIntervalMs: config.planWatcherSec * 1_000
+    pollTimeoutMs: (config.pollTimeoutSec || DEFAULTS.pollTimeoutSec) * 1_000,
+    planWatcherIntervalMs: (config.planWatcherSec || DEFAULTS.planWatcherSec) * 1_000
   };
 }
