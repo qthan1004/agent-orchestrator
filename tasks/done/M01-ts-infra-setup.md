@@ -94,8 +94,8 @@ npx tsc --noEmit 2>&1 | head -5
 ```
 
 ## Done Criteria
-- [ ] `tsconfig.json` tồn tại với đúng config
-- [ ] `package.json` có scripts: dev, build, serve, typecheck
-- [ ] `devDependencies` có typescript, tsx, @types/node, @types/express
-- [ ] `.gitignore` có `dist/`, `*.js.map`, `*.d.ts`
-- [ ] `npm install` thành công
+- [x] `tsconfig.json` tồn tại với đúng config
+- [x] `package.json` có scripts: dev, build, serve, typecheck
+- [x] `devDependencies` có typescript, tsx, @types/node, @types/express
+- [x] `.gitignore` có `dist/`, `*.js.map`, `*.d.ts`
+- [x] `npm install` thành công

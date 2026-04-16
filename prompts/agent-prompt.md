@@ -113,6 +113,7 @@ get_next_task(worker_id)
 3. **[Mode B]** Read `task_details`. Execute with the following protocol:
 
    **Pre-flight (before writing any code):**
+   - **STEP 0 (CRITICAL)**: Read `workspace_root/.agent/config.md` and execute its Pre-flight Protocol (scan knowledge → select skills → match workflows → check tools). This is NON-NEGOTIABLE.
    - MANDATORY: Read `workspace_root/.agent/knowledge/` (if it exists) to inherit architecture and constraints. Do NOT modify the MANIFEST.
    - Read ALL skills referenced in the task's constraints
    - If task references a similar lib → read its actual source code
@@ -167,6 +168,7 @@ check_plans()
    ### Step 3A — Workspace Discovery (SMART SCAN & LAZY LOADING)
 
    Read ALL of the following static assets (skip only if file doesn't exist):
+   0. **`workspace_root/.agent/config.md`** — **MANDATORY Boot Config**. Read FIRST and execute its Pre-flight Protocol before anything else.
    1. `workspace_root/.agent/context.md` — project conventions, skill index
    2. Each skill in `workspace_root/.agent/skills/*/SKILL.md` — read ALL skills
    3. `workspace_root/.agent/workflows/` — list and read relevant workflows

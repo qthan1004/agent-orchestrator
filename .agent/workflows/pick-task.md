@@ -1,65 +1,65 @@
 ---
-description: Pick task nhỏ nhất (FIFO) từ tasks/pending, chuyển vào processing, thực thi, rồi chuyển vào done.
+description: Pick the smallest (FIFO) task from tasks/pending, move to processing, execute, then move to done.
 ---
 
 # Pick Task (FIFO)
 
-Quy trình bốc 1 task từ `tasks/pending/`, thực thi, và hoàn thành.
+Pick one task from `tasks/pending/`, execute it, and complete it.
 
-> **Cross-platform:** Dùng Node.js scripts trong `tools/`, chạy được trên cả Linux và Windows.
+> **Cross-platform**: Uses Node.js scripts in `tools/`, works on both Linux and Windows.
 
-## Các bước
+## Steps
 
-### 1. Pick task FIFO từ pending → processing
+### 1. Pick task FIFO from pending → processing
 // turbo
 ```bash
 node tools/pick-task.mjs
 ```
-→ Script tự quét `tasks/pending/`, pick file có số nhỏ nhất, move vào `tasks/processing/`.
+→ Scans `tasks/pending/`, picks the file with lowest number, moves to `tasks/processing/`.
 → Output JSON: `{ picked: "<filename>", path: "tasks/processing/<filename>" }`
-→ Nếu `picked: null` → dừng, báo "Không có task pending."
-→ Nếu `error` (đang có task processing) → đọc task đang processing đó, tiếp tục từ bước 2.
+→ If `picked: null` → stop, report "No pending tasks."
+→ If `error` (task already in processing) → read that task, continue from step 2.
 
-### 2. Đọc nội dung task
+### 2. Read task content
 
-Dùng `view_file` để đọc file tại `path` trả về từ bước 1.
+Use `view_file` to read the file at `path` returned from step 1.
 
-Chú ý các section quan trọng:
-- **What to do** — Nội dung cần thực thi
-- **Files** — Các file cần tạo/sửa
-- **Verification** — Lệnh kiểm tra sau khi xong
-- **Done Criteria** — Checklist hoàn thành
+Key sections:
+- **What to do** — Implementation instructions
+- **Files** — Files to create/modify
+- **Verification** — Commands to run after completion
+- **Done Criteria** — Completion checklist
 
-### 3. Thực thi task
+### 3. Execute task
 
-Thực hiện đúng theo mục **What to do** trong file task:
-- Tạo/sửa các file được liệt kê trong mục **Files**
-- Tuân thủ đúng scope — KHÔNG làm thêm gì ngoài yêu cầu (ref: skill `strict-scope`)
+Follow the **What to do** section exactly:
+- Create/modify files listed in **Files**
+- Stay in scope — do NOT add anything beyond requirements (ref: skill `strict-scope`)
 
-### 4. Verification — Kiểm tra kết quả
+### 4. Verify results
 
-Chạy các lệnh verification được ghi trong task file.
-- Nếu **PASS** → tiếp bước 5
-- Nếu **FAIL** → quay lại bước 3, debug và fix
+Run verification commands from the task file.
+- **PASS** → proceed to step 5
+- **FAIL** → go back to step 3, debug and fix
 
-### 5. Đánh dấu Done Criteria
+### 5. Mark Done Criteria
 
-Review checklist **Done Criteria** trong file task. Tick `[x]` cho từng item đã hoàn thành.
+Review the **Done Criteria** checklist. Tick `[x]` for each completed item.
 
-### 6. Complete task — chuyển vào done
+### 6. Complete task — move to done
 // turbo
 ```bash
 node tools/complete-task.mjs
 ```
-→ Script tự move file từ `tasks/processing/` vào `tasks/done/`.
+→ Moves file from `tasks/processing/` to `tasks/done/`.
 
-### 7. Báo cáo
+### 7. Report
 
-In ra summary ngắn gọn:
+Print a brief summary:
 ```
-✅ Task <filename> hoàn thành.
-- Files changed: <danh sách file đã sửa>
+✅ Task <filename> completed.
+- Files changed: <list>
 - Verification: PASSED
 ```
 
-> **Lưu ý:** Nếu muốn tiếp tục pick task tiếp theo, chạy lại `/pick-task`.
+> **Note**: To pick the next task, run `/pick-task` again.

@@ -49,7 +49,7 @@ npx tsc --noEmit src/types.ts
 ```
 
 ## Done Criteria
-- [ ] `src/types.ts` tồn tại
-- [ ] Tất cả 14 interfaces listed ở trên đều được export
-- [ ] Không có runtime code (chỉ `type`/`interface`/`export type`)
-- [ ] Interfaces match shape thực tế trong `.mjs` files
+- [x] `src/types.ts` tồn tại
+- [x] Tất cả 14 interfaces listed ở trên đều được export
+- [x] Không có runtime code (chỉ `type`/`interface`/`export type`)
+- [x] Interfaces match shape thực tế trong `.mjs` files

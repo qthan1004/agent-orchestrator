@@ -73,7 +73,7 @@ tests/                                 ← 3 files, integration
 > Không refactor logic — chỉ thêm types và đổi extension.
 
 1. Setup TypeScript infra (`tsconfig.json`, deps)
-2. Tạo `src/types.ts` — shared interfaces
+2. Tạo `src/models/` — shared interfaces
 3. Rename `.mjs` → `.ts` theo thứ tự dependency (bottom-up)
 4. Fix imports: `.mjs` → `.js` (Node16 module resolution)
 5. Thêm `as const` cho constant objects
@@ -173,7 +173,7 @@ npm run typecheck
 
 ### Phase 2: Type Definitions
 
-#### [NEW] `src/types.ts`
+#### [NEW] `src/models/`
 
 File trung tâm chứa tất cả shared interfaces:
 
@@ -487,7 +487,7 @@ npx tsx tests/e2e-flow.ts
 | Phase | Time | Description |
 |---|---|---|
 | Phase 1: TS infra | 15 min | tsconfig, deps, scripts, gitignore |
-| Phase 2: Types | 25 min | `src/types.ts` (14+ interfaces, incl. plannerAliveThresholdMs) |
+| Phase 2: Types | 25 min | `src/models/` (14+ interfaces, incl. plannerAliveThresholdMs) |
 | Phase 3: Migration | 3-4 hours | 18 files rename + annotations (~3,300 LOC total) |
 | Phase 4: Imports | 10 min | Bulk `.mjs` → `.js` |
 | Phase 5: Const assertions | 15 min | `as const` + type unions (16+ constant objects) |

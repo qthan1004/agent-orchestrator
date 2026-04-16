@@ -1,14 +1,23 @@
 {
   "name": "agent-orchestrator",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "serve": "node src/index.mjs serve"
+    "dev": "tsx src/index.ts serve",
+    "build": "tsc",
+    "serve": "node dist/index.js serve",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
     "express": "^5.2.1",
     "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0",
+    "tsx": "^4.19.0",
+    "@types/node": "^22.0.0",
+    "@types/express": "^5.0.0"
   }
 }
