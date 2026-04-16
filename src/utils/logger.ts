@@ -1,22 +1,24 @@
 import fs from 'fs';
 import path from 'path';
-import { ensureDir } from './file-backend.mjs';
+import { ensureDir } from './file-backend.js';
 
 export class Logger {
+  private logsDir: string;
+
   /**
    * Initializes the Logger.
-   * @param {string} logsDir - Directory where daily logs should be stored.
+   * @param logsDir - Directory where daily logs should be stored.
    */
-  constructor(logsDir) {
+  constructor(logsDir: string) {
     this.logsDir = logsDir;
     ensureDir(this.logsDir);
   }
 
   /**
    * Returns the current day's log file path (YYYY-MM-DD.md).
-   * @returns {string}
+   * @returns file path string
    */
-  getLogPath() {
+  getLogPath(): string {
     const d = new Date();
     // Use local time for YYYY-MM-DD instead of UTC if preferred, but ISODate is standard
     // YYYY-MM-DD
@@ -26,10 +28,10 @@ export class Logger {
 
   /**
    * Appends an event entry immediately to the daily log file.
-   * @param {string} event - The EVENT_TYPE (e.g. SERVER_START, ERROR)
-   * @param {object} [data] - Key-value structure for logging details.
+   * @param event - The EVENT_TYPE (e.g. SERVER_START, ERROR)
+   * @param data - Key-value structure for logging details.
    */
-  log(event, data = {}) {
+  log(event: string, data: Record<string, any> = {}): void {
     const d = new Date();
     // HH:MM:SS
     const timeString = d.toTimeString().split(' ')[0];
@@ -48,7 +50,7 @@ export class Logger {
       const logPath = this.getLogPath();
       // appendFileSync creates the file and appends
       fs.appendFileSync(logPath, entry, 'utf8');
-    } catch (err) {
+    } catch (err: any) {
       console.error(`Logger error writing event ${event}:`, err.message);
     }
   }

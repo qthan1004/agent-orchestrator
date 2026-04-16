@@ -60,9 +60,9 @@ npx tsx -e "import { TASK_STATUS } from './src/constants.js'; console.log(TASK_S
 ```
 
 ## Done Criteria
-- [ ] 3 files đã rename sang `.ts`
-- [ ] Tất cả constant objects có `as const`
-- [ ] Type unions exported cho mỗi const object
-- [ ] Return types + param types trên tất cả functions/methods
-- [ ] Import paths dùng `.js` (không `.mjs`)
-- [ ] Không thay đổi logic runtime
+- [x] 3 files đã rename sang `.ts`
+- [x] Tất cả constant objects có `as const`
+- [x] Type unions exported cho mỗi const object
+- [x] Return types + param types trên tất cả functions/methods
+- [x] Import paths dùng `.js` (không `.mjs`)
+- [x] Không thay đổi logic runtime
