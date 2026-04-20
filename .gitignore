@@ -1,3 +1,11 @@
 node_modules/
 tasks/.tmp/
 exchange/.tmp/
+
+/exchange/**
+!/exchange/**/
+!/exchange/**/.gitkeep
+
+/plan/**
+!/plan/**/
+!/plan/**/.gitkeep
