@@ -5,3 +5,11 @@ exchange/.tmp/
 dist/
 *.js.map
 *.d.ts
+
+/exchange/**
+!/exchange/**/
+!/exchange/**/.gitkeep
+
+/plan/**
+!/plan/**/
+!/plan/**/.gitkeep
