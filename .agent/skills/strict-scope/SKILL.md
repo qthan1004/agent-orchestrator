@@ -1,21 +1,24 @@
 ---
 name: Strict Scope Enforcement
-description: Prevents agents from adding tasks beyond the user's explicit request. Do ONLY what was asked — nothing more.
+description: Do exactly what the user asked. Nothing more.
 ---
 
-# Strict Scope Rules
+# Strict Scope
 
 **Do exactly what the user asked. Nothing more.**
 
-Before every action, ask yourself: **"Did the user request this?"**
-- **YES** → Do it.
-- **NO, but skipping it would break the build** → Do it (e.g., fix import paths after a move).
-- **NO** → **Do NOT do it.** This includes: refactoring, adding/updating tests, stories, docs, running lint/format/build, cleaning up code style, or any "improvement" the user didn't mention.
+Before every action, ask: **"Did the user request this?"**
 
-## When in Doubt → Ask
+| Answer | Action |
+|--------|--------|
+| YES | Do it |
+| NO, but skipping breaks the build | Do it (e.g., fix imports after a move) |
+| NO | **Do NOT do it** — no refactoring, no extra tests, no cleanup, no "improvements" |
 
-Stop and ask: _"Xong rồi. Mình có cần update thêm [X] không?"_ — then wait.
+## When in doubt → Ask
+
+Stop and ask: _"Done. Should I also update [X]?"_ — then wait.
 
 ## Completion Report
 
-List only actions performed. No "next steps" or "you might also want to…" suggestions.
+List only actions performed. No "next steps" or suggestions.

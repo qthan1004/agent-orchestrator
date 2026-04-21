@@ -1,43 +1,41 @@
 ---
 name: Folder Convention
-description: Phân biệt folder dự án (product) vs folder dev. Dùng khi tạo plan, task, hoặc bất kỳ file nào liên quan đến workflow phát triển.
+description: Distinguish product folders from dev folders. Apply when creating plans, tasks, or dev files.
 ---
 
 # Folder Convention
 
-## Quy tắc bắt buộc
+**Two folder types exist — never mix them.**
 
-Khi làm việc với agent-orchestrator, **PHẢI** phân biệt 2 loại folder:
+## Product Folders (DO NOT use for dev artifacts)
 
-### 🔒 Product Folders (KHÔNG đụng khi plan/task dev)
+These ship with the orchestrator for end-users:
 
-Các folder này là **phần của sản phẩm**, ship cùng orchestrator cho end-user:
-
-| Folder | Mục đích |
-|--------|----------|
-| `plan/` | Kế hoạch của end-user (pending → processing → done) |
+| Folder | Purpose |
+|--------|---------|
+| `plan/` | End-user plans (pending → processing → done) |
 | `exchange/` | File IPC — inbox, active, outbox, logs, checkpoints |
-| `reference/` | Tools, skills, context đi kèm product |
+| `reference/` | Tools, skills, context bundled with product |
 | `templates/` | JSON contract templates |
 | `prompts/` | Agent prompt templates |
 
-> **KHÔNG** tạo dev plan, dev task, hay dev notes trong các folder này.
+## Dev Folders (for development only)
 
-### 🔧 Dev Folders (dùng cho phát triển)
+These support orchestrator development:
 
-Các folder này phục vụ **quá trình phát triển** orchestrator:
-
-| Folder | Mục đích |
-|--------|----------|
-| `dev-docs/` | Tài liệu kỹ thuật, migration plans, architecture docs |
-| `tasks/` | Task board cho dev (pending → processing → done) |
-| `.agent/` | Skills, workflows, tools cho dev agents |
+| Folder | Purpose |
+|--------|---------|
+| `dev-docs/` | Technical docs, migration plans, architecture |
+| `tasks/` | Dev task board (pending → processing → done) |
+| `.agent/` | Skills, workflows, tools for dev agents |
 | `tests/` | Test files |
 
-### Áp dụng khi nào?
+## Quick Reference
 
-- **Tạo implementation plan** → viết vào `dev-docs/`, KHÔNG vào `plan/pending/`
-- **Break task** → viết vào `tasks/pending/`, KHÔNG vào `plan/pending/`
-- **Bug report** → viết vào `dev-docs/` hoặc `tasks/pending/`
-- **Tạo skill cho dev** → `.agent/skills/`
-- **Tạo workflow cho dev** → `.agent/workflows/`
+| Creating... | Put in... | NOT in... |
+|-------------|-----------|-----------|
+| Implementation plan | `dev-docs/` | `plan/pending/` |
+| Dev task | `tasks/pending/` | `plan/pending/` |
+| Bug report | `dev-docs/` or `tasks/pending/` | `plan/` |
+| Dev skill | `.agent/skills/` | `reference/skills/` |
+| Dev workflow | `.agent/workflows/` | `reference/workflows/` |

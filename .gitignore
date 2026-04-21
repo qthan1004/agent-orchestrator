@@ -1,6 +1,10 @@
 node_modules/
 tasks/.tmp/
-exchange/.tmp/
+AGENTS.md
+
+dist/
+*.js.map
+*.d.ts
 
 /exchange/**
 !/exchange/**/
