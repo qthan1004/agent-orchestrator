@@ -102,6 +102,11 @@ export class WorkerRegistry {
     return count;
   }
 
+  clearAll(): void {
+    this.workers.clear();
+    this._save();
+  }
+
   /**
    * @deprecated Use markDisconnected instead. Kept for backward compat.
    */

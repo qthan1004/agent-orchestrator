@@ -1,12 +1,13 @@
-import { startServer } from './mcp-server/index.mjs';
-import { loadConfig } from './config.mjs';
-import { promptConfig } from './utils/startup-prompt.mjs';
+import { startServer } from './mcp-server/index.js';
+import { loadConfig } from './config.js';
+import { promptConfig } from './utils/startup-prompt.js';
+import type { ConfigOverrides } from './models/index.js';
 
-const args = process.argv.slice(2);
+const args: string[] = process.argv.slice(2);
 const isServe = args.includes('serve') || args.length === 0;
 const portIdx = args.indexOf('--port');
 
-let overrides = {};
+let overrides: ConfigOverrides = {};
 if (portIdx !== -1 && args[portIdx + 1]) {
   overrides.port = parseInt(args[portIdx + 1], 10);
 }

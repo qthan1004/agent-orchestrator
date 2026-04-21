@@ -1,6 +1,7 @@
 # Migrate Agent Orchestrator: `.mjs` → TypeScript
 
-> **Status**: Approved — sẵn sàng implement  
+> **Status**: ✅ Done  
+> **Completed**: 2026-04-21  
 > **Scope**: Chuyển toàn bộ `src/**/*.mjs` + test files sang `.ts`  
 > **Risk**: Low — codebase nhỏ (~18 files), chưa có external consumers  
 

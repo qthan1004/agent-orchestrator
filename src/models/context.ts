@@ -1,4 +1,4 @@
-import type { AppConfig } from "./config";
+import type { AppConfig } from "./config.js";
 import type { StateManager } from "../mcp-server/state-manager.js";
 import type { Logger } from "../utils/logger.js";
 import type { WorkerRegistry } from "../utils/worker-registry.js";

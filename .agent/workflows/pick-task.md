@@ -6,14 +6,14 @@ description: Pick the smallest (FIFO) task from tasks/pending, move to processin
 
 Pick one task from `tasks/pending/`, execute it, and complete it.
 
-> **Cross-platform**: Uses Node.js scripts in `tools/`, works on both Linux and Windows.
+> **Cross-platform**: Uses Node.js scripts in `.agent/tools/`, works on both Linux and Windows.
 
 ## Steps
 
 ### 1. Pick task FIFO from pending → processing
 // turbo
 ```bash
-node tools/pick-task.mjs
+node .agent/tools/pick-task.mjs
 ```
 → Scans `tasks/pending/`, picks the file with lowest number, moves to `tasks/processing/`.
 → Output JSON: `{ picked: "<filename>", path: "tasks/processing/<filename>" }`
@@ -49,7 +49,7 @@ Review the **Done Criteria** checklist. Tick `[x]` for each completed item.
 ### 6. Complete task — move to done
 // turbo
 ```bash
-node tools/complete-task.mjs
+node .agent/tools/complete-task.mjs
 ```
 → Moves file from `tasks/processing/` to `tasks/done/`.
 

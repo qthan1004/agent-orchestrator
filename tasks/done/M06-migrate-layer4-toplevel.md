@@ -58,9 +58,9 @@ npx tsx src/index.ts serve --port 3848
 ```
 
 ## Done Criteria
-- [ ] 5 files đã rename sang `.ts`
-- [ ] `tools.ts` — tất cả tool handlers typed
-- [ ] `transport.ts` — Express types đúng
-- [ ] `npx tsc --noEmit` → **0 errors**
-- [ ] `npx tsx src/index.ts serve` chạy thành công
-- [ ] Không thay đổi logic runtime
+- [x] 5 files đã rename sang `.ts`
+- [x] `tools.ts` — tất cả tool handlers typed
+- [x] `transport.ts` — Express types đúng
+- [x] `npx tsc --noEmit` → **0 errors**
+- [x] `npx tsx src/index.ts serve` chạy thành công
+- [x] Không thay đổi logic runtime

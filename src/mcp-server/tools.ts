@@ -4,13 +4,20 @@ import path from 'path';
 import {
   TOOL_NAMES, STATE_EVENTS, TASK_STATUS, AGENT_ACTION, WORKER_ROLE,
   WORKER_STATUS, FILE_PREFIXES, VERSION, DIR_NAMES
-} from '../constants.mjs';
-import { waitForTask, waitForPlan } from './poll-helpers.mjs';
-import { resolveIdleAction } from './idle-resolver.mjs';
+} from '../constants.js';
+import type { WorkerRoleValue } from '../constants.js';
+import { waitForTask, waitForPlan } from './poll-helpers.js';
+import { resolveIdleAction } from './idle-resolver.js';
+import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import type { ServerContext, TaskDef, TaskGraph, TaskResult } from '../models/index.js';
 
 const STRIP_FIELDS = ['status', 'assigned_to', 'priority', 'metadata', 'dependencies', 'done_criteria'];
 
-function compactTask(task) {
+type ToolResponse = CallToolResult;
+type ToolHandler<TParams extends Record<string, any> = Record<string, any>> = (params: TParams) => Promise<ToolResponse>;
+
+function compactTask(task: TaskDef | null): Partial<TaskDef> | null {
   if (!task) return task;
   const clone = { ...task };
   for (const field of STRIP_FIELDS) {
@@ -19,7 +26,7 @@ function compactTask(task) {
   return clone;
 }
 
-function formatError(err) {
+function formatError(err: any): ToolResponse {
   return {
     content: [{ type: "text", text: `Error: ${err.message}` }],
     isError: true
@@ -31,8 +38,11 @@ function formatError(err) {
  * Agent không cần gọi report_progress chỉ để keepalive.
  * Uses workerRegistry from context (DI).
  */
-function withHeartbeat(handler, context) {
-  return async (params) => {
+function withHeartbeat<TParams extends Record<string, any>>(
+  handler: ToolHandler<TParams>,
+  context: ServerContext
+): ToolHandler<TParams> {
+  return async (params: TParams) => {
     if (params.worker_id) {
       context.workerRegistry.updateHeartbeat(params.worker_id);
     }
@@ -40,10 +50,10 @@ function withHeartbeat(handler, context) {
   };
 }
 
-export function registerTools(server, context) {
+export function registerTools(server: McpServer, context: ServerContext): void {
   const { stateManager, workerRegistry, logger } = context;
 
-  function findGroupForTask(taskId) {
+  function findGroupForTask(taskId: string): string | number | null {
     for (const group of stateManager.queue.groups) {
       if (group.tasks.includes(taskId)) return group.group_id;
     }
@@ -76,7 +86,7 @@ export function registerTools(server, context) {
           .describe("Absolute path to the target project workspace. Overrides server config.")
       }
     },
-    async ({ workspace_path } = {}) => {
+    async ({ workspace_path }) => {
       try {
         const worker = workerRegistry.register();
         const status = stateManager.getStatus();
@@ -84,7 +94,7 @@ export function registerTools(server, context) {
         const { plannerAliveThresholdMs } = context.config.recovery;
         
         // Determine role — SINGLE PLANNER enforced
-        let role = WORKER_ROLE.WORKER;
+        let role: WorkerRoleValue = WORKER_ROLE.WORKER;
         
         if (status.pending === 0 && status.active === 0) {
           // No tasks in queue
@@ -266,10 +276,10 @@ export function registerTools(server, context) {
           throw new Error("Worker does not own this task");
         }
 
-        const result = { task_id, status, summary, worker_id, completed_at: new Date().toISOString() };
+        const result: TaskResult & Record<string, unknown> = { task_id, status, summary, worker_id, completed_at: new Date().toISOString() };
 
         // ─── Helper: try auto-pickup next task ───
-        const tryAutoPickup = (responseBase) => {
+        const tryAutoPickup = (responseBase: Record<string, unknown>): ToolResponse => {
           if (!auto_pickup) {
             return { content: [{ type: "text", text: JSON.stringify({
               ...responseBase,
@@ -401,8 +411,10 @@ export function registerTools(server, context) {
     },
     async () => {
       try {
-        const status = stateManager.getStatus();
-        status.workers = workerRegistry.getActiveWorkerCount();
+        const status = {
+          ...stateManager.getStatus(),
+          workers: workerRegistry.getActiveWorkerCount()
+        };
         return {
           content: [{ type: "text", text: JSON.stringify(status) }]
         };
@@ -499,11 +511,14 @@ export function registerTools(server, context) {
       try {
          // Auto-prefix task IDs with Plan name to prevent collision across multiple plans
          const planPrefix = source_plan.replace(/\.md$/, '') + '-';
-         for (const task of tasks) {
+         const mutableTasks = tasks as TaskDef[];
+         const mutableGraph = graph as unknown as TaskGraph;
+
+         for (const task of mutableTasks) {
            task.id = planPrefix + task.id;
          }
-         if (graph && graph.groups) {
-           for (const group of graph.groups) {
+         if (mutableGraph && mutableGraph.groups) {
+           for (const group of mutableGraph.groups) {
              group.group_id = planPrefix + group.group_id;
              if (group.depends_on) {
                group.depends_on = group.depends_on.map(id => planPrefix + id);
@@ -515,7 +530,7 @@ export function registerTools(server, context) {
          }
 
          // Throws if circular deps
-         stateManager.storeTasks(tasks, graph);
+         stateManager.storeTasks(mutableTasks, mutableGraph);
          stateManager.completePlan(source_plan);
          
          const planStatus = stateManager.checkPlansQuick();
@@ -523,12 +538,14 @@ export function registerTools(server, context) {
          
          if (planStatus.hasPending) {
            const nextPlan = stateManager.checkPlans(); // move pending → processing
-           nextAction = {
-             action: AGENT_ACTION.DECOMPOSE,
-             plan_path: nextPlan.plan_path,
-             content: nextPlan.content,
-             pending_count: nextPlan.pending_count
-           };
+           nextAction = nextPlan.status === 'ready'
+             ? {
+                 action: AGENT_ACTION.DECOMPOSE,
+                 plan_path: nextPlan.plan_path,
+                 content: nextPlan.content,
+                 pending_count: nextPlan.pending_count
+               }
+             : { action: AGENT_ACTION.IDLE };
            // keep PLANNER role if worker_id provided
          } else {
            nextAction = { action: AGENT_ACTION.IDLE };
@@ -542,11 +559,11 @@ export function registerTools(server, context) {
            content: [{ type: "text", text: JSON.stringify({
              accepted: true,
              plan_completed: source_plan,
-             tasks_created: tasks.length,
+             tasks_created: mutableTasks.length,
              next_plan: nextAction
            }) }]
          };
-      } catch (err) {
+      } catch (err: any) {
          return {
           content: [{ type: "text", text: JSON.stringify({ accepted: false, errors: [err.message] }) }]
         };

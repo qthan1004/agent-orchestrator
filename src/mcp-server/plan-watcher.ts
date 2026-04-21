@@ -1,4 +1,28 @@
-import { STATE_EVENTS } from '../constants.mjs';
+import { STATE_EVENTS } from '../constants.js';
+import type { Logger } from '../utils/logger.js';
+import type { StateManager } from './state-manager.js';
+
+export interface PlanWatcherParams {
+  stateManager: StateManager;
+  logger: Logger;
+  intervalMs?: number;
+}
+
+export interface PlanWatcherStats {
+  totalPolls: number;
+  plansDetected: number;
+  lastPollAt: string | null;
+  lastPlanDetected: {
+    filename: string | null;
+    detectedAt: string;
+  } | null;
+  startedAt: string | null;
+}
+
+export interface PlanWatcherStatus extends PlanWatcherStats {
+  running: boolean;
+  interval_ms: number;
+}
 
 /**
  * PlanWatcher — Auto-polls plan/pending/ directory on a configurable interval.
@@ -7,13 +31,20 @@ import { STATE_EVENTS } from '../constants.mjs';
  * This replaces the need for agents to manually call check_plans.
  */
 export class PlanWatcher {
+  stateManager: StateManager;
+  logger: Logger;
+  intervalMs: number;
+  private _timer: NodeJS.Timeout | null;
+  private _running: boolean;
+  private _stats: PlanWatcherStats;
+
   /**
    * @param {object} params
-   * @param {import('./state-manager.mjs').StateManager} params.stateManager
-   * @param {import('../utils/logger.mjs').Logger} params.logger
+   * @param {import('./state-manager.js').StateManager} params.stateManager
+   * @param {import('../utils/logger.js').Logger} params.logger
    * @param {number} [params.intervalMs=30000] - Polling interval (default 30s)
    */
-  constructor({ stateManager, logger, intervalMs = 30_000 }) {
+  constructor({ stateManager, logger, intervalMs = 30_000 }: PlanWatcherParams) {
     this.stateManager = stateManager;
     this.logger = logger;
     this.intervalMs = intervalMs;
@@ -34,7 +65,7 @@ export class PlanWatcher {
   /**
    * Start auto-polling loop.
    */
-  start() {
+  start(): void {
     if (this._timer) return; // already running
 
     this._running = true;
@@ -61,7 +92,7 @@ export class PlanWatcher {
   /**
    * Stop the auto-polling loop.
    */
-  stop() {
+  stop(): void {
     if (this._timer) {
       clearInterval(this._timer);
       this._timer = null;
@@ -77,7 +108,7 @@ export class PlanWatcher {
   /**
    * Single poll iteration — check for pending plans and process them.
    */
-  _poll() {
+  private _poll(): void {
     this._stats.totalPolls++;
     this._stats.lastPollAt = new Date().toISOString();
 
@@ -110,7 +141,7 @@ export class PlanWatcher {
       }
       // 'idle' — nothing pending, nothing to do
 
-    } catch (err) {
+    } catch (err: any) {
       console.error(`  ⚠ Plan watcher error: ${err.message}`);
       this.logger.log('PLAN_WATCHER_ERROR', {
         error: err.message,
@@ -122,7 +153,7 @@ export class PlanWatcher {
   /**
    * Get watcher stats for health endpoint.
    */
-  getStats() {
+  getStats(): PlanWatcherStatus {
     return {
       running: this._running,
       interval_ms: this.intervalMs,

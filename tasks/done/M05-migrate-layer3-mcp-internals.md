@@ -62,8 +62,8 @@ npx tsc --noEmit
 ```
 
 ## Done Criteria
-- [ ] 6 files đã rename sang `.ts`
-- [ ] Classes fully typed (props, constructor, methods)
-- [ ] Import paths dùng `.js`
-- [ ] Shared types từ `../types.js`
-- [ ] Không thay đổi logic runtime
+- [x] 6 files đã rename sang `.ts`
+- [x] Classes fully typed (props, constructor, methods)
+- [x] Import paths dùng `.js`
+- [x] Shared types từ `../models/index.js` (repo hiện tại không có `src/types.ts`)
+- [x] Không thay đổi logic runtime

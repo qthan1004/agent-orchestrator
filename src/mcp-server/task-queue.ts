@@ -1,10 +1,28 @@
 import { EventEmitter } from 'node:events';
-import { TASK_STATUS } from '../constants.mjs';
+import { TASK_STATUS, type TaskStatusValue } from '../constants.js';
+import type { TaskDef, TaskGraph, TaskGroup } from '../models/index.js';
+
+export interface TaskQueueStatus {
+  total: number;
+  pending: number;
+  active: number;
+  done: number;
+  failed: number;
+  blocked: number;
+}
+
+export interface SerializedTaskQueue {
+  graph: TaskGraph;
+  tasks: Record<string, TaskDef>;
+}
 
 export class TaskQueue extends EventEmitter {
+  tasks: Map<string, TaskDef>;
+  groups: TaskGroup[];
+
   constructor() {
     super();
-    this.tasks = new Map(); // id -> task with status
+    this.tasks = new Map<string, TaskDef>(); // id -> task with status
     this.groups = []; // Array of { group_id, tasks: [], depends_on: [] }
   }
 
@@ -12,18 +30,18 @@ export class TaskQueue extends EventEmitter {
    * Validate DAG to ensure no circular dependencies.
    * Throws an error if a cycle is found.
    */
-  validateDAG(graph) {
+  validateDAG(graph: TaskGraph | null | undefined): void {
     if (!graph || !graph.groups) return;
 
-    const dependencyGraph = new Map(); // group_id -> depends_on[]
+    const dependencyGraph = new Map<TaskGroup['group_id'], NonNullable<TaskGroup['depends_on']>>(); // group_id -> depends_on[]
     for (const group of graph.groups) {
       dependencyGraph.set(group.group_id, group.depends_on || []);
     }
 
-    const visitedGroups = new Set();
-    const groupsInCurrentPath = new Set();
+    const visitedGroups = new Set<TaskGroup['group_id']>();
+    const groupsInCurrentPath = new Set<TaskGroup['group_id']>();
 
-    const checkCycle = (groupId) => {
+    const checkCycle = (groupId: TaskGroup['group_id']): boolean => {
       if (!visitedGroups.has(groupId)) {
         visitedGroups.add(groupId);
         groupsInCurrentPath.add(groupId);
@@ -53,7 +71,7 @@ export class TaskQueue extends EventEmitter {
   /**
    * Build internal queue from decomposition output.
    */
-  loadFromGraph(tasks, graph) {
+  loadFromGraph(tasks: TaskDef[], graph: TaskGraph): void {
     if (!this.groups) this.groups = [];
     const newGroups = graph?.groups || [];
     this.groups.push(...newGroups);
@@ -73,7 +91,7 @@ export class TaskQueue extends EventEmitter {
    * Restore queue from in-memory state.
    * tasksMap: Map<id, task>
    */
-  loadFromState(tasksMap, graph) {
+  loadFromState(tasksMap: Map<string, TaskDef>, graph: TaskGraph): void {
     this.groups = (graph?.groups || []).sort((a, b) => String(a.group_id).localeCompare(String(b.group_id)));
     this.tasks = tasksMap;
   }
@@ -81,8 +99,8 @@ export class TaskQueue extends EventEmitter {
   /**
    * Return an array of tasks that can run immediately.
    */
-  getUnlockedTasks() {
-    const unlocked = [];
+  getUnlockedTasks(): TaskDef[] {
+    const unlocked: TaskDef[] = [];
 
     for (const group of this.groups) {
       // Check if all dependent groups are fully DONE
@@ -112,7 +130,7 @@ export class TaskQueue extends EventEmitter {
   /**
    * Get the next available task.
    */
-  getNextTask() {
+  getNextTask(): TaskDef | null {
     const unlockedTasks = this.getUnlockedTasks();
     if (unlockedTasks.length > 0) {
       return unlockedTasks[0];
@@ -123,7 +141,7 @@ export class TaskQueue extends EventEmitter {
   /**
    * Mark a task as completed (done, failed, etc).
    */
-  updateTaskStatus(taskId, status) {
+  updateTaskStatus(taskId: string, status: TaskStatusValue): boolean {
     const task = this.tasks.get(taskId);
     if (!task) return false;
 
@@ -135,7 +153,7 @@ export class TaskQueue extends EventEmitter {
   /**
    * Reset task status to PENDING.
    */
-  requeueTask(taskId) {
+  requeueTask(taskId: string): void {
     const task = this.tasks.get(taskId);
     if (task) {
       task.status = TASK_STATUS.PENDING;
@@ -147,7 +165,7 @@ export class TaskQueue extends EventEmitter {
    * Remove groups where ALL tasks are DONE or FAILED (terminated).
    * Drops them from memory to prevent DAG/queue bloat.
    */
-  pruneCompletedGroups() {
+  pruneCompletedGroups(): number {
     let prunedCount = 0;
     this.groups = this.groups.filter(group => {
       const allTerminated = group.tasks.every(taskId => {
@@ -169,12 +187,12 @@ export class TaskQueue extends EventEmitter {
   /**
    * Get overall task queue status.
    */
-  getStatus() {
+  getStatus(): TaskQueueStatus {
     const counts = { total: 0, pending: 0, active: 0, done: 0, failed: 0, blocked: 0 };
 
     for (const task of this.tasks.values()) {
       counts.total++;
-      if (counts[task.status] !== undefined) {
+      if (task.status && counts[task.status] !== undefined) {
         counts[task.status]++;
       }
     }
@@ -185,7 +203,7 @@ export class TaskQueue extends EventEmitter {
   /**
    * Return plain object for persistence.
    */
-  serialize() {
+  serialize(): SerializedTaskQueue {
     return {
       graph: { groups: this.groups },
       tasks: Object.fromEntries(this.tasks)

@@ -1,11 +1,22 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 
+type TextToolContent = { type: 'text'; text: string };
+
+function parseToolJson(res: Awaited<ReturnType<Client['callTool']>>) {
+  const firstContent = res.content[0];
+  if (!firstContent || firstContent.type !== 'text') {
+    throw new Error('Expected text tool response');
+  }
+
+  return JSON.parse((firstContent as TextToolContent).text);
+}
+
 async function main() {
   const transport = new StreamableHTTPClientTransport(new URL("http://localhost:3847/mcp"));
   const client = new Client(
     { name: "test-check-plans", version: "1.0.0" },
-    { capabilities: { tools: {} } }
+    { capabilities: {} }
   );
 
   await client.connect(transport);
@@ -15,14 +26,14 @@ async function main() {
     // Test 1: check_plans — should find pending file
     console.log("▶ Test 1: check_plans() — expect 'ready'");
     let res = await client.callTool({ name: "check_plans" });
-    const result1 = JSON.parse(res.content[0].text);
+    const result1 = parseToolJson(res);
     console.log("  Result:", JSON.stringify(result1, null, 2));
     console.log("  Status:", result1.status === 'ready' ? '✅ PASS' : '❌ FAIL');
 
     // Test 2: check_plans again — should be 'busy' (already processing)
     console.log("\n▶ Test 2: check_plans() again — expect 'busy'");
     res = await client.callTool({ name: "check_plans" });
-    const result2 = JSON.parse(res.content[0].text);
+    const result2 = parseToolJson(res);
     console.log("  Result:", JSON.stringify(result2, null, 2));
     console.log("  Status:", result2.status === 'busy' ? '✅ PASS' : '❌ FAIL');
 
@@ -41,14 +52,14 @@ async function main() {
         source_plan: result1.current
       }
     });
-    const result3 = JSON.parse(res.content[0].text);
+    const result3 = parseToolJson(res);
     console.log("  Result:", JSON.stringify(result3, null, 2));
     console.log("  Status:", result3.accepted ? '✅ PASS' : '❌ FAIL');
 
     // Test 4: check_plans — should be 'idle' now
     console.log("\n▶ Test 4: check_plans() — expect 'idle'");
     res = await client.callTool({ name: "check_plans" });
-    const result4 = JSON.parse(res.content[0].text);
+    const result4 = parseToolJson(res);
     console.log("  Result:", JSON.stringify(result4, null, 2));
     console.log("  Status:", result4.status === 'idle' ? '✅ PASS' : '❌ FAIL');
 

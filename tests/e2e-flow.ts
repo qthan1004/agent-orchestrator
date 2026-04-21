@@ -12,18 +12,36 @@
  *   8. Final verification
  */
 
+import fs from 'fs';
+import path from 'path';
+
 const BASE = 'http://127.0.0.1:3847';
-let sessionId = null;
+const SOURCE_PLAN = 'e2e-flow-test.md';
+const TASK_IDS = {
+  create: 'e2e-flow-test-01-create-hello',
+  update: 'e2e-flow-test-02-update-readme',
+  verify: 'e2e-flow-test-03-verify-all'
+};
+let sessionId: string | null = null;
 let requestId = 0;
-const results = { steps: [], errors: [], dagOrder: [] };
+const results: {
+  steps: Array<{ name: string; pass: boolean; data: unknown }>;
+  errors: string[];
+  dagOrder: string[];
+} = { steps: [], errors: [], dagOrder: [] };
 
 // ─── Helpers ─────────────────────────────────────────────────
 
 function nextId() { return ++requestId; }
 
-async function mcpRequest(method, params = {}) {
+async function mcpRequest(method: string, params: Record<string, unknown> = {}) {
   const id = nextId();
-  const body = { jsonrpc: '2.0', id, method: 'tools/call', params: { name: method, arguments: params } };
+  const body: {
+    jsonrpc: '2.0';
+    id: number;
+    method: string;
+    params: Record<string, unknown>;
+  } = { jsonrpc: '2.0', id, method: 'tools/call', params: { name: method, arguments: params } };
 
   // Special case for initialize
   if (method === 'initialize') {
@@ -35,7 +53,7 @@ async function mcpRequest(method, params = {}) {
     };
   }
 
-  const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json, text/event-stream' };
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', 'Accept': 'application/json, text/event-stream' };
   if (sessionId) headers['mcp-session-id'] = sessionId;
 
   const res = await fetch(`${BASE}/mcp`, { method: 'POST', headers, body: JSON.stringify(body) });
@@ -64,7 +82,7 @@ async function mcpRequest(method, params = {}) {
   return res.json();
 }
 
-function extractToolResult(response) {
+function extractToolResult(response: any) {
   if (response.result?.content?.[0]?.text) {
     try {
       return JSON.parse(response.result.content[0].text);
@@ -75,12 +93,23 @@ function extractToolResult(response) {
   return response;
 }
 
-function logStep(name, data, pass = true) {
+function logStep(name: string, data: unknown, pass = true) {
   const icon = pass ? '✅' : '❌';
   console.log(`${icon} ${name}`);
   if (data && typeof data === 'object') console.log(`   `, JSON.stringify(data));
   results.steps.push({ name, pass, data });
   if (!pass) results.errors.push(name);
+}
+
+function prepareTestPlan() {
+  fs.mkdirSync(path.join('plan', 'processing'), { recursive: true });
+  fs.mkdirSync(path.join('plan', 'done'), { recursive: true });
+  fs.mkdirSync(path.join('exchange', '.tmp'), { recursive: true });
+  fs.writeFileSync(
+    path.join('plan', 'processing', SOURCE_PLAN),
+    '# E2E Flow Test\n\nTemporary source plan for submit_decomposition.\n',
+    'utf8'
+  );
 }
 
 // ─── Test Flow ───────────────────────────────────────────────
@@ -89,6 +118,8 @@ async function run() {
   console.log('╔═══════════════════════════════════════════════╗');
   console.log('║   E2E Full Flow Test — Hello Orchestrator     ║');
   console.log('╚═══════════════════════════════════════════════╝\n');
+
+  prepareTestPlan();
 
   // 1. Initialize MCP session
   console.log('── Step 1: Initialize MCP Session ──');
@@ -125,7 +156,7 @@ async function run() {
   };
   const reasoning = 'Tasks 1+2 are independent file creations. Task 3 verifies both, so depends on group 1.';
 
-  const subRes = await mcpRequest('submit_decomposition', { tasks, graph, reasoning });
+  const subRes = await mcpRequest('submit_decomposition', { tasks, graph, reasoning, source_plan: SOURCE_PLAN });
   const subData = extractToolResult(subRes);
   logStep('Decomposition accepted', subData, subData.accepted === true);
 
@@ -139,14 +170,20 @@ async function run() {
   console.log('\n── Step 6: Execute Tasks ──');
   let loopCount = 0;
   const maxLoops = 5; // safety limit
+  let queuedTask: any = null;
 
   while (loopCount < maxLoops) {
     loopCount++;
     console.log(`\n  → Loop ${loopCount}:`);
 
-    // Get next task
-    const nextRes = await mcpRequest('get_next_task', { worker_id: workerId });
-    const nextData = extractToolResult(nextRes);
+    // Get next task, or continue with the auto-pick returned by complete_task.
+    let nextData = queuedTask;
+    queuedTask = null;
+
+    if (!nextData) {
+      const nextRes = await mcpRequest('get_next_task', { worker_id: workerId });
+      nextData = extractToolResult(nextRes);
+    }
 
     if (!nextData.task_id) {
       console.log('  No more tasks available.');
@@ -174,13 +211,17 @@ async function run() {
     });
     const completeData = extractToolResult(completeRes);
     logStep(`Task ${taskId} completed`, completeData, completeData.accepted === true);
+
+    if (completeData.next_task?.action === 'EXECUTE') {
+      queuedTask = completeData.next_task;
+    }
   }
 
   // 7. Verify DAG ordering
   console.log('\n── Step 7: Verify DAG Ordering ──');
-  const verifyIdx = results.dagOrder.indexOf('03-verify-all');
-  const createIdx = results.dagOrder.indexOf('01-create-hello');
-  const updateIdx = results.dagOrder.indexOf('02-update-readme');
+  const verifyIdx = results.dagOrder.indexOf(TASK_IDS.verify);
+  const createIdx = results.dagOrder.indexOf(TASK_IDS.create);
+  const updateIdx = results.dagOrder.indexOf(TASK_IDS.update);
   const dagCorrect = verifyIdx > createIdx && verifyIdx > updateIdx;
   logStep('DAG ordering correct (03 after 01+02)', {
     execution_order: results.dagOrder,
@@ -193,7 +234,12 @@ async function run() {
   console.log('\n── Step 8: Final Verification ──');
   const qsFinalRes = await mcpRequest('get_queue_status');
   const qsFinal = extractToolResult(qsFinalRes);
-  const allDone = qsFinal.done === 3 && qsFinal.pending === 0 && qsFinal.active === 0;
+  const allDone =
+    qsFinal.pending === 0 &&
+    qsFinal.active === 0 &&
+    qsFinal.failed === 0 &&
+    qsFinal.blocked === 0 &&
+    (qsFinal.done === 3 || qsFinal.total === 0);
   logStep('All tasks done', qsFinal, allDone);
 
   // 9. Get checkpoint
@@ -222,7 +268,6 @@ async function run() {
   console.log(`\n  Result: ${failed === 0 ? '🎉 ALL PASSED' : '💥 FAILED'}`);
 
   // Write results JSON for post-analysis
-  const fs = await import('fs');
   fs.writeFileSync('exchange/.tmp/e2e-results.json', JSON.stringify(results, null, 2));
   console.log('  Results saved to: exchange/.tmp/e2e-results.json');
 

@@ -6,23 +6,56 @@ import {
   SHUTDOWN_MARKER_FILE,
   TASK_STATUS,
   FILE_PREFIXES
-} from '../constants.mjs';
-import { listFiles, readJSON } from '../utils/file-backend.mjs';
+} from '../constants.js';
+import { listFiles, readJSON } from '../utils/file-backend.js';
+import type { AppConfig, TaskDef, WorkerInfo } from '../models/index.js';
+import type { Logger } from '../utils/logger.js';
+import type { WorkerRegistry } from '../utils/worker-registry.js';
+import type { StateManager } from './state-manager.js';
+
+export interface RecoveryConfigOverrides {
+  monitorIntervalMs?: number;
+  staleWorkerThresholdMs?: number;
+  maxRetries?: number;
+}
+
+export interface RecoveryManagerParams {
+  stateManager: StateManager;
+  workerRegistry: WorkerRegistry;
+  logger: Logger;
+  config: AppConfig;
+  recoveryConfig?: RecoveryConfigOverrides;
+}
+
+export interface StartupRecoveryResult {
+  wasClean: boolean;
+  orphanCount: number;
+}
 
 /**
  * RecoveryManager — handles crash recovery, stale worker detection,
  * and orphan task requeuing for the MCP Orchestrator.
  */
 export class RecoveryManager {
+  stateManager: StateManager;
+  workerRegistry: WorkerRegistry;
+  logger: Logger;
+  config: AppConfig;
+  monitorIntervalMs: number;
+  staleWorkerThresholdMs: number;
+  maxRetries: number;
+  maxTaskRetries: number;
+  private _monitorTimer: NodeJS.Timeout | null;
+
   /**
    * @param {object} params
-   * @param {import('./state-manager.mjs').StateManager} params.stateManager
-   * @param {import('../utils/worker-registry.mjs').WorkerRegistry} params.workerRegistry
-   * @param {import('../utils/logger.mjs').Logger} params.logger
+   * @param {import('./state-manager.js').StateManager} params.stateManager
+   * @param {import('../utils/worker-registry.js').WorkerRegistry} params.workerRegistry
+   * @param {import('../utils/logger.js').Logger} params.logger
    * @param {object} params.config - loadConfig() result
    * @param {object} [params.recoveryConfig] - optional overrides
    */
-  constructor({ stateManager, workerRegistry, logger, config, recoveryConfig = {} }) {
+  constructor({ stateManager, workerRegistry, logger, config, recoveryConfig = {} }: RecoveryManagerParams) {
     this.stateManager = stateManager;
     this.workerRegistry = workerRegistry;
     this.logger = logger;
@@ -39,34 +72,34 @@ export class RecoveryManager {
   // ─── Shutdown Marker ────────────────────────────────────────
 
   /** Path to the clean-shutdown marker file. */
-  get _markerPath() {
+  get _markerPath(): string {
     return path.join(this.config.exchange.base, SHUTDOWN_MARKER_FILE);
   }
 
   /** Write marker indicating a clean shutdown. */
-  markCleanShutdown() {
+  markCleanShutdown(): void {
     try {
       fs.writeFileSync(this._markerPath, new Date().toISOString(), 'utf8');
       this.logger.log(RECOVERY_EVENTS.CLEAN_SHUTDOWN_MARKED, {
         message: 'Clean shutdown marker written'
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to write shutdown marker:', err.message);
     }
   }
 
   /** Check whether the last shutdown was clean. */
-  wasCleanShutdown() {
+  wasCleanShutdown(): boolean {
     return fs.existsSync(this._markerPath);
   }
 
   /** Remove the shutdown marker (called after recovery). */
-  clearShutdownMarker() {
+  clearShutdownMarker(): void {
     try {
       if (fs.existsSync(this._markerPath)) {
         fs.unlinkSync(this._markerPath);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to clear shutdown marker:', err.message);
     }
   }
@@ -77,22 +110,22 @@ export class RecoveryManager {
    * Scan active/ directory for tasks that have no matching active worker.
    * Returns an array of orphan task IDs.
    */
-  detectOrphans() {
+  detectOrphans(): string[] {
     const activeDir = this.config.exchange.active;
     const taskFiles = listFiles(activeDir, '.json')
       .filter(f => f.startsWith(FILE_PREFIXES.TASK));
 
     // Build a set of task IDs that workers currently own
-    const workerOwnedTasks = new Set();
+    const workerOwnedTasks = new Set<string>();
     for (const worker of this.workerRegistry.getAllWorkers()) {
       if (worker.current_task) {
         workerOwnedTasks.add(worker.current_task);
       }
     }
 
-    const orphans = [];
+    const orphans: string[] = [];
     for (const file of taskFiles) {
-      const data = readJSON(path.join(activeDir, file));
+      const data = readJSON<TaskDef>(path.join(activeDir, file));
       if (data && data.id && !workerOwnedTasks.has(data.id)) {
         orphans.push(data.id);
         this.logger.log(RECOVERY_EVENTS.ORPHAN_DETECTED, {
@@ -109,7 +142,7 @@ export class RecoveryManager {
    * Requeue all orphan tasks from active/ back to inbox/.
    * Uses disk-based retry counting (unified with stateManager).
    */
-  requeueOrphans() {
+  requeueOrphans(): string[] {
     const orphans = this.detectOrphans();
 
     for (const taskId of orphans) {
@@ -141,9 +174,9 @@ export class RecoveryManager {
   /**
    * Identify workers whose last heartbeat exceeds the stale threshold.
    */
-  checkStaleWorkers() {
+  checkStaleWorkers(): WorkerInfo[] {
     const now = Date.now();
-    const staleWorkers = [];
+    const staleWorkers: WorkerInfo[] = [];
 
     for (const worker of this.workerRegistry.getAllWorkers()) {
       if (!worker.current_task) continue; // only check busy workers
@@ -175,7 +208,7 @@ export class RecoveryManager {
    * Permanently failed tasks (retry_count >= max) are left in outbox.
    * Guards against double-move race with complete_task.
    */
-  _requeueFailedFromOutbox() {
+  private _requeueFailedFromOutbox(): number {
     const outboxDir = this.config.exchange.outbox;
     const taskFiles = listFiles(outboxDir, '.json')
       .filter(f => f.startsWith(FILE_PREFIXES.TASK));
@@ -188,7 +221,7 @@ export class RecoveryManager {
       // Guard: re-check file still exists (race with complete_task or other recovery)
       if (!fs.existsSync(fullPath)) continue;
 
-      const data = readJSON(fullPath);
+      const data = readJSON<TaskDef>(fullPath);
       if (!data || data.status !== TASK_STATUS.FAILED) continue;
 
       // Don't requeue permanently failed tasks
@@ -217,7 +250,7 @@ export class RecoveryManager {
    * 
    * @param {object} worker - stale worker info
    */
-  _handleStaleTask(worker) {
+  private _handleStaleTask(worker: WorkerInfo): void {
     const taskId = worker.current_task;
     if (!taskId) return;
 
@@ -253,7 +286,7 @@ export class RecoveryManager {
   // ─── Monitoring Lifecycle ──────────────────────────────────
 
   /** Start the periodic stale-worker monitoring interval. */
-  startMonitoring() {
+  startMonitoring(): void {
     if (this._monitorTimer) return; // already running
 
     this._monitorTimer = setInterval(() => {
@@ -272,7 +305,7 @@ export class RecoveryManager {
   }
 
   /** Stop the monitoring interval. */
-  stopMonitoring() {
+  stopMonitoring(): void {
     if (this._monitorTimer) {
       clearInterval(this._monitorTimer);
       this._monitorTimer = null;
@@ -293,7 +326,7 @@ export class RecoveryManager {
    * 4. Start monitoring
    * 5. Clear shutdown marker
    */
-  runStartupRecovery() {
+  runStartupRecovery(): StartupRecoveryResult {
     this.logger.log(RECOVERY_EVENTS.RECOVERY_STARTED, {
       message: 'Running startup recovery sequence'
     });
@@ -341,7 +374,7 @@ export class RecoveryManager {
    * 3. Write shutdown marker
    * 4. Log shutdown event
    */
-  runGracefulShutdown() {
+  runGracefulShutdown(): void {
     this.stopMonitoring();
     this.stateManager.saveCheckpoint();
     this.markCleanShutdown();

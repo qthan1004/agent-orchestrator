@@ -1,14 +1,16 @@
 import express from 'express';
-import { setupMcpRoutes } from './transport.mjs';
-import { SHUTDOWN_SIGNALS, API_ROUTES, VERSION } from '../constants.mjs';
-import { StateManager } from './state-manager.mjs';
-import { RecoveryManager } from './recovery.mjs';
-import { PlanWatcher } from './plan-watcher.mjs';
-import { workerRegistry } from '../utils/worker-registry.mjs';
-import { Logger } from '../utils/logger.mjs';
-import { bootstrapDirectories } from '../utils/bootstrap.mjs';
+import type { ErrorRequestHandler, NextFunction, Request, Response } from 'express';
+import { setupMcpRoutes } from './transport.js';
+import { SHUTDOWN_SIGNALS, API_ROUTES, VERSION, type ShutdownSignalValue } from '../constants.js';
+import { StateManager } from './state-manager.js';
+import { RecoveryManager } from './recovery.js';
+import { PlanWatcher } from './plan-watcher.js';
+import { workerRegistry } from '../utils/worker-registry.js';
+import { Logger } from '../utils/logger.js';
+import { bootstrapDirectories } from '../utils/bootstrap.js';
+import type { AppConfig, ServerContext } from '../models/index.js';
 
-export async function startServer(config) {
+export async function startServer(config: AppConfig): Promise<void> {
   const { port, host } = config.server;
 
   // Bootstrap: tạo toàn bộ thư mục cần thiết trước khi khởi tạo bất kỳ service nào
@@ -60,13 +62,13 @@ export async function startServer(config) {
   });
   planWatcher.start();
 
-  // Pass workerRegistry via context for DI (tools.mjs uses it from here)
-  const context = { stateManager, workerRegistry, logger, config, recoveryManager, planWatcher };
+  // Pass workerRegistry via context for DI (tools.ts uses it from here)
+  const context: ServerContext = { stateManager, workerRegistry, logger, config, recoveryManager, planWatcher };
 
   const app = express();
 
   // Request logging (debug mcp-remote connections)
-  app.use((req, res, next) => {
+  app.use((req: Request, res: Response, next: NextFunction) => {
     const sid = req.headers['mcp-session-id'] || 'no-session';
     console.log(`→ ${req.method} ${req.url} [${sid}]`);
     next();
@@ -75,7 +77,7 @@ export async function startServer(config) {
   app.use(express.json());
 
   // JSON parse error handler — MUST be right after express.json()
-  app.use((err, req, res, next) => {
+  const jsonParseErrorHandler: ErrorRequestHandler = (err, req, res, next) => {
     if (err.type === 'entity.parse.failed') {
       console.error(`⚠ JSON parse error from ${req.method} ${req.url}:`, err.message);
       res.status(400).json({
@@ -86,9 +88,10 @@ export async function startServer(config) {
       return;
     }
     next(err);
-  });
+  };
+  app.use(jsonParseErrorHandler);
 
-  app.get(API_ROUTES.HEALTH, (req, res) => {
+  app.get(API_ROUTES.HEALTH, (req: Request, res: Response) => {
     res.json({
       status: "ok",
       uptime: process.uptime(),
@@ -104,7 +107,7 @@ export async function startServer(config) {
   const transports = setupMcpRoutes(app, context);
 
   // Catch-all error handler (last middleware)
-  app.use((err, req, res, next) => {
+  const catchAllErrorHandler: ErrorRequestHandler = (err, req, res, next) => {
     console.error('Unhandled error:', err.message);
     if (!res.headersSent) {
       res.status(500).json({
@@ -113,7 +116,8 @@ export async function startServer(config) {
         id: null
       });
     }
-  });
+  };
+  app.use(catchAllErrorHandler);
 
   const httpServer = app.listen(port, host, () => {
     logger.log('SERVER_START', { port, host });
@@ -129,15 +133,14 @@ export async function startServer(config) {
     console.log(`  Recovery: ${recoveryStatus}`);
   });
 
-  const shutdown = async (signal) => {
+  const shutdown = async (signal: ShutdownSignalValue) => {
     console.log(`\n🛑 Received ${signal}. Shutting down gracefully...`);
 
     // Stop plan watcher
     planWatcher.stop();
 
     // Clear all workers since server is dying
-    workerRegistry.workers.clear();
-    workerRegistry._save();
+    workerRegistry.clearAll();
 
     // Run graceful shutdown (stop monitoring, checkpoint, marker)
     recoveryManager.runGracefulShutdown();

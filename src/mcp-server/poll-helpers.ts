@@ -1,16 +1,28 @@
+import type { TaskDef } from '../models/index.js';
+import type { StateManager, CheckPlansResult } from './state-manager.js';
+import type { TaskQueue } from './task-queue.js';
+
+export interface PollOptions {
+  timeoutMs?: number;
+  checkIntervalMs?: number;
+}
+
 /**
  * Long poll: chờ task available hoặc timeout.
  * Hybrid: event-driven (instant) + interval polling (safety net).
  * Nếu pollTimeoutMs = 0 → instant mode (fallback).
  */
-export function waitForTask(queue, { timeoutMs = 30000, checkIntervalMs = 2000 } = {}) {
+export function waitForTask(
+  queue: TaskQueue,
+  { timeoutMs = 30000, checkIntervalMs = 2000 }: PollOptions = {}
+): Promise<TaskDef | null> {
   // Instant mode
   if (timeoutMs === 0) {
     return Promise.resolve(queue.getNextTask());
   }
   
   // Hybrid: event + interval poll
-  return new Promise((resolve) => {
+  return new Promise<TaskDef | null>((resolve) => {
     // Check ngay lần đầu
     const immediate = queue.getNextTask();
     if (immediate) return resolve(immediate);
@@ -53,12 +65,15 @@ export function waitForTask(queue, { timeoutMs = 30000, checkIntervalMs = 2000 }
 /**
  * Long poll: chờ plan available hoặc timeout.
  */
-export function waitForPlan(stateManager, { timeoutMs = 60000, checkIntervalMs = 5000 } = {}) {
+export function waitForPlan(
+  stateManager: StateManager,
+  { timeoutMs = 60000, checkIntervalMs = 5000 }: PollOptions = {}
+): Promise<CheckPlansResult> {
   if (timeoutMs === 0) {
     return Promise.resolve(stateManager.checkPlans());
   }
   
-  return new Promise((resolve) => {
+  return new Promise<CheckPlansResult>((resolve) => {
     const immediate = stateManager.checkPlans();
     if (immediate.status !== 'idle') return resolve(immediate);
     

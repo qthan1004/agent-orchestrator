@@ -64,7 +64,7 @@ npx tsx tests/e2e-flow.ts
 ```
 
 ## Done Criteria
-- [ ] 3 root scripts đã xoá
-- [ ] 3 test files đã migrate sang `.ts`
-- [ ] Import paths đúng (`.js`, đúng relative path)
-- [ ] Test files chạy được với `npx tsx`
+- [x] 3 root scripts đã xoá
+- [x] 3 test files đã migrate sang `.ts`
+- [x] Import paths đúng (`.js`, đúng relative path)
+- [x] Test files chạy được với `npx tsx`

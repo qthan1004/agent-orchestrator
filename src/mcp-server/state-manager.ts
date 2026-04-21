@@ -1,17 +1,62 @@
 import path from 'path';
 import fs from 'fs';
-import { readJSON, writeJSON, moveFile, listFiles, ensureDir, readFile } from '../utils/file-backend.mjs';
-import { TaskQueue } from './task-queue.mjs';
-import { TASK_STATUS, FILE_PREFIXES, STATE_EVENTS, RECOVERY_DEFAULTS } from '../constants.mjs';
+import { readJSON, writeJSON, moveFile, listFiles, ensureDir, readFile } from '../utils/file-backend.js';
+import { TaskQueue, type TaskQueueStatus } from './task-queue.js';
+import { TASK_STATUS, FILE_PREFIXES, STATE_EVENTS, RECOVERY_DEFAULTS, type TaskStatusValue } from '../constants.js';
+import type { AppConfig, TaskDef, TaskGraph, TaskResult } from '../models/index.js';
+import type { Logger } from '../utils/logger.js';
 
 const MAX_CHECKPOINTS = 10;
 
+export interface PlanMeta {
+  [key: string]: unknown;
+}
+
+export interface PlansQuickStatus {
+  hasPending: boolean;
+  hasProcessing: boolean;
+  pendingCount: number;
+  processingCount: number;
+}
+
+export interface ProcessingPlanResult {
+  current: string;
+  plan_path: string;
+  content: string | null;
+}
+
+export type CheckPlansResult =
+  | {
+      status: 'busy';
+      current: string;
+      plan_path: string;
+      content: string | null;
+      pending_count: number;
+    }
+  | {
+      status: 'idle';
+      current: null;
+      pending_count: 0;
+    }
+  | {
+      status: 'ready';
+      current: string;
+      plan_path: string;
+      content: string | null;
+      pending_count: number;
+    };
+
 export class StateManager {
+  config: AppConfig;
+  queue: TaskQueue;
+  logger: Logger | null;
+  plan: PlanMeta | null;
+
   /**
-   * @param {import('../utils/logger.mjs').Logger} logger
+   * @param {import('../utils/logger.js').Logger} logger
    * @param {object} config - Config from loadConfig(overrides)
    */
-  constructor(logger, config) {
+  constructor(logger: Logger | null, config: AppConfig) {
     this.config = config;
     this.queue = new TaskQueue();
     this.logger = logger;
@@ -24,19 +69,19 @@ export class StateManager {
   }
 
   // Plan management
-  loadPlan(planMeta) {
+  loadPlan(planMeta: PlanMeta): void {
     this.plan = planMeta;
     if (this.logger) {
       this.logger.log(STATE_EVENTS.PLAN_LOADED, { message: 'Loaded plan metadata', plan: planMeta });
     }
   }
 
-  getPlan() {
+  getPlan(): PlanMeta | null {
     return this.plan;
   }
 
   // Plan state machine: pending/ → processing/ → done/
-  checkPlansQuick() {
+  checkPlansQuick(): PlansQuickStatus {
     ensureDir(this.config.plans.pending);
     ensureDir(this.config.plans.processing);
     
@@ -51,7 +96,7 @@ export class StateManager {
     };
   }
 
-  getProcessingPlan() {
+  getProcessingPlan(): ProcessingPlanResult | null {
     const files = listFiles(this.config.plans.processing, '.md');
     if (files.length === 0) return null;
     
@@ -63,7 +108,7 @@ export class StateManager {
     };
   }
 
-  checkPlans() {
+  checkPlans(): CheckPlansResult {
     ensureDir(this.config.plans.pending);
     ensureDir(this.config.plans.processing);
     ensureDir(this.config.plans.done);
@@ -105,7 +150,7 @@ export class StateManager {
     };
   }
 
-  completePlan(filename) {
+  completePlan(filename: string): void {
     const src = path.join(this.config.plans.processing, filename);
     const dest = path.join(this.config.plans.done, filename);
     moveFile(src, dest);
@@ -116,7 +161,7 @@ export class StateManager {
   }
 
   // Task management
-  storeTasks(tasks, graph) {
+  storeTasks(tasks: TaskDef[], graph: TaskGraph): void {
     this.queue.validateDAG(graph);
     this.queue.loadFromGraph(tasks, graph);
 
@@ -135,7 +180,7 @@ export class StateManager {
     }
   }
 
-  moveToActive(taskId) {
+  moveToActive(taskId: string): void {
     const src = path.join(this.config.exchange.inbox, `${FILE_PREFIXES.TASK}${taskId}.json`);
     const dest = path.join(this.config.exchange.active, `${FILE_PREFIXES.TASK}${taskId}.json`);
 
@@ -145,7 +190,7 @@ export class StateManager {
     }
     
     // Also update the status inside the file
-    const taskData = readJSON(dest);
+    const taskData = readJSON<TaskDef>(dest);
     if (taskData) {
       taskData.status = TASK_STATUS.ACTIVE;
       writeJSON(dest, taskData);
@@ -158,7 +203,7 @@ export class StateManager {
     }
   }
 
-  moveToOutbox(taskId, result) {
+  moveToOutbox(taskId: string, result: TaskResult): void {
     const src = path.join(this.config.exchange.active, `${FILE_PREFIXES.TASK}${taskId}.json`);
     const dest = path.join(this.config.exchange.outbox, `${FILE_PREFIXES.TASK}${taskId}.json`);
 
@@ -168,7 +213,7 @@ export class StateManager {
     }
     
     // Also update the status inside the file
-    const taskData = readJSON(dest);
+    const taskData = readJSON<TaskDef>(dest);
     if (taskData) {
       taskData.status = result.status; // DONE or FAILED usually
       writeJSON(dest, taskData);
@@ -195,12 +240,12 @@ export class StateManager {
    * Check if a task file exists in active/ directory.
    * Used by recovery to guard against race conditions.
    */
-  isTaskInActive(taskId) {
+  isTaskInActive(taskId: string): boolean {
     const activePath = path.join(this.config.exchange.active, `${FILE_PREFIXES.TASK}${taskId}.json`);
     return fs.existsSync(activePath);
   }
 
-  moveToInbox(taskId) {
+  moveToInbox(taskId: string): void {
     const activePath = path.join(this.config.exchange.active, `${FILE_PREFIXES.TASK}${taskId}.json`);
     const outboxPath = path.join(this.config.exchange.outbox, `${FILE_PREFIXES.TASK}${taskId}.json`);
     const dest = path.join(this.config.exchange.inbox, `${FILE_PREFIXES.TASK}${taskId}.json`);
@@ -212,7 +257,7 @@ export class StateManager {
     
     if (found) {
         // Also update the status inside the file
-        const taskData = readJSON(dest);
+        const taskData = readJSON<TaskDef>(dest);
         if (taskData) {
         taskData.status = TASK_STATUS.PENDING;
         writeJSON(dest, taskData);
@@ -230,11 +275,11 @@ export class StateManager {
    * Get retry count for a task (reads from file on disk).
    * Checks active/ first, then outbox/, then inbox/.
    */
-  getTaskRetryCount(taskId) {
+  getTaskRetryCount(taskId: string): number {
     const dirs = [this.config.exchange.active, this.config.exchange.outbox, this.config.exchange.inbox];
     for (const dir of dirs) {
       const filePath = path.join(dir, `${FILE_PREFIXES.TASK}${taskId}.json`);
-      const data = readJSON(filePath);
+      const data = readJSON<TaskDef>(filePath);
       if (data) return data.retry_count || 0;
     }
     // Fallback to in-memory
@@ -247,14 +292,14 @@ export class StateManager {
    * Increments retry_count in the file before moving to inbox.
    * Returns the new retry count.
    */
-  requeueWithRetry(taskId) {
+  requeueWithRetry(taskId: string): number {
     // Find and increment retry_count in the task file
     const dirs = [this.config.exchange.active, this.config.exchange.outbox];
     let newRetryCount = 1;
 
     for (const dir of dirs) {
       const filePath = path.join(dir, `${FILE_PREFIXES.TASK}${taskId}.json`);
-      const data = readJSON(filePath);
+      const data = readJSON<TaskDef>(filePath);
       if (data) {
         newRetryCount = (data.retry_count || 0) + 1;
         data.retry_count = newRetryCount;
@@ -284,15 +329,15 @@ export class StateManager {
   }
 
   // Recovery (file-based)
-  restoreFromFiles() {
-    const rebuiltMap = new Map();
+  restoreFromFiles(): void {
+    const rebuiltMap = new Map<string, TaskDef>();
 
-    const loadDir = (dirPath, expectedStatus) => {
+    const loadDir = (dirPath: string, expectedStatus: TaskStatusValue) => {
       const files = listFiles(dirPath, '.json')
           .filter(f => f.startsWith(FILE_PREFIXES.TASK));
       for (const f of files) {
         const fullPath = path.join(dirPath, f);
-        const data = readJSON(fullPath);
+        const data = readJSON<TaskDef>(fullPath);
         if (data && data.id) {
           rebuiltMap.set(data.id, { ...data, status: data.status || expectedStatus });
         }
@@ -307,7 +352,7 @@ export class StateManager {
 
     // Auto-recover FAILED tasks in outbox: move them back to inbox as PENDING
     // BUT respect retry_count — permanently failed tasks (>= MAX_TASK_RETRIES) stay in outbox
-    const failedTasks = [];
+    const failedTasks: string[] = [];
     const maxTaskRetries = this.config.recovery?.maxTaskRetries ?? RECOVERY_DEFAULTS.MAX_TASK_RETRIES;
     for (const [taskId, task] of rebuiltMap) {
       if (task.status === TASK_STATUS.FAILED) {
@@ -333,13 +378,14 @@ export class StateManager {
       // Move task file from outbox → inbox
       if (moveFile(srcTask, destTask)) {
         // Update status inside file
-        const taskData = readJSON(destTask);
+        const taskData = readJSON<TaskDef>(destTask);
         if (taskData) {
           taskData.status = TASK_STATUS.PENDING;
           writeJSON(destTask, taskData);
         }
         // Update in-memory map
-        rebuiltMap.get(taskId).status = TASK_STATUS.PENDING;
+        const rebuiltTask = rebuiltMap.get(taskId);
+        if (rebuiltTask) rebuiltTask.status = TASK_STATUS.PENDING;
 
         if (this.logger) {
           this.logger.log(STATE_EVENTS.TASK_REQUEUED, {
@@ -350,7 +396,7 @@ export class StateManager {
     }
 
     const queuePath = path.join(this.config.exchange.base, FILE_PREFIXES.QUEUE);
-    const graphData = readJSON(queuePath) || { groups: [] };
+    const graphData = readJSON<TaskGraph>(queuePath) || { groups: [] };
 
     this.queue.loadFromState(rebuiltMap, graphData);
     
@@ -368,12 +414,12 @@ export class StateManager {
   }
 
   // State query
-  getStatus() {
+  getStatus(): TaskQueueStatus {
     return this.queue.getStatus();
   }
 
   // Checkpointing
-  saveCheckpoint() {
+  saveCheckpoint(): string {
     ensureDir(this.config.exchange.checkpoints);
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const checkpointFileName = `checkpoint-${timestamp}.json`;
@@ -395,7 +441,7 @@ export class StateManager {
   /**
    * Remove old checkpoint files, keeping only the newest MAX_CHECKPOINTS.
    */
-  _rotateCheckpoints() {
+  private _rotateCheckpoints(): void {
     try {
       const files = listFiles(this.config.exchange.checkpoints, '.json')
         .filter(f => f.startsWith('checkpoint-'))

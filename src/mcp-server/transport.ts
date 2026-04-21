@@ -1,15 +1,26 @@
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import crypto from 'crypto';
-import { createServer } from './server.mjs';
-import { API_ROUTES } from '../constants.mjs';
+import type { Express, Request, Response } from 'express';
+import { createServer } from './server.js';
+import { API_ROUTES } from '../constants.js';
+import type { ServerContext } from '../models/index.js';
 
-export function setupMcpRoutes(app, context) {
-  const transports = {};
+export type McpTransports = Record<string, StreamableHTTPServerTransport>;
+
+function getSessionId(req: Request): string | undefined {
+  const header = req.headers['mcp-session-id'];
+  const sessionId = Array.isArray(header) ? header[0] : header;
+  const queryId = Array.isArray(req.query.sessionId) ? req.query.sessionId[0] : req.query.sessionId;
+  return sessionId || (typeof queryId === 'string' ? queryId : undefined);
+}
+
+export function setupMcpRoutes(app: Express, context: ServerContext): McpTransports {
+  const transports: McpTransports = {};
 
   // GET /mcp
-  app.get(API_ROUTES.MCP, async (req, res) => {
-    const sessionId = req.headers['mcp-session-id'] || req.query.sessionId;
+  app.get(API_ROUTES.MCP, async (req: Request, res: Response) => {
+    const sessionId = getSessionId(req);
     if (!sessionId || !transports[sessionId]) {
       res.status(400).send('Invalid or missing session ID');
       return;
@@ -18,8 +29,8 @@ export function setupMcpRoutes(app, context) {
   });
 
   // POST /mcp
-  app.post(API_ROUTES.MCP, async (req, res) => {
-    const sessionId = req.headers['mcp-session-id'] || req.query.sessionId;
+  app.post(API_ROUTES.MCP, async (req: Request, res: Response) => {
+    const sessionId = getSessionId(req);
 
     if (sessionId && transports[sessionId]) {
       // ✅ Reuse existing session
@@ -28,7 +39,7 @@ export function setupMcpRoutes(app, context) {
       // ✅ New session → new transport + new server
       const transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => crypto.randomUUID(),
-        onsessioninitialized: (sid) => {
+        onsessioninitialized: (sid: string) => {
           transports[sid] = transport;
         }
       });
@@ -50,8 +61,8 @@ export function setupMcpRoutes(app, context) {
   });
 
   // DELETE /mcp
-  app.delete(API_ROUTES.MCP, async (req, res) => {
-    const sessionId = req.headers['mcp-session-id'] || req.query.sessionId;
+  app.delete(API_ROUTES.MCP, async (req: Request, res: Response) => {
+    const sessionId = getSessionId(req);
     if (!sessionId || !transports[sessionId]) {
       res.status(400).send('Invalid or missing session ID');
       return;

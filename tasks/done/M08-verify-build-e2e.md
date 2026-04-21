@@ -78,10 +78,10 @@ find src/ -name "*.mjs"
 Tất cả 7 steps ở trên phải pass.
 
 ## Done Criteria
-- [ ] `npm run typecheck` → 0 errors
-- [ ] `npm run build` → `dist/` populated
-- [ ] `npm run serve` → server starts từ `dist/`
-- [ ] `npm run dev` → server starts từ tsx
-- [ ] E2E test passes
-- [ ] Không còn `.mjs` file nào trong `src/`
-- [ ] `dev-docs/migrate-to-typescript.md` status = Done
+- [x] `npm run typecheck` → 0 errors
+- [x] `npm run build` → `dist/` populated
+- [x] `npm run serve` → server starts từ `dist/`
+- [x] `npm run dev` → server starts từ tsx
+- [x] E2E test passes
+- [x] Không còn `.mjs` file nào trong `src/`
+- [x] `dev-docs/migrate-to-typescript.md` status = Done
