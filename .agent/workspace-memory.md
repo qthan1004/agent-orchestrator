@@ -9,8 +9,9 @@
 - **Name**: agent-orchestrator
 - **Type**: MCP Server (Model Context Protocol) — DAG-based task orchestrator
 - **Version**: 0.2.0
-- **Stack**: Node.js, ESM (`import`/`export`), Zod validation
-- **Entry point**: `src/index.mjs` → CLI `serve` command
+- **Stack**: Node.js, TypeScript, ESM (`import`/`export`), Zod validation
+- **Entry point**: `src/index.ts` → CLI `serve` command
+- **Dev runner**: `tsx` (dev) / `tsc` + `node dist/` (prod)
 - **Server port**: 3847 (default, configurable)
 - **Transport**: Streamable HTTP at `/mcp`
 - **Dependencies**: `@modelcontextprotocol/sdk`, `express`, `zod`
@@ -39,8 +40,9 @@ in the target workspace to learn conventions before executing tasks.
 |-----------|---------|--------|
 | `src/mcp-server/` | Core server: tools, state manager, queue, recovery | ⚠️ Careful |
 | `src/utils/` | File backend, logger, startup prompt | ⚠️ Careful |
-| `src/config.mjs` | Server configuration builder | ⚠️ Careful |
-| `src/constants.mjs` | All constants, enums, defaults | ⚠️ Careful |
+| `src/config.ts` | Server configuration builder | ⚠️ Careful |
+| `src/constants.ts` | All constants, enums, defaults | ⚠️ Careful |
+| `src/models/` | Shared TypeScript interfaces (8 files) | ⚠️ Careful |
 | `exchange/` | Runtime IPC: inbox/, active/, outbox/, checkpoints/, logs/ | ❌ Product data |
 | `plan/` | End-user plan queue: pending/ → processing/ → done/ | ❌ Product data |
 | `templates/` | JSON contract templates for tasks | ❌ Product data |
@@ -55,15 +57,15 @@ in the target workspace to learn conventions before executing tasks.
 
 | File | Role | Lines |
 |------|------|-------|
-| `tools.mjs` | 14 MCP tools (register_worker, get_next_task, complete_task, etc.) | ~700 |
-| `state-manager.mjs` | File-based state machine: inbox↔active↔outbox, checkpoints, recovery | ~415 |
-| `task-queue.mjs` | In-memory DAG queue: group resolution, dependency tracking | ~140 |
-| `recovery.mjs` | Worker monitoring, stale detection, orphan recovery | ~350 |
-| `poll-helpers.mjs` | Long-polling helpers for task/plan waiters | ~60 |
-| `idle-resolver.mjs` | Decides agent action when no tasks available | ~30 |
-| `index.mjs` | Server bootstrap, tool registration, shutdown handling | ~160 |
-| `transport.mjs` | Streamable HTTP transport setup | ~60 |
-| `plan-watcher.mjs` | Periodic scan of plan/pending/ for new plans | ~100 |
+| `tools.ts` | 14 MCP tools (register_worker, get_next_task, complete_task, etc.) | ~700 |
+| `state-manager.ts` | File-based state machine: inbox↔active↔outbox, checkpoints, recovery | ~415 |
+| `task-queue.ts` | In-memory DAG queue: group resolution, dependency tracking | ~140 |
+| `recovery.ts` | Worker monitoring, stale detection, orphan recovery | ~350 |
+| `poll-helpers.ts` | Long-polling helpers for task/plan waiters | ~60 |
+| `idle-resolver.ts` | Decides agent action when no tasks available | ~60 |
+| `index.ts` | Server bootstrap, tool registration, shutdown handling | ~160 |
+| `transport.ts` | Streamable HTTP transport setup | ~60 |
+| `plan-watcher.ts` | Periodic scan of plan/pending/ for new plans | ~100 |
 
 ## MCP Tools Available
 
@@ -97,7 +99,8 @@ Tasks → exchange/inbox/ → exchange/active/ → exchange/outbox/
 
 ## Current State & Active Work
 
-- **Migration**: ESM `.mjs` → TypeScript (in progress, see `plan_migrate-to-typescript.md`)
+- **Migration**: ✅ TypeScript migration COMPLETE (PR #1, merged 2026-04-21)
+- **Active**: Evolution & Local Brain (EV-series, 12 tasks pending)
 - **Phase 2 design**: Hybrid architecture with local LLM workers (see `plan_phase2-hybrid-architecture.md`)
 - **RAG pipeline**: Local memory tools planned (see `plan_local-rag-gitnaxus-obsidian.md`)
 - **Dev-env memory**: This file is Phase 0 of `dev-env_agent-memory-obsidian-gitnexus.md`
@@ -108,7 +111,7 @@ Tasks → exchange/inbox/ → exchange/active/ → exchange/outbox/
 2. **Workers NEVER loop** — server loops, workers are one-shot
 3. **File-based IPC** — no WebSockets, no in-memory streams between processes
 4. **Dev files ≠ Product files** — dev-docs/ and tasks/ are dev; plan/ and exchange/ are product
-5. **No language-specific assumptions in memory** — repo is migrating to TypeScript
+5. **TypeScript strict mode** — all source in `.ts`, `strict: true` in tsconfig
 6. **Orchestrator does NOT know project content** — it's a pure state machine
 
 ## Dev Conventions
