@@ -22,5 +22,5 @@ Viết documentation hướng dẫn setup MCP config cho orchestrator server —
 - `dev-docs/guide_mcp-setup.md` (nếu dài)
 
 ## Done Criteria
-- [ ] Document tồn tại và dễ hiểu cho người mới
-- [ ] Cover cả Windows và Linux paths
+- [x] Document tồn tại và dễ hiểu cho người mới
+- [x] Cover cả Windows và Linux paths

@@ -11,6 +11,7 @@ import { resolveIdleAction } from './idle-resolver.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { ServerContext, TaskDef, TaskGraph, TaskResult } from '../models/index.js';
+import { executeScanWorkspace } from './tools/scan-workspace.js';
 
 const STRIP_FIELDS = ['status', 'assigned_to', 'priority', 'metadata', 'dependencies', 'done_criteria'];
 
@@ -710,6 +711,32 @@ export function registerTools(server: McpServer, context: ServerContext): void {
         return formatError(err);
       }
     }, context)
+  );
+
+  server.registerTool(
+    TOOL_NAMES.SCAN_WORKSPACE,
+    {
+      description: "Scan the workspace and generate .agent/workspace-memory.md with file map, dependency graph, and git co-change analysis. Returns cached result if file already exists unless force_update is true.",
+      inputSchema: {
+        force_update: z.boolean().default(false)
+          .describe("Force re-scan even if workspace-memory.md already exists")
+      }
+    },
+    async ({ force_update }) => {
+      try {
+        const scanRoot = context.config.root;
+        const result = executeScanWorkspace(scanRoot, force_update);
+
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result)
+          }]
+        };
+      } catch (err) {
+        return formatError(err);
+      }
+    }
   );
 
 }

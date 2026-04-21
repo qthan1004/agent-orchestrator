@@ -16,6 +16,7 @@ export const TOOL_NAMES = {
   FORCE_RELEASE_TASK: "force_release_task",
   GET_TEMPLATE: "get_template",
   PING: "ping",
+  SCAN_WORKSPACE: "scan_workspace",
 } as const;
 export type ToolNameValue = (typeof TOOL_NAMES)[keyof typeof TOOL_NAMES];
 

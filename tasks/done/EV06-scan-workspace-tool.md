@@ -102,9 +102,9 @@ npm run serve  # hoặc npm run dev
 ```
 
 ## Done Criteria
-- [ ] `scan_workspace` tool registered và callable qua MCP
-- [ ] `.agent/workspace-memory.md` được tạo đúng format
-- [ ] `force_update: false` → trả về CACHED nếu file đã tồn tại
-- [ ] `force_update: true` → re-scan và ghi đè
-- [ ] Ignore patterns đúng (node_modules, .git, dist)
-- [ ] Max 500 files scan (tránh chậm ở repo lớn)
+- [x] `scan_workspace` tool registered và callable qua MCP
+- [x] `.agent/workspace-memory.md` được tạo đúng format
+- [x] `force_update: false` → trả về CACHED nếu file đã tồn tại
+- [x] `force_update: true` → re-scan và ghi đè
+- [x] Ignore patterns đúng (node_modules, .git, dist)
+- [x] Max 500 files scan (tránh chậm ở repo lớn)
