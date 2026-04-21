@@ -1,13 +1,13 @@
-# Task Board — 2026-04-21T22:52:00
+# Task Board — 2026-04-21T22:58:00
 
 | Status | Count |
 |--------|-------|
-| ⬜ Pending | 12 |
+| ⬜ Pending | 8 |
 | 🔄 Processing | 0 |
-| ✅ Done | 47 |
+| ✅ Done | 51 |
 | **Total** | **59** |
 
-Progress: 47/59 (80%)
+Progress: 51/59 (86%)
 
 ---
 
@@ -17,11 +17,11 @@ Progress: 47/59 (80%)
 > Prefix: `EV` = Evolution task
 
 ### Group 1: AG Ecosystem Setup (Phase 1 — no code, config only)
-- `EV01-create-gemini-md.md` — GEMINI.md tại root, inject agent context
-- `EV02-create-agent-rules.md` — `.agent/rules/recovery-protocol.md`
-- `EV03-global-workflows.md` — AG global_workflows/resume-session.md
-- `EV04-mcp-config-enhancement.md` — MCP config background tool setting
-- `EV05-browser-prompting.md` — (optional) browser prompting cho localhost
+- `EV01-create-gemini-md.md` ✅
+- `EV02-create-agent-rules.md` ✅
+- `EV03-global-workflows.md` ✅
+- `EV04-mcp-config-enhancement.md` — ⏳ deferred (cần register orchestrator vào MCP trước)
+- `EV05-browser-prompting.md` ✅
 
 ### Group 2: Workspace Memory Injection (Phase 2 — new MCP tools)
 - `EV06-scan-workspace-tool.md` → depends on EV01 — `scan_workspace` MCP tool
