@@ -1,13 +1,13 @@
-# Task Board — 2026-04-21T22:58:00
+# Task Board — 2026-04-21T23:01:00
 
 | Status | Count |
 |--------|-------|
 | ⬜ Pending | 8 |
 | 🔄 Processing | 0 |
-| ✅ Done | 51 |
-| **Total** | **59** |
+| ✅ Done | 52 |
+| **Total** | **60** |
 
-Progress: 51/59 (86%)
+Progress: 52/60 (87%)
 
 ---
 
@@ -20,7 +20,7 @@ Progress: 51/59 (86%)
 - `EV01-create-gemini-md.md` ✅
 - `EV02-create-agent-rules.md` ✅
 - `EV03-global-workflows.md` ✅
-- `EV04-mcp-config-enhancement.md` — ⏳ deferred (cần register orchestrator vào MCP trước)
+- `EV04-mcp-config-enhancement.md` ✅
 - `EV05-browser-prompting.md` ✅
 
 ### Group 2: Workspace Memory Injection (Phase 2 — new MCP tools)
