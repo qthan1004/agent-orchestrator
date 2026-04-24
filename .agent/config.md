@@ -10,6 +10,10 @@ enforcement: MANDATORY
 
 ## Pre-flight Protocol
 
+### 0. Load Personal Behavioral Rules (HIGHEST PRIORITY)
+
+Read `.agent/PERSONAL_SKILL.md`. This defines the owner's behavioral expectations, communication style, and hard boundaries for ALL agents. These rules override default agent behavior and apply across every task, every project, no exceptions.
+
 ### 1. Load Knowledge
 
 Read all files in `.agent/knowledge/`. These define architecture, constraints, and conventions. Comply with everything found here.
@@ -43,7 +47,7 @@ Scan `.agent/tools/`. Read `README.md` if available. Note what's available — d
 
 ## Execution Gate
 
-Only AFTER completing steps 1–4 may you begin writing code, running commands, or creating files.
+Only AFTER completing steps 0–4 may you begin writing code, running commands, or creating files.
 
 ## Auto-Reload
 

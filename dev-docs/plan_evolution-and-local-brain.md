@@ -305,17 +305,24 @@ Khi worker stale > 3 phút:
 
 **File mới**: `src/agents/antigravity/brain-watcher.mjs`
 
-**Logic** (đã PoC tại brain/scratch/brain-watcher-poc.mjs):
+**Logic (Hệ thống 3-Khóa / Diagnostic Matrix)**:
+Để chống "giết nhầm" Agent đang suy nghĩ sâu hoặc chạy task dài, Watcher sử dụng 3 lớp khóa (locks) để quyết định trạng thái STUCK:
+
 ```
-1. Poll conversations/*.pb every 10s
-2. Track: { uuid, lastSize, lastChangeAt, status }
-3. Status machine:
-   ACTIVE (size changed) → IDLE (no change 60s) → STUCK (no change 3min)
-4. On STUCK:
-   → Write brain/{uuid}/.stuck-signal.json
-   → Desktop notification (node-notifier hoặc BurntToast)
-   → Optional: write exchange/signals/ag-stuck.json cho orchestrator
+1. Khóa 1 (Log Watcher): Tailing file `network.log` & `renderer.log` mới nhất.
+   - Nếu xuất hiện `503`, `Timeout`, `Failed to fetch` → Đánh dấu STUCK ngay lập tức (Hard crash).
+2. Khóa 2 (Heartbeat/MCP Ping): 
+   - Yêu cầu Agent gọi tool `heartbeat_ping` 1 phút/lần (soft call) khi chạy các task dài.
+   - Thậm chí khi IDLE (chờ task), Agent cũng duy trì ping để Server biết còn sống.
+   - Nếu Orchestrator nhận được ping/đang chạy tool → ALIVE.
+3. Khóa 3 (.pb File Size): 
+   - Nếu Khóa 1 an toàn + Khóa 2 (MCP) nhàn rỗi, Watcher check size file `.pb` mỗi 10s.
+   - Nếu quá 3 phút không có thay đổi file size + Không có Ping → Lúc này mới kết luận STUCK.
 ```
+
+**Hành động khi STUCK**:
+- Đưa status về PAUSED (nếu user cấu hình Manual).
+- Kích hoạt Phase 5 Auto-Recovery (nếu user đã Consent cài đặt Extension).
 
 ### 3.2 Desktop Notification
 
@@ -347,52 +354,143 @@ Brain watcher chạy như service riêng trong `src/agents/antigravity/`:
 
 ---
 
-## Phase 5: Semi-Auto Recovery (OPTIONAL, 🟡 CAUTION)
+## Phase 5: Auto-Recovery (Consent-First Extension)
 
 > **CHỈ implement sau khi Phase 1-4 ổn định.**
-> **KHÔNG auto-click, KHÔNG auto-paste trên Ultra account.**
+> **Kiến trúc:** Bắn prompt và tự động tiếp tục (Auto-Submit) qua một Mini VS Code Extension, không đụng chạm đến DOM hay cài cắm System OS tools.
 
-### 5.1 Auto-Open Window (human paste)
+### 5.0 Research Note — AG Runtime Signal Discovery
 
-```javascript
-import { execSync } from 'child_process';
-import { platform } from 'os';
+**Chưa chốt watcher target.** Không được kết luận agent đã die chỉ vì một file như `conversations/*.pb` không đổi size/mtime. Khi agent đang "thinking", AG vẫn có thể đang tiêu quota nhưng local conversation file chưa chắc đã được flush.
 
-function prepareResume(sessionData) {
-  const prompt = generateResumePrompt(sessionData);
-  
-  // Copy to clipboard (cross-platform)
-  copyToClipboard(prompt);
-  
-  // Notify human
-  notifier.notify({
-    title: 'AG Ready to Resume',
-    message: 'Resume prompt copied to clipboard. Open new AG chat and paste.',
-    wait: true
-  });
-}
+**Empirical finding từ AG test:** khi stream đang chạy bình thường, IDE có thể giữ token/stream trong RAM và không ghi thêm log xuống disk. Log file chỉ đáng tin để bắt lỗi hoặc timeout, không đáng tin để chứng minh agent còn sống.
 
-function copyToClipboard(text) {
-  const escaped = text.replace(/'/g, "'\"'\"'");
-  if (platform() === 'win32') {
-    execSync(`powershell -Command "Set-Clipboard -Value '${escaped}'"`);
-  } else if (platform() === 'darwin') {
-    execSync(`echo '${escaped}' | pbcopy`);
-  } else {
-    // Linux: xclip hoặc xsel
-    execSync(`echo '${escaped}' | xclip -selection clipboard`);
-  }
-}
-```
+Cần qua AG quan sát thực tế trước khi implement Phase 5:
+- Khi agent đang thinking và quota vẫn burn, file/state nào thay đổi?
+- `conversations/*.pb` có đổi trong lúc thinking/streaming/tool execution không?
+- `cloudcode.log` có append trong lúc request đang chạy, hay chỉ ghi khi lỗi/kết thúc?
+- Có runtime stream/socket state, telemetry cache, lock file, hoặc extension-visible status nào đổi đều hơn `.pb` không?
+- Khi AG bị 503/quota exhausted/terminated/waiting approval thì dấu hiệu nằm ở file nào?
 
-### 5.2 Cooldown & Safety
+Candidate watcher sources:
+- MCP/server liveness: heartbeat/progress/lease renew từ agent khi agent còn gọi được tool
+- OS/network liveness: `ss`, `tcp`, `netstat`, hoặc nguồn tương đương để xem stream/socket còn nhận bytes hay không
+- Chat/runtime files: `conversations/*.pb`
+- AG logs: `cloudcode.log` và logs cùng session, chủ yếu để bắt `Error`, `Timeout`, `503`, quota/rate-limit exhausted
+- Runtime/telemetry/cache state nếu tìm được
+- Physical task state: `exchange/active`, lock/progress/checkpoint files
+- Extension-visible chat status nếu VS Code/AG API expose được
 
-```
-- Max 3 resume attempts per hour
-- Min 5 minutes between resume signals  
-- Nếu 3 attempts fail → stop và notify human "Manual intervention needed"
-- Log tất cả recovery events cho audit
-```
+Rule tạm thời: watcher phải là multi-signal heuristic. Stream/socket activity hoặc MCP heartbeat là positive liveness; log error/timeout là negative evidence; `.pb`/log silence chỉ được xem là `SILENT/SUSPECTED`, không phải bằng chứng đủ để auto-recover.
+
+### 5.1 Kiến trúc Kép (Dual-Architecture) — Quyền quyết định ở User
+
+Hệ thống cung cấp **2 Giải pháp (2 Paths)** để phục hồi Agent. Sự lựa chọn này không chỉ giải quyết vấn đề kỹ thuật mà còn là một **Engineering Showcase** về khả năng thấu hiểu ranh giới bảo mật của hệ thống.
+
+#### 🌟 Lựa chọn 1: "Chánh Đạo" (The Righteous Path / Semi-Auto)
+- **Cơ chế:** Sử dụng một Mini VS Code Extension hợp lệ (`recovery-agent.vsix`).
+- **Hoạt động:** 
+  1. Orchestrator gọi Extension để Dọn dẹp memory (Mở Chat mới): `vscode.commands.executeCommand('workbench.action.chat.newChat')`.
+  2. Orchestrator copy Prompt vào Clipboard và bắn Desktop Notification.
+  3. User click vào khung Chat, ấn `Ctrl+V` và `Enter` (1 thao tác tay).
+- **Lợi ích:** Sạch sẽ 100%, bảo mật tuyệt đối, hoàn toàn tuân thủ API chuẩn của Microsoft/Antigravity.
+- **Rủi ro:** Không tự động hóa được 100% do rào cản Sandbox của IDE.
+
+#### 😈 Lựa chọn 2: "Tà Đạo" (The Dark Path / 100% Automation)
+- **Cơ chế:** Kỹ thuật DOM Injection (Monkey Patching). Hack trực tiếp vào file hệ thống của IDE.
+- **Hoạt động:**
+  1. **The Injector:** Orchestrator tự động tìm file gốc `workbench.html` của IDE trên ổ cứng.
+  2. **The Hack:** Chèn thêm thẻ `<script src="orchestrator-bridge.js">` vào mã nguồn HTML.
+  3. **The Puppeteer:** Orchestrator gửi lệnh qua WebSocket tới script lậu. Script lậu này dùng Javascript DOM (`document.querySelector('textarea').value = '...'`) chọc thủng khung Chat và bấm Submit thay user.
+  4. **The Antidote (Cleanup & Audit):** Hệ thống tạo sẵn file `.bak` để người dùng có thể gỡ bỏ Backdoor bất kỳ lúc nào, đồng thời cung cấp lệnh `grep` để họ tự kiểm chứng xem IDE có đang bị cấy mã hay không.
+- **Lợi ích:** Đạt được cảnh giới Auto-Submit 100% (Zero-Touch). Máy tự gõ, tự sửa lỗi như có ma làm.
+- **Rủi ro chí mạng:** 
+  - **Rủi ro hệ thống:** Gây cảnh báo *"Your installation appears to be corrupt"*, gãy sau update, nhạy cảm với DOM/UI changes, có thể cần quyền Admin/sudo.
+  - **Rủi ro tài khoản:** Provider/AG có thể ghi nhận client bị sửa, hành vi auto-submit bất thường, event log xuất phát từ script lạ; Ultra account có thể bị nghía, giảm trust, siết quota, revoke session, hoặc khóa account trong trường hợp xấu.
+  - **Rủi ro policy/TOS:** Đây là bypass sandbox/API chính thống bằng DOM Injection. Có thể bị xem là sửa client trái phép hoặc né rào bảo mật.
+  - **Cleanup không xóa provider-side logs:** Restore file local chỉ làm sạch máy; không đảm bảo xóa dấu vết telemetry/log đã gửi lên cloud.
+
+**Quy tắc consent cho "Tà Đạo":**
+- Không bật mặc định.
+- Không gộp chung với consent cài extension Semi-Auto.
+- Trước khi bật phải hiển thị đủ 3 nhóm risk: hệ thống, tài khoản, policy.
+- User phải review kỹ và xác nhận riêng rằng họ hiểu/chấp nhận rủi ro hệ thống, account, policy. Sau khi chọn Backdoor Mode, user tự chịu trách nhiệm với mọi hậu quả về IDE/account/provider policy.
+- Luôn cung cấp cách check/remove backdoor:
+  - Check: `grep -i "orchestrator-bridge" <path-to-workbench.html>`
+  - Remove: restore `workbench.html` từ `.bak`, restart IDE, chạy lại lệnh `grep` để xác nhận sạch.
+
+### 5.1.1 Dispatch Modes — Push Extension vs Legacy Pull
+
+Phase 5 phải giữ cả 2 luồng để không break worker hiện tại:
+
+**Mode A — `push_extension` (ưu tiên nếu extension connected)**
+- Server chủ động register/bind AG session.
+- Server là bên duy nhất chọn và claim task.
+- Server inject prompt chứa `task_id`, `task_details`, `worker_id/session_id`, lease/generation vào AG qua extension.
+- Agent không gọi `get_next_task`; agent chỉ xử lý task được inject, gọi `ping`/`report_progress`, rồi `complete_task(auto_pickup: false)`.
+- Sau khi `complete_task` hợp lệ, server mới dispatch task kế tiếp vào session đó.
+
+**Mode B — `pull_legacy` / Manual Fallback**
+- Khi user không cài extension, extension không connect được, hoặc auto-recovery bị tắt.
+- Agent/user dùng luồng cũ: `register_worker` → `get_next_task` → `complete_task(auto_pickup: true)` hoặc user tự dán prompt resume.
+- Giữ backward compatibility cho MCP agents/tests hiện tại.
+
+Rule bắt buộc: trong `push_extension`, server owns dispatch. Không để agent vừa nhận `next_task` từ `complete_task` vừa nhận prompt mới từ extension, tránh double-dispatch.
+
+### 5.2 Trải nghiệm Onboarding (Consent-First UX)
+
+Sự minh bạch là ranh giới giữa một công cụ Automation tốt và Malware. Khi khởi động Server lần đầu, hệ thống hỏi theo 2 tầng consent riêng:
+
+1. **Semi-Auto Extension consent**
+
+> *"Để hỗ trợ phục hồi khi IDE bị kẹt, hệ thống có thể cài một extension cục bộ (AG Auto Recovery) để mở chat mới và chuẩn bị prompt. Nếu chọn [No], hệ thống vẫn hoạt động bình thường nhưng sẽ dùng Manual Fallback. Bạn có đồng ý cài extension này không? [Y/n]"*
+
+2. **Backdoor/DOM Injection consent (rủi ro cao, chỉ hỏi nếu user bật 100% automation)**
+
+> *"100% Auto-Submit yêu cầu sửa file cài đặt IDE (`workbench.html`) bằng DOM Injection. Việc này có rủi ro hệ thống, rủi ro tài khoản Ultra bị provider/AG chú ý, và rủi ro policy/TOS. Cleanup chỉ restore file local, không đảm bảo xóa provider-side logs. Bạn xác nhận hiểu và chấp nhận rủi ro này chứ? [type: I ACCEPT BACKDOOR RISK]"*
+
+Disclaimer hiển thị kèm Backdoor Mode:
+
+> *"Bạn đang chọn luồng Auto 100% để đổi lấy sự tiện lợi. Đây không phải luồng an toàn mặc định. Hãy đọc kỹ rủi ro trước khi bật. Sau khi xác nhận, mọi hậu quả về hệ thống, tài khoản, quota, hoặc policy/TOS do Backdoor Mode gây ra thuộc trách nhiệm của user."*
+
+#### Bảng đánh giá lựa chọn của User
+
+| Lựa chọn | Trạng thái khi bị Stuck | Lợi ích (Pros) | Đánh đổi (Cons) |
+|---|---|---|---|
+| **Manual Fallback** | Server `PAUSED` task, báo notification bắt user tự copy/paste. | - An toàn nhất.<br>- Không sửa IDE.<br>- Quyền kiểm soát hoàn toàn ở User. | - Kém tiện lợi.<br>- Nếu cắm máy qua đêm mà kẹt, task nằm chết đến sáng. |
+| **Semi-Auto Extension** | Extension chuẩn bị chat/prompt, user submit thủ công. | - An toàn 100% theo thiết kế.<br>- Không sửa IDE core.<br>- Có thể degrade về Manual. | - Cần thao tác user.<br>- Không đạt auto 100%.<br>- Có thể bị command/API thay đổi. |
+| **Backdoor DOM Injection** | Script injected tự điền và submit prompt. | - Zero-touch 100%.<br>- Phẻ người nhất.<br>- Phục hồi tự động nhất. | - Rủi ro hệ thống cao.<br>- Rủi ro account/provider chú ý.<br>- Rủi ro policy/TOS cao.<br>- User tự chịu trách nhiệm sau khi chọn. |
+
+### 5.3 Graceful Degradation & Cooldown
+
+- Nếu User chọn `[n]`, lưu config `auto_recovery: false`. Lần sau hệ thống tự động fall back về Manual (gửi Desktop Notification & log terminal).
+- Nếu tắt Server (Orchestrator bị kill): Extension trở nên "vô tri" (bị liệt). IDE trở lại bình thường 100%, Extension không bao giờ tự động spam hay gửi mã độc lập.
+- **Cooldown Limits**:
+  - Max 3 resume attempts / 1 hour.
+  - Min 2 minutes (120s) random delay giữa các lần retry.
+  - Sau 3 lần retry fail → Dừng và Notify Human "Manual intervention needed".
+
+### 5.4 Task Breakdown
+
+> Mục tiêu: thêm `push_extension` mà không phá `pull_legacy`.
+
+| Task | Scope | Done Criteria |
+|---|---|---|
+| EV13 — AG command spike | Test extension gọi chat commands thật trong AG | Biết command nào chạy được: new chat, open prompt, submit/continue; ghi fallback nếu command fail |
+| EV14 — Runtime signal spike | Quan sát `network.log`, `renderer.log`, `.pb`, socket/stream khi thinking/error/approval | Có bảng evidence: alive/error/silent/waiting approval; không còn giả định watcher target |
+| EV15 — Dispatch mode model | Thêm data model/config cho `pull_legacy` vs `push_extension` | Worker/session có dispatch mode; default vẫn `pull_legacy` |
+| EV16 — Server-side claim/lease | Server claim task trước khi inject | Task active có owner session/worker, lease/generation; complete_task reject late/stale lease |
+| EV17 — Extension bridge MVP | Local extension connect/poll server và nhận command | Extension connected thì server thấy session; không connected thì server degrade manual |
+| EV18 — Push prompt contract | Tạo prompt template cho injected task | Prompt nói rõ không gọi `get_next_task`, gọi `ping`/progress/complete với `auto_pickup:false` |
+| EV19 — Manual fallback prompt | Sinh file prompt resume cho user tự paste | Khi auto off/fail, server tạo prompt file rõ path và notify user |
+| EV20 — Complete task guard | Chặn double-dispatch trong push mode | `complete_task` của push session không trả `next_task`; server tự dispatch task kế tiếp |
+| EV21 — Hybrid stuck detector | Kết hợp log watcher + heartbeat + `.pb` silence | Hard error → recovery candidate; no ping + `.pb` unchanged > threshold → stuck; silence đơn lẻ không recover |
+| EV22 — E2E tests | Test cả legacy và push/manual flows | Legacy tests vẫn pass; push mode không double-assign; extension missing → manual fallback |
+
+**Compatibility notes**
+- Giữ tool hiện tại là `ping`. Đây là soft heartbeat MCP dùng chung cho cả `pull_legacy` và `push_extension`; không đổi tên, không thêm alias nếu không cần.
+- `get_next_task` giữ nguyên cho `pull_legacy`.
+- `complete_task(auto_pickup: true)` giữ nguyên cho legacy, nhưng push mode phải force/require `auto_pickup: false`.
 
 ---
 
