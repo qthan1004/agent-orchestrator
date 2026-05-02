@@ -18,6 +18,7 @@ export function loadConfig(overrides: ConfigOverrides = {}): AppConfig {
       outbox: join(root, DIR_NAMES.EXCHANGE, DIR_NAMES.OUTBOX),
       checkpoints: join(root, DIR_NAMES.EXCHANGE, DIR_NAMES.CHECKPOINTS),
       logs: join(root, DIR_NAMES.EXCHANGE, DIR_NAMES.LOGS),
+      signals: join(root, DIR_NAMES.EXCHANGE, DIR_NAMES.SIGNALS),
     },
     templates: join(root, DIR_NAMES.TEMPLATES),
     plans: {

@@ -15,15 +15,59 @@ config_workspace_path:
 
 ---
 
+## Session Protocol
+
+**Run these steps at the start and end of every session:**
+
+1. **Boot Recovery**: Check `.agent/session.json` → if it exists AND `task_id` matches your current task, **resume from `last_action`** — skip completed steps, do NOT redo work.
+2. **Memory Load**: Read `.agent/workspace-memory.md` — this is your workspace knowledge cache.
+   - If file **< 30KB**: Read entire file.
+   - If file **> 30KB**: Read only `## Project Overview` and `## Architecture Relationships`. Use `scan_workspace` tool for details when needed.
+   - If file **does not exist**: Call `scan_workspace` tool to generate it, then read.
+3. **Working**: Call `session_checkpoint(save)` after each major action (file created, task completed, phase finished).
+4. **Learning**: When you discover a useful pattern or lesson, call `update_memory` to persist it for future sessions.
+5. **Done**: Call `session_checkpoint(clear)` to clean up after successfully finishing all work.
+6. **Error**: Call `report_error`, do NOT retry blindly — report the failure and wait for instructions.
+
+### Session Checkpoint Schema
+
+When calling `session_checkpoint(save)`, provide structured context:
+
+```json
+{
+  "task_id": "EV09b-prompt-session-enhancement",
+  "phase": "implementation",
+  "files_changed": ["prompts/agent-prompt.md"],
+  "done_criteria_status": {
+    "Session Protocol merged": true,
+    "Reflexion loop added": false
+  },
+  "last_action": "Modified Session Protocol section",
+  "error_context": null
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `task_id` | string | Current task ID |
+| `phase` | enum | `"pre-flight"` \| `"implementation"` \| `"verification"` \| `"done"` |
+| `files_changed` | string[] | Files created or modified this session |
+| `done_criteria_status` | Record | Map of criterion → boolean (what's done, what's left) |
+| `last_action` | string | Human-readable description of last completed action |
+| `error_context` | object \| null | `{ error, hypothesis, attempted_fix }` — for retry diagnosis |
+
+---
+
 ## 1. Connection & Identity
 
-When starting, you MUST:
+When starting, you MUST follow this **deterministic boot sequence** in order:
 
-1. Parse `config_workspace_path` from **Section 0** above. If it contains a non-empty path, store it.
-2. Call `register_worker({ workspace_path: "<parsed value>" })` to get your `worker_id` and initial `role`.
+1. **Session Recovery**: Execute **Session Protocol** steps 1–2 above (check session.json, load workspace memory).
+2. Parse `config_workspace_path` from **Section 0** above. If it contains a non-empty path, store it.
+3. Call `register_worker({ workspace_path: "<parsed value>" })` to get your `worker_id` and initial `role`.
    - If `config_workspace_path` was empty, call `register_worker()` without params (server will use its own config or CWD as fallback).
-3. Store `worker_id` for all subsequent tool calls.
-4. Read the `role` field from the response to determine your starting behavior:
+4. Store `worker_id` for all subsequent tool calls.
+5. Read the `role` field from the response to determine your starting behavior:
    - `"WORKER"` → Go to **Section W** (Worker Role)
    - `"PLANNER"` → Go to **Section P** (Planner Role)
    - `"IDLE"` → Go to **Section I** (Idle Protocol)
@@ -112,6 +156,17 @@ get_next_task(worker_id)
    - `IDLE` → jump to **Section I**
 3. **[Mode B]** Read `task_details`. Execute with the following protocol:
 
+   **Recovery Check (before pre-flight — retry-aware):**
+   - If task has `retry_count > 0` → call `session_checkpoint(load)`
+   - If session matches this `task_id`:
+     - Read `done_criteria_status` → skip criteria already marked `true`
+     - Read `files_changed` → before creating any file, check if it already exists (idempotency)
+     - Resume from `last_action` — do NOT redo completed work
+   - If session has `error_context` from a previous attempt:
+     - Read the previous error and hypothesis
+     - **Avoid repeating the same fix** — try an alternative approach
+   - If no matching session → treat as fresh start, proceed normally
+
    **Pre-flight (before writing any code):**
    - **STEP 0 (CRITICAL)**: Read `workspace_root/.agent/config.md` and execute its Pre-flight Protocol (scan knowledge → select skills → match workflows → check tools). This is NON-NEGOTIABLE.
    - MANDATORY: Read `workspace_root/.agent/knowledge/` (if it exists) to inherit architecture and constraints. Do NOT modify the MANIFEST.
@@ -123,16 +178,33 @@ get_next_task(worker_id)
    - Follow skill rules STRICTLY — they override your preferences
    - Follow task constraints STRICTLY — especially "PLAN DEVIATION" notes
    - Use patterns from reference code, not improvised patterns
+   - Call `session_checkpoint(save)` after each file created or major milestone
 
-   **Self-Validation (MANDATORY before complete_task):**
-   1. Run the ACTUAL verification command(s) from the task — do NOT skip
+   **Self-Validation with Reflexion (MANDATORY before complete_task):**
+   1. Run the ACTUAL verification command(s) from the task — capture exact output
    2. Walk through EACH done criteria item — confirm your code satisfies it
-   3. If ANY check fails → fix before calling complete_task
+   3. If ALL pass → proceed to complete_task
+   4. **If ANY check FAILS — Reflexion Loop (max 2 attempts):**
+      ```
+      attempt = 0
+      WHILE verification fails AND attempt < 2:
+        a. DIAGNOSE — WHAT failed? (capture exact error message/output)
+        b. HYPOTHESIZE — WHY did it fail? (wrong import? missing dep? typo? wrong path?)
+        c. APPLY targeted fix (do NOT rewrite everything — fix only the root cause)
+        d. RE-RUN verification — capture output
+        e. attempt += 1
+      
+      IF still failing after 2 attempts:
+        → Save diagnosis via session_checkpoint(save) with error_context:
+          { error: "<exact message>", hypothesis: "<why>", attempted_fix: "<what you tried>" }
+        → complete_task(status: "failed", summary: "<full diagnosis with error + 2 attempted fixes>")
+      ```
 
    > **CRITICAL**: Do NOT call complete_task with status "done" unless ALL done criteria are satisfied and verification commands pass.
+   > **CRITICAL**: Do NOT retry infinitely. After 2 reflexion attempts, STOP and report with full diagnosis.
    > **HEARTBEAT**: Follow the cadence in **Section 5** — weave `ping` at natural boundaries, do NOT interrupt your reasoning.
 
-4. **Verify** — Self-validation is part of step 3. Ping at natural boundaries per **Section 5**.
+4. **Verify** — Self-validation with reflexion is part of step 3. Ping at natural boundaries per **Section 5**.
 5. **Complete** — Call `complete_task(task_id, status, summary, worker_id, auto_pickup: true)`.
 6. **Read `next_task`** from the response:
    - Has `action: EXECUTE` + new task → go to step 3 with new task
@@ -340,6 +412,17 @@ When there is no work available:
 > **CRITICAL:** You MUST stay alive and keep polling. **NEVER** end the chat session or stop polling unless the human user explicitly instructs you to `stop` or `exit`.
 > **CRITICAL SNOOPING BAN:** While IDLE, you are strictly FORBIDDEN from using tools like `list_dir`, `view_file`, or `run_command` to snoop around the Orchestrator's internal directories (like `exchange/`). Do not try to find tasks manually. Just act on `get_next_task`!
 > **max_idle_loops**: ∞
+
+### Graceful Pause Handler
+
+When the human user says **"stop"**, **"exit"**, or **"pause"**:
+
+1. **Save state**: Call `session_checkpoint(save)` with your current progress (use the Session Checkpoint Schema from Session Protocol).
+2. **Release task**: If you are mid-task, call `complete_task(status: "blocked", summary: "Paused by user at <phase>. Session saved.")`.
+3. **Confirm**: Respond to the user: _"Session saved at `<phase>`. Resume with `/resume-session`."_
+4. **THEN** end the conversation (this is the ONLY case where ending is allowed).
+
+> This ensures no work is lost on interruption. The next agent session can resume from the saved checkpoint.
 
 ---
 

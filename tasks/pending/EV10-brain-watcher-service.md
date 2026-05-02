@@ -12,9 +12,9 @@
 
 Tạo brain watcher service — background process theo dõi `.pb` files trong AG conversations directory để detect stuck sessions.
 
-### [NEW] `src/agents/antigravity/brain-watcher.mjs`
+### [NEW] `src/agents/antigravity/brain-watcher.ts`
 
-> Hoặc `.ts` nếu migration xong.
+> Migration M01-M08 đã hoàn thành — dùng TypeScript.
 
 **Logic (State Machine):**
 
@@ -53,7 +53,7 @@ const BRAIN_WATCHER_CONFIG = {
 } as const;
 ```
 
-### [NEW] `src/agents/antigravity/config-resolver.mjs`
+### [NEW] `src/agents/antigravity/config-resolver.ts`
 
 Helper to resolve AG data dir paths cross-platform:
 
@@ -73,13 +73,13 @@ function resolveBrainDir(): string {
 ## Files
 | Action | Path |
 |--------|------|
-| NEW    | `src/agents/antigravity/brain-watcher.mjs` (hoặc `.ts`) |
-| NEW    | `src/agents/antigravity/config-resolver.mjs` (hoặc `.ts`) |
+| NEW    | `src/agents/antigravity/brain-watcher.ts` |
+| NEW    | `src/agents/antigravity/config-resolver.ts` |
 
 ## Verification
 ```bash
-# Start brain watcher
-node src/agents/antigravity/brain-watcher.mjs
+# Start brain watcher (use tsx for TypeScript)
+npx tsx src/agents/antigravity/brain-watcher.ts
 
 # Open AG conversation → watcher logs ACTIVE
 # Wait 1 min idle → watcher logs IDLE
@@ -93,4 +93,4 @@ node src/agents/antigravity/brain-watcher.mjs
 - [ ] State transitions: ACTIVE → IDLE → STUCK đúng thresholds
 - [ ] .stuck-signal.json written khi STUCK
 - [ ] Cross-platform path resolution (Windows + Linux)
-- [ ] Standalone process chạy được (`node src/agents/antigravity/brain-watcher.mjs`)
+- [ ] Standalone process chạy được (`npx tsx src/agents/antigravity/brain-watcher.ts`)

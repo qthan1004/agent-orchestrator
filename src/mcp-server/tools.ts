@@ -12,6 +12,8 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { ServerContext, TaskDef, TaskGraph, TaskResult } from '../models/index.js';
 import { executeScanWorkspace } from './tools/scan-workspace.js';
+import { executeSessionCheckpoint } from './tools/session-checkpoint.js';
+import type { SessionCheckpointInput } from './tools/session-checkpoint.js';
 
 const STRIP_FIELDS = ['status', 'assigned_to', 'priority', 'metadata', 'dependencies', 'done_criteria'];
 
@@ -726,6 +728,34 @@ export function registerTools(server: McpServer, context: ServerContext): void {
       try {
         const scanRoot = context.config.root;
         const result = executeScanWorkspace(scanRoot, force_update);
+
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result)
+          }]
+        };
+      } catch (err) {
+        return formatError(err);
+      }
+    }
+  );
+
+  server.registerTool(
+    TOOL_NAMES.SESSION_CHECKPOINT,
+    {
+      description: "Save, load, or clear session state for agent resume.",
+      inputSchema: {
+        action: z.enum(['save', 'load', 'clear']).describe("Action to perform"),
+        task_id: z.string().optional().describe("Task ID (optional)"),
+        progress: z.number().min(0).max(100).optional().describe("Progress percentage (optional)"),
+        context: z.record(z.string(), z.unknown()).optional().describe("Arbitrary context data (optional)"),
+      }
+    },
+    async (input) => {
+      try {
+        const workspaceRoot = context.config.workspaceRoot || context.config.root;
+        const result = executeSessionCheckpoint(workspaceRoot, input as SessionCheckpointInput);
 
         return {
           content: [{

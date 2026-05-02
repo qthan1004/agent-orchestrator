@@ -37,5 +37,5 @@ Cập nhật agent prompt template để thêm Session Protocol instructions. Ag
 - [ ] Mở conversation mới → agent tự check session.json
 
 ## Done Criteria
-- [ ] Session Protocol section có trong prompt
-- [ ] 5 steps đầy đủ
+- [x] Session Protocol section có trong prompt
+- [x] 5 steps đầy đủ

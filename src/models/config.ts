@@ -5,6 +5,7 @@ export interface ExchangeConfig {
   outbox: string;
   checkpoints: string;
   logs: string;
+  signals: string;
 }
 
 export interface DirConfig {

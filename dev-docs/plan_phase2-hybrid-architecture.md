@@ -2,10 +2,12 @@
 
 > **Tags:** `features`, `architecture`, `phase-2`, `local-llm`
 > **Date:** 2026-04-07
-> **Status:** Design Finalized
+> **Updated:** 2026-05-02 (Addendum — 2026 industry review)
+> **Status:** Design Finalized — Validated by 2026 benchmark (7/7 patterns confirmed)
 > **Hardware:** Nvidia RTX 5060 Ti 16GB VRAM
 > **Inference Engine:** Ollama (headless, OpenAI-compatible API)
 > **Review:** See `phase2_review.md` + `phase2_technical_supplement.md` for detailed analysis
+> **2026 Review:** See `2026-05-02_review_phase2-vs-2026-industry.md`
 
 ---
 
@@ -476,3 +478,90 @@ Layer 4 — Task Timeout (per-task):
   Hard timeout: 5 minutes
   Server kills worker if exceeded → requeues task
 ```
+
+---
+
+## Addendum: 2026 Modernization Notes (2026-05-02)
+
+> This section was added after benchmarking against May 2026 industry state.
+> See `dev-docs/2026-05-02_review_phase2-vs-2026-industry.md` for full analysis.
+
+### Verdict: ✅ NOT OBSOLETE — Core design validated
+
+Hybrid local+cloud is now the **2026 industry consensus** strategy:
+- Data sovereignty → regulated industries REQUIRE local inference
+- Cost control → autonomous agents = "token eaters", local = predictable cost
+- Tooling maturity → Ollama 2026 = production-grade
+
+7/7 architecture patterns confirmed by industry:
+| This Plan | 2026 Equivalent |
+|-----------|------------------|
+| Head-Body-Limb | Claude Code harness decoupled from sandbox |
+| One-shot workers | Cursor Background Agents |
+| Server-controlled dispatch | Claude Dispatch push model |
+| 3-layer checkpoint | LangGraph checkpoint per superstep |
+| File-based IPC | Claude Agent Teams |
+| Dynamic tool provisioning | Codex SKILL.md on-demand |
+| Worker ID server-assigned | Devin coordinator pattern |
+
+### 4 Updates Required
+
+#### Update 1: Agent Runner — Add Reflexion Loop (Priority: P0)
+
+Current: Hard exit on failure (3x JSON retry, exit(1)).
+
+2026 standard: Devin self-healing = 67% PR merge (vs 34% 2025). LangGraph bounded evaluation.
+
+**Action:** Agent Runner adds:
+```
+1. If tool execution fails → inject error into next LLM turn
+2. LLM diagnoses → fixes → retries (max 2)
+3. If still fails → checkpoint with full diagnosis → exit
+4. Server requeues → next worker receives diagnosis context
+```
+
+#### Update 2: Agent Runner Prompt — Use SKILL.md Pattern (Priority: P1)
+
+Current: Manual prompt building from task_details.
+
+2026 standard: Codex SKILL.md on-demand loading.
+
+**Action:** Agent Runner loads:
+```
+base-worker.md       ← core rules (always loaded)
+skill-{action}.md    ← action-specific (implement, test, refactor)
+→ Dynamic prompt = base + relevant skill
+```
+
+#### Update 3: Branch Isolation — Git Worktree (Priority: P1)
+
+Current: `git checkout -b <feature>` (conflicts if parallel agents run).
+
+2026 standard: Cursor 3 uses git worktree per agent — parallel safe.
+
+**Action:** Replace checkout with:
+```bash
+git worktree add ../feature-auth feature/auth
+# Worker runs in ../feature-auth/
+git worktree remove ../feature-auth  # cleanup
+```
+
+#### Update 4: Checkpoint Format — Align with EV09b Session Schema (Priority: P1)
+
+Current: `{ completed_steps, remaining_steps }`
+
+EV09b schema: `{ files_changed, phase, done_criteria_status, error_context }`
+
+**Action:** Unified checkpoint format:
+```typescript
+interface UnifiedCheckpoint {
+  task_id: string;
+  phase: 'pre-flight' | 'implementation' | 'verification' | 'done';
+  files_changed: string[];
+  completed_steps: string[];
+  remaining_steps: string[];
+  error_context: { error: string; hypothesis: string; attempted_fix: string } | null;
+  token_usage?: { used: number; limit: number };
+}
+```
+Used by BOTH IDE agent (session_checkpoint) and local LLM worker (Agent Runner checkpoint).

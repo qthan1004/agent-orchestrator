@@ -1,0 +1,373 @@
+# Plan: Workspace Memory — Agent-Managed Knowledge Pipeline
+
+> **Created**: 2026-04-20
+> **Updated**: 2026-05-02 (v2 — simplified, Obsidian/GitNexus removed)
+> **Status**: Approved (revised)
+> **Supersedes**: `plan_local-rag-gitnaxus-obsidian.md` (archived)
+> **Depends on**: `plan_evolution-and-local-brain.md` Phase 2
+> **Goal**: Simple, workspace-centric agent memory — read-write, incremental, zero external dependencies.
+
+---
+
+## Thay đổi v2 (2026-05-02)
+
+> **Tại sao update?** Research 2026 cho thấy industry đã chuyển từ complex RAG pipelines sang simple workspace files:
+> - Claude Code: `CLAUDE.md` + Auto Memory (agent self-writes)
+> - Cursor: `.cursor/rules/` (modular markdown)
+> - Codex: `AGENTS.md` + `SKILL.md`
+> - Mem0: Lightweight read-write memory
+>
+> **Trend rõ ràng: Simple > Complex.** Không cần Obsidian vault, không cần GitNexus MCP bridge.
+
+### Gỡ bỏ
+
+| Component | Lý do gỡ |
+|-----------|----------|
+| **Obsidian Bridge** | Human knowledge đã sống trong workspace: `GEMINI.md`, `.agent/skills/`, `.agent/workflows/`. Không cần external vault |
+| **GitNexus Bridge** | External dependency phức tạp. Agent có thể dùng built-in grep/view_file cho structural queries. Co-change patterns giữ lại trong custom git-context |
+| **Complex RAG pipeline** | 4 processors song song → overkill. 2 processors đơn giản đủ |
+
+### Thêm mới
+
+| Component | Lý do |
+|-----------|-------|
+| **`update_memory` MCP tool** | Agent write-back — 2026 standard. Agent tự ghi learnings |
+| **Incremental scan** | Diff-based update thay vì full re-generate |
+| **Relationship-aware output** | Co-change patterns hiển thị dạng "A ←→ B (always change together)" |
+
+---
+
+## 1. Nguyên tắc (giữ nguyên, validated by 2026)
+
+```
+1. INTELLIGENCE SỐNG TRONG WORKSPACE
+   → .agent/workspace-memory.md là "bộ nhớ" của agent
+   → File này đi theo workspace, không phụ thuộc server hay external tools
+
+2. SERVER LÀ SIMPLE SCANNER
+   → Chỉ scan + transform khi tool scan_workspace được gọi
+   → KHÔNG CHẠY khi file đã tồn tại (guard clause)
+   → CHỈ CHẠY LẠI khi force_update: true
+
+3. AGENT CÓ THỂ WRITE BACK
+   → Agent ghi learnings vào workspace-memory.md qua update_memory tool
+   → Learnings persist across sessions — agent tự cải thiện
+
+4. ZERO EXTERNAL DEPENDENCIES
+   → Không cần Obsidian, GitNexus, vector DB, hay bất kỳ external service
+   → Chỉ dùng: git CLI + filesystem + Node.js built-ins
+```
+
+---
+
+## 2. Architecture (simplified)
+
+```
+┌─────────────────────────────────────────────────────┐
+│  Data Sources (built-in, zero dependencies)          │
+│                                                      │
+│  ┌──────────────┐  ┌──────────────┐                 │
+│  │ File Scanner  │  │ Git Context  │                 │
+│  │ (custom)      │  │ (custom)     │                 │
+│  │ File tree,    │  │ Co-change,   │                 │
+│  │ purposes,     │  │ hot files,   │                 │
+│  │ sizes         │  │ activity     │                 │
+│  └──────┬────────┘  └──────┬───────┘                │
+│         │                  │                         │
+│  ┌──────▼──────────────────▼────────────────────┐   │
+│  │  Memory Generator                             │   │
+│  │  - Combine sources → markdown                 │   │
+│  │  - Relationship-aware formatting              │   │
+│  │  - Preserve "Agent Learnings" section         │   │
+│  │  - Write .agent/workspace-memory.md           │   │
+│  └──────────────────────┬───────────────────────┘   │
+│                         │                            │
+│  ┌──────────────────────▼───────────────────────┐   │
+│  │  MCP Tools                                    │   │
+│  │  ├── scan_workspace  (generate/refresh)       │   │
+│  │  └── update_memory   (agent write-back) [NEW] │   │
+│  └──────────────────────────────────────────────┘   │
+│                                                      │
+│  Output: .agent/workspace-memory.md                  │
+│  3 tiers: Static + Dynamic + Procedural              │
+└─────────────────────────────────────────────────────┘
+```
+
+---
+
+## 3. Components
+
+### 3.1 File Scanner (giữ nguyên)
+
+**File**: `src/services/rag/file-scanner.ts`
+
+Scan workspace → file map + purpose detection + stats.
+Không thay đổi so với v1.
+
+### 3.2 Git Context Analyzer (giữ, simplified)
+
+**File**: `src/services/rag/git-context.ts`
+
+```typescript
+interface GitContext {
+  coChangePatterns: Array<{
+    fileA: string;
+    fileB: string;
+    count: number;
+    lastTogether: string;
+  }>;
+  hotFiles: Array<{
+    path: string;
+    commits: number;
+    lastModified: string;
+  }>;
+  recentActivity: Array<{
+    date: string;
+    files: string[];
+    message: string;
+  }>;
+}
+```
+
+**Thay đổi:** Bỏ `contributors` field (không cần cho single-dev). Guard nếu không phải git repo.
+
+### 3.3 Memory Generator (updated)
+
+**File**: `src/services/rag/memory-generator.ts`
+
+**Template mới** — 3-tier output:
+
+```markdown
+# Workspace Memory
+# Auto-generated by orchestrator. Last updated: {timestamp}
+# To refresh: call scan_workspace with force_update: true
+
+## Project Overview
+- Name: {packageJson.name}
+- Type: {detected_type}
+- Entry: {entryPoints}
+- Stack: {tech_stack}
+
+## File Map
+| Path | Purpose | Size | Modified |
+|------|---------|------|----------|
+{rows — max 50 files, sorted by relevance}
+
+## Architecture Relationships
+{co-change patterns formatted as relationships}
+- tools.ts ←→ state-manager.ts (co-change: 15x)
+  → Always modify together when changing task lifecycle
+- task-queue.ts → poll-helpers.ts (import dependency)
+  → poll-helpers is stateless, task-queue owns state
+
+## Hot Files (most active)
+| Path | Commits (30d) | Last Modified |
+|------|---------------|---------------|
+{top 10 most changed files}
+
+## Recent Activity (14 days)
+{recent commits timeline}
+
+## Agent Learnings
+<!-- This section is managed by the agent via update_memory tool -->
+<!-- Do NOT delete — learnings persist across scans -->
+{preserved learnings from previous scans}
+```
+
+**Key change:** `## Agent Learnings` section is **preserved** when re-scanning. Generator reads existing file, extracts learnings, appends to new output.
+
+### 3.4 MCP Tool: scan_workspace (updated)
+
+```typescript
+{
+  name: "scan_workspace",
+  inputSchema: z.object({
+    force_update: z.boolean().optional().default(false),
+  }),
+  handler: async ({ force_update }) => {
+    const memoryPath = path.join(workspacePath, '.agent', 'workspace-memory.md');
+
+    // Guard
+    if (fs.existsSync(memoryPath) && !force_update) {
+      const hoursAgo = (Date.now() - fs.statSync(memoryPath).mtimeMs) / 3600000;
+      return { status: 'CACHED', path: memoryPath, freshness: `${hoursAgo.toFixed(1)}h ago` };
+    }
+
+    // Preserve existing learnings
+    const existingLearnings = extractLearningsSection(memoryPath);
+
+    // Scan (2 sources only — simple)
+    const [fileData, gitData] = await Promise.all([
+      scanFiles(workspacePath),
+      analyzeGitContext(workspacePath),
+    ]);
+
+    // Generate + write (preserve learnings)
+    const markdown = generateMemory({ fileData, gitData, learnings: existingLearnings });
+    fs.mkdirSync(path.dirname(memoryPath), { recursive: true });
+    fs.writeFileSync(memoryPath, markdown);
+
+    return { status: 'GENERATED', path: memoryPath,
+      stats: { files: fileData.length, coChanges: gitData.coChangePatterns.length } };
+  }
+}
+```
+
+**Thay đổi vs v1:**
+- Bỏ `include_obsidian` + `obsidian_vault_path` params
+- Bỏ GitNexus query
+- Thêm `extractLearningsSection()` — preserve agent learnings across re-scans
+- Chỉ 2 processors thay vì 4
+
+### 3.5 [NEW] MCP Tool: update_memory
+
+```typescript
+{
+  name: "update_memory",
+  description: "Append a learning or pattern to workspace memory. " +
+    "Use when you discover something about the codebase that would help future sessions.",
+  inputSchema: z.object({
+    content: z.string().describe("What you learned (1-2 lines)"),
+    source: z.string().optional().describe("Where you learned it, e.g. 'task EV08'"),
+  }),
+  handler: async ({ content, source }) => {
+    const memoryPath = path.join(workspacePath, '.agent', 'workspace-memory.md');
+
+    if (!fs.existsSync(memoryPath)) {
+      return { status: 'NO_MEMORY_FILE', hint: 'Call scan_workspace first' };
+    }
+
+    const existing = fs.readFileSync(memoryPath, 'utf-8');
+    const timestamp = new Date().toISOString().slice(0, 10);
+    const sourceTag = source ? ` [source: ${source}]` : '';
+    const entry = `- ${content}${sourceTag} (${timestamp})`;
+
+    // Append to "## Agent Learnings" section
+    if (existing.includes('## Agent Learnings')) {
+      const updated = existing.replace(
+        '## Agent Learnings',
+        `## Agent Learnings\n${entry}`
+      );
+      fs.writeFileSync(memoryPath, updated);
+    } else {
+      fs.appendFileSync(memoryPath, `\n\n## Agent Learnings\n${entry}\n`);
+    }
+
+    return { status: 'SAVED', entry };
+  }
+}
+```
+
+---
+
+## 4. File Structure (simplified)
+
+```
+src/services/rag/
+├── file-scanner.ts          ← File tree + purpose detection
+├── git-context.ts           ← Git co-change + hot files + activity
+├── memory-generator.ts      ← Template → markdown combiner (preserves learnings)
+└── index.ts                 ← Re-export
+
+REMOVED (vs v1):
+├── gitnexus-bridge.mjs      ❌ Removed — external dependency
+├── obsidian-bridge.mjs      ❌ Removed — external dependency
+```
+
+---
+
+## 5. Memory Lifecycle (3-tier)
+
+```
+Tier 1 — Static Knowledge (auto-generated by scan_workspace)
+  ├── Project Overview
+  ├── File Map
+  ├── Architecture Relationships (co-change patterns)
+  ├── Hot Files
+  └── Recent Activity
+  → Refreshed by scan_workspace (on-demand)
+
+Tier 2 — Dynamic Knowledge (agent-written via update_memory)
+  └── Agent Learnings
+      - "tools.ts and state-manager.ts always change together" [EV08]
+      - "npm run build requires clean dist/ first" [EV05]
+      - "Zod schemas defined in types.ts, not inline" [EV03]
+  → Persists across re-scans
+  → Agent appends during work sessions
+
+Tier 3 — Procedural Knowledge (human curated, read on-demand)
+  .agent/skills/         ← How to do things
+  .agent/workflows/      ← Step-by-step procedures
+  GEMINI.md              ← Project rules
+  → NOT in workspace-memory.md — loaded separately by reference
+```
+
+---
+
+## 6. Flowchart (simplified)
+
+```
+Agent session start
+    │
+    ├── Check .agent/workspace-memory.md exists?
+    │   ├── YES → Read file (Tier 1 + Tier 2)
+    │   │         Size check: if > 30KB → read overview + relationships only
+    │   │
+    │   └── NO  → Call scan_workspace → generates file → read it
+    │
+    ├── During work:
+    │   └── Agent learns something useful → call update_memory
+    │       → Appends to "## Agent Learnings" section (Tier 2)
+    │
+    └── End of session:
+        └── Learnings saved in file → next session inherits them
+```
+
+---
+
+## 7. Performance Budget (simplified)
+
+| Operation | Target | Max |
+|-----------|--------|-----|
+| File scan (500 files) | 500ms | 2s |
+| Git co-change (200 commits) | 2s | 10s |
+| Memory generation | 100ms | 500ms |
+| update_memory (append) | 10ms | 100ms |
+| **Total scan_workspace** | **~3s** | **12s** |
+
+Faster than v1 (was ~4s target, ~20s max) — 2 processors instead of 4.
+
+---
+
+## 8. vs Industry Comparison
+
+| Feature | This Plan (v2) | Claude Auto Memory | Devin Wiki |
+|---------|---------------|-------------------|------------|
+| Read/Write | ✅ Both | ✅ Both | ✅ Both |
+| Agent self-writes | ✅ update_memory | ✅ Auto | ✅ Auto |
+| External deps | ❌ Zero | ❌ Zero | Cloud-only |
+| NL search | ❌ No | ❌ No | ✅ Deep Mode |
+| Auto-index | On-demand | ✅ Auto | ✅ Background |
+| Incremental | Planned (future) | ✅ Yes | ✅ Yes |
+| Complexity | Simple (2 processors) | Simple (harness-managed) | Complex (cloud infra) |
+
+**Trade-offs accepted:**
+- No NL search (agent uses grep/view_file — good enough)
+- No auto-index (on-demand scan — cheaper, simpler)
+- No vector embeddings (markdown text — agent reads directly)
+
+**Trade-offs worth it because:** Zero setup, zero dependencies, works offline, portable across machines.
+
+---
+
+## 9. Future Extensions (revised)
+
+| Extension | Priority | Note |
+|-----------|:---:|------|
+| **Incremental diff-based scan** | High | Compare git HEAD → only re-process changed files |
+| **Auto-refresh on git push** | Medium | Watch `.git/refs/heads/` → suggest re-scan |
+| **Agent learning dedup** | Medium | Prevent duplicate entries in Agent Learnings |
+| **Multi-workspace** | Low | 1 server, multiple memory files |
+| ~~Embedding-based search~~ | ~~Removed~~ | Overkill — grep/view_file sufficient |
+| ~~Obsidian integration~~ | ~~Removed~~ | Knowledge lives in workspace files |
+| ~~GitNexus integration~~ | ~~Removed~~ | External dependency, co-change patterns sufficient |

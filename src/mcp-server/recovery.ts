@@ -195,6 +195,8 @@ export class RecoveryManager {
           message: `Worker ${worker.id} stale for ${Math.round(elapsed / 1000)}s`
         });
 
+        this.stateManager.writeRecoverySignal(worker.id, worker.current_task, elapsed);
+
         this._handleStaleTask(worker);
       }
     }

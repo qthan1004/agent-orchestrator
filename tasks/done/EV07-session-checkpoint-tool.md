@@ -12,9 +12,9 @@
 
 Tạo MCP tool `session_checkpoint` — save/load/clear session state cho agent resume.
 
-### [NEW] `src/mcp-server/tools/session-checkpoint.mjs`
+### [NEW] `src/mcp-server/tools/session-checkpoint.ts`
 
-> Hoặc `.ts` nếu migration M01-M06 đã xong.
+> Migration M01-M08 đã hoàn thành — dùng TypeScript.
 
 **Logic:**
 
@@ -57,13 +57,13 @@ const SessionCheckpointInput = z.object({
 });
 ```
 
-**Tool registration:** Đăng ký trong `src/mcp-server/tools.mjs` (hoặc dedicated tools/index).
+**Tool registration:** Đăng ký trong `src/mcp-server/tools.ts`.
 
 ## Files
 | Action | Path |
 |--------|------|
-| NEW    | `src/mcp-server/tools/session-checkpoint.mjs` (hoặc `.ts`) |
-| MODIFY | `src/mcp-server/tools.mjs` (register tool) |
+| NEW    | `src/mcp-server/tools/session-checkpoint.ts` |
+| MODIFY | `src/mcp-server/tools.ts` (register tool) |
 
 ## Verification
 ```bash
@@ -73,8 +73,8 @@ const SessionCheckpointInput = z.object({
 ```
 
 ## Done Criteria
-- [ ] `session_checkpoint` tool registered và callable qua MCP
-- [ ] `save` ghi `.agent/session.json` đúng format
-- [ ] `load` đọc và trả về session data
-- [ ] `load` khi không có file → `{ status: "no_session" }`
-- [ ] `clear` xóa file → `{ status: "cleared" }`
+- [x] `session_checkpoint` tool registered và callable qua MCP
+- [x] `save` ghi `.agent/session.json` đúng format
+- [x] `load` đọc và trả về session data
+- [x] `load` khi không có file → `{ status: "no_session" }`
+- [x] `clear` xóa file → `{ status: "cleared" }`

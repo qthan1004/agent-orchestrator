@@ -17,8 +17,17 @@ export const TOOL_NAMES = {
   GET_TEMPLATE: "get_template",
   PING: "ping",
   SCAN_WORKSPACE: "scan_workspace",
+  SESSION_CHECKPOINT: "session_checkpoint",
 } as const;
 export type ToolNameValue = (typeof TOOL_NAMES)[keyof typeof TOOL_NAMES];
+
+export const SESSION_STATUS = {
+  SAVED: "saved",
+  LOADED: "loaded",
+  NO_SESSION: "no_session",
+  CLEARED: "cleared",
+} as const;
+export type SessionStatusValue = (typeof SESSION_STATUS)[keyof typeof SESSION_STATUS];
 
 /**
  * Các loại tín hiệu cơ bản từ OS.
@@ -66,6 +75,7 @@ export const DIR_NAMES = {
   OUTBOX: "outbox",
   CHECKPOINTS: "checkpoints",
   LOGS: "logs",
+  SIGNALS: "signals",
   TEMPLATES: "templates",
   PLAN: "plan",
   TASKS: "tasks",

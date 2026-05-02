@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs';
 import { readJSON, writeJSON, moveFile, listFiles, ensureDir, readFile } from '../utils/file-backend.js';
 import { TaskQueue, type TaskQueueStatus } from './task-queue.js';
-import { TASK_STATUS, FILE_PREFIXES, STATE_EVENTS, RECOVERY_DEFAULTS, type TaskStatusValue } from '../constants.js';
+import { TASK_STATUS, FILE_PREFIXES, STATE_EVENTS, RECOVERY_EVENTS, RECOVERY_DEFAULTS, type TaskStatusValue } from '../constants.js';
 import type { AppConfig, TaskDef, TaskGraph, TaskResult } from '../models/index.js';
 import type { Logger } from '../utils/logger.js';
 
@@ -456,6 +456,24 @@ export class StateManager {
       }
     } catch (_) {
       // Non-critical — ignore rotation errors
+    }
+  }
+
+  writeRecoverySignal(workerId: string, taskId: string | null, elapsedMs: number): void {
+    ensureDir(this.config.exchange.signals);
+    const signalPath = path.join(this.config.exchange.signals, 'recovery-needed.json');
+    writeJSON(signalPath, {
+      worker_id: workerId,
+      last_task: taskId,
+      stale_since: new Date(Date.now() - elapsedMs).toISOString(),
+      resume_hint: "check .agent/session.json",
+      created_at: new Date().toISOString()
+    });
+
+    if (this.logger) {
+      this.logger.log(RECOVERY_EVENTS.STALE_WORKER_DETECTED, {
+        message: `Recovery signal written for worker ${workerId}`
+      });
     }
   }
 }

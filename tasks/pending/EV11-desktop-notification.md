@@ -12,9 +12,9 @@
 
 Thêm desktop notification khi brain watcher detect STUCK session.
 
-### [NEW] `src/agents/antigravity/notifications.mjs`
+### [NEW] `src/agents/antigravity/notifications.ts`
 
-> Hoặc `.ts` nếu migration xong.
+> Migration M01-M08 đã hoàn thành — dùng TypeScript.
 
 **Cross-platform notification:**
 
@@ -57,9 +57,9 @@ Gọi `notifyStuck()` từ brain watcher khi status chuyển sang STUCK.
 ## Files
 | Action | Path |
 |--------|------|
-| NEW    | `src/agents/antigravity/notifications.mjs` (hoặc `.ts`) |
-| MODIFY | `package.json` — thêm `node-notifier` |
-| MODIFY | `src/agents/antigravity/brain-watcher.mjs` — import + call |
+| NEW    | `src/agents/antigravity/notifications.ts` |
+| MODIFY | `package.json` — thêm `node-notifier` + `@types/node-notifier` |
+| MODIFY | `src/agents/antigravity/brain-watcher.ts` — import + call |
 
 ## Verification
 ```bash

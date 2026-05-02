@@ -12,7 +12,7 @@
 
 Enhance state-manager để tự ghi recovery signal khi phát hiện worker stale.
 
-### [MODIFY] `src/mcp-server/state-manager.mjs`
+### [MODIFY] `src/mcp-server/state-manager.ts`
 
 **Thêm logic vào auto-kill/stale detection:**
 
@@ -39,8 +39,8 @@ Tạo directory nếu chưa tồn tại (bootstrap).
 ## Files
 | Action | Path |
 |--------|------|
-| MODIFY | `src/mcp-server/state-manager.mjs` (hoặc `.ts`) |
-| MODIFY | `src/utils/bootstrap.mjs` — thêm `exchange/signals` vào bootstrap dirs |
+| MODIFY | `src/mcp-server/state-manager.ts` |
+| MODIFY | `src/utils/bootstrap.ts` — thêm `exchange/signals` vào bootstrap dirs |
 
 ## Verification
 ```bash
@@ -50,7 +50,7 @@ Tạo directory nếu chưa tồn tại (bootstrap).
 ```
 
 ## Done Criteria
-- [ ] `exchange/signals/` directory tồn tại sau bootstrap
-- [ ] Recovery signal file written khi worker stale > threshold
-- [ ] Signal file chứa đúng fields
-- [ ] Không ảnh hưởng logic stale detection hiện tại
+- [x] `exchange/signals/` directory tồn tại sau bootstrap
+- [x] Recovery signal file written khi worker stale > threshold
+- [x] Signal file chứa đúng fields
+- [x] Không ảnh hưởng logic stale detection hiện tại

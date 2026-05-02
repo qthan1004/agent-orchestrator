@@ -18,7 +18,7 @@ Integrate brain watcher vào orchestrator ecosystem:
 
 ```diff
   "scripts": {
-+   "watch:ag": "node src/agents/antigravity/brain-watcher.mjs",
++   "watch:ag": "npx tsx src/agents/antigravity/brain-watcher.ts",
     ...
   }
 ```
@@ -28,8 +28,8 @@ Integrate brain watcher vào orchestrator ecosystem:
 Nếu muốn chạy cùng MCP server (không bắt buộc Phase 3):
 
 ```typescript
-// src/mcp-server/index.mjs
-import { startBrainWatcher } from '../agents/antigravity/brain-watcher.mjs';
+// src/mcp-server/index.ts
+import { startBrainWatcher } from '../agents/antigravity/brain-watcher.js';
 
 // Start brain watcher alongside MCP server
 if (process.env.AG_BRAIN_WATCHER !== 'false') {
@@ -41,8 +41,8 @@ if (process.env.AG_BRAIN_WATCHER !== 'false') {
 | Action | Path |
 |--------|------|
 | MODIFY | `package.json` — thêm script `watch:ag` |
-| MODIFY | `src/agents/antigravity/brain-watcher.mjs` — export `startBrainWatcher()` |
-| OPTIONAL | `src/mcp-server/index.mjs` — import brain watcher |
+| MODIFY | `src/agents/antigravity/brain-watcher.ts` — export `startBrainWatcher()` |
+| OPTIONAL | `src/mcp-server/index.ts` — import brain watcher |
 
 ## Verification
 ```bash

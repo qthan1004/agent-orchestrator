@@ -21,6 +21,7 @@ export function bootstrapDirectories(config: AppConfig): BootstrapResult {
     config.exchange.outbox,
     config.exchange.checkpoints,
     config.exchange.logs,
+    config.exchange.signals,
 
     // plan/ tree (state machine: pending → processing → done)
     config.plans.base,
