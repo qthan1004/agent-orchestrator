@@ -36,6 +36,7 @@ Signals checked on 2026-05-02:
 |-------|----------------|---------------------|
 | Server | Scan workspace, parse configs/imports/git, build `manifest.json`, build `relations.json`, regenerate startup kernel, compact stale/duplicate memory, enforce budgets. | Deciding task intent or reading arbitrary source files during a coding task. |
 | Agent | Read startup kernel, call `memory_lookup`, inspect narrowed source files, call `update_memory` when it learns a durable fact/decision/pitfall. | Manually crawling the whole repo, maintaining hashes, deduping every memory entry by hand. |
+| Local Worker (Phase 2) | Consume server-prepared memory bundle, execute one task, emit changelog and `memory_candidates` in its report. | Calling `update_memory`, mutating `.agent/memory/`, reading queue/state folders, or promoting its own learnings to durable memory. |
 | Human | Curate project rules, approve architecture direction, review memory when needed. | Re-explaining stable repo context every session. |
 
 ---
@@ -215,6 +216,29 @@ memory_lookup
   -> query by path/topic/free text
   -> returns compact pointers + relation cards
 ```
+
+### 2.1 Phase 2 Hybrid Integration
+
+For Hybrid mode, memory follows the Head-Body-Limb boundary:
+
+```text
+Server dispatch preflight
+  -> inspect task action/paths/topic
+  -> run memory_lookup internally
+  -> inject compact memory_bundle into worker stdin
+
+Local Worker
+  -> reads only injected task + memory_bundle
+  -> edits workspace files
+  -> returns changelog + memory_candidates
+  -> never calls update_memory
+
+Planner/Server review
+  -> validates worker report
+  -> promotes useful memory_candidates through update_memory
+```
+
+`memory_candidates` are suggestions, not durable memory. This protects the memory store from low-confidence local-worker mistakes while still capturing useful discoveries from execution.
 
 ---
 
@@ -453,9 +477,11 @@ During task
   -> Use `memory_lookup` for topic/path/relation
   -> Inspect narrowed source files
   -> If a reusable lesson is discovered, call `update_memory`
+  -> In Phase 2 Hybrid, local workers do not call `memory_lookup` or `update_memory`; the server injects memory and workers report `memory_candidates`
 
 After task
   -> Save only durable facts, decisions, pitfalls, relation updates, or compact episode summary
+  -> Promote worker `memory_candidates` only after Planner/Server review
   -> Do not store full chat transcript in workspace memory
 
 Periodic
@@ -507,6 +533,8 @@ Do **not** add vector DB or full graph DB now. The repo is small enough for loca
 - Relation-heavy areas are expressed as relation cards with `alsoInspect`.
 - Full file map no longer lives in startup memory.
 - `update_memory` can add, merge, replace, supersede, and delete.
+- Phase 2 local workers cannot call `update_memory`; they only emit `memory_candidates` in reports.
+- Server can build a compact `memory_bundle` before spawning a local worker.
 - Duplicate memory does not accumulate after repeated tasks.
 - Re-scan preserves agent-managed memory.
 - Fast scan only reprocesses changed files using `manifest.json`.
