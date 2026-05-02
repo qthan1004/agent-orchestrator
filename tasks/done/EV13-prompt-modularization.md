@@ -55,9 +55,9 @@ cat .agent/skills/planner-protocol/SKILL.md | head -5
 ```
 
 ## Done Criteria
-- [ ] Section P extracted to `.agent/skills/planner-protocol/SKILL.md`
-- [ ] Appendix A extracted to `.agent/skills/task-quality/SKILL.md`
-- [ ] Core prompt ≤ 300 lines
-- [ ] Core prompt references skills with clear load instructions
-- [ ] Worker agents skip planner skills entirely (no unnecessary reads)
-- [ ] Planner agents still have full decomposition protocol available
+- [x] Section P extracted to `.agent/skills/planner-protocol/SKILL.md`
+- [x] Appendix A extracted to `.agent/skills/task-quality/SKILL.md`
+- [x] Core prompt ≤ 300 lines
+- [x] Core prompt references skills with clear load instructions
+- [x] Worker agents skip planner skills entirely (no unnecessary reads)
+- [x] Planner agents still have full decomposition protocol available

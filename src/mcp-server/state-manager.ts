@@ -292,7 +292,7 @@ export class StateManager {
    * Increments retry_count in the file before moving to inbox.
    * Returns the new retry count.
    */
-  requeueWithRetry(taskId: string): number {
+  requeueWithRetry(taskId: string, workspaceRoot?: string): number {
     // Find and increment retry_count in the task file
     const dirs = [this.config.exchange.active, this.config.exchange.outbox];
     let newRetryCount = 1;
@@ -303,6 +303,22 @@ export class StateManager {
       if (data) {
         newRetryCount = (data.retry_count || 0) + 1;
         data.retry_count = newRetryCount;
+
+        // Attach error_context from session.json if available
+        if (workspaceRoot) {
+          const sessionPath = path.join(workspaceRoot, '.agent', 'session.json');
+          try {
+            if (fs.existsSync(sessionPath)) {
+              const sessionData = JSON.parse(fs.readFileSync(sessionPath, 'utf-8'));
+              if (sessionData.error_context && sessionData.task_id === taskId) {
+                data.error_context = sessionData.error_context;
+              }
+            }
+          } catch {
+            // Non-critical: session read failure shouldn't block requeue
+          }
+        }
+
         writeJSON(filePath, data);
         break;
       }

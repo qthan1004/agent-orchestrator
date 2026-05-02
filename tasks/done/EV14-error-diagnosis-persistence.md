@@ -76,9 +76,9 @@ npm run build
 ```
 
 ## Done Criteria
-- [ ] SessionDataV2 interface with typed error_context
-- [ ] Zod schema validates session data
-- [ ] Backward compatible (v1 sessions still loadable)
-- [ ] requeueWithRetry preserves error_context
-- [ ] Prompt updated with error context usage instructions
-- [ ] Build passes with no type errors
+- [x] SessionDataV2 interface with typed error_context
+- [x] Zod schema validates session data
+- [x] Backward compatible (v1 sessions still loadable)
+- [x] requeueWithRetry preserves error_context
+- [x] Prompt updated with error context usage instructions
+- [x] Build passes with no type errors

@@ -8,6 +8,7 @@ import { PlanWatcher } from './plan-watcher.js';
 import { workerRegistry } from '../utils/worker-registry.js';
 import { Logger } from '../utils/logger.js';
 import { bootstrapDirectories } from '../utils/bootstrap.js';
+import { startBrainWatcher, stopBrainWatcher } from '../agents/antigravity/brain-watcher.js';
 import type { AppConfig, ServerContext } from '../models/index.js';
 
 export async function startServer(config: AppConfig): Promise<void> {
@@ -61,6 +62,11 @@ export async function startServer(config: AppConfig): Promise<void> {
     intervalMs: planWatcherIntervalMs
   });
   planWatcher.start();
+
+  // Start brain watcher alongside MCP server
+  if (process.env.AG_BRAIN_WATCHER !== 'false') {
+    startBrainWatcher();
+  }
 
   // Pass workerRegistry via context for DI (tools.ts uses it from here)
   const context: ServerContext = { stateManager, workerRegistry, logger, config, recoveryManager, planWatcher };
@@ -138,6 +144,10 @@ export async function startServer(config: AppConfig): Promise<void> {
 
     // Stop plan watcher
     planWatcher.stop();
+    
+    if (process.env.AG_BRAIN_WATCHER !== 'false') {
+      stopBrainWatcher();
+    }
 
     // Clear all workers since server is dying
     workerRegistry.clearAll();

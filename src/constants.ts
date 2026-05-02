@@ -29,6 +29,13 @@ export const SESSION_STATUS = {
 } as const;
 export type SessionStatusValue = (typeof SESSION_STATUS)[keyof typeof SESSION_STATUS];
 
+export const SESSION_ACTION = {
+  SAVE: "save",
+  LOAD: "load",
+  CLEAR: "clear",
+} as const;
+export type SessionActionValue = (typeof SESSION_ACTION)[keyof typeof SESSION_ACTION];
+
 /**
  * Các loại tín hiệu cơ bản từ OS.
  */

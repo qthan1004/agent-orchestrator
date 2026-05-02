@@ -360,8 +360,8 @@ export function registerTools(server: McpServer, context: ServerContext): void {
           }) }] };
         }
 
-        // Under retry limit → requeue to inbox
-        const newRetryCount = stateManager.requeueWithRetry(task_id);
+        const workspaceRoot = context.config.workspaceRoot || context.config.root;
+        const newRetryCount = stateManager.requeueWithRetry(task_id, workspaceRoot);
         worker.current_task = null;
         // Don't increment tasks_completed for failed/blocked tasks
         
@@ -744,12 +744,28 @@ export function registerTools(server: McpServer, context: ServerContext): void {
   server.registerTool(
     TOOL_NAMES.SESSION_CHECKPOINT,
     {
-      description: "Save, load, or clear session state for agent resume.",
+      description: "Save, load, or clear session state for agent resume. Supports v2 schema with error_context for intelligent retry.",
       inputSchema: {
         action: z.enum(['save', 'load', 'clear']).describe("Action to perform"),
-        task_id: z.string().optional().describe("Task ID (optional)"),
-        progress: z.number().min(0).max(100).optional().describe("Progress percentage (optional)"),
-        context: z.record(z.string(), z.unknown()).optional().describe("Arbitrary context data (optional)"),
+        task_id: z.string().optional().describe("Task ID"),
+        phase: z.enum(['pre-flight', 'implementation', 'verification', 'done']).optional()
+          .describe("Current phase of the task"),
+        files_changed: z.array(z.string()).optional()
+          .describe("Files created or modified this session"),
+        done_criteria_status: z.record(z.string(), z.boolean()).optional()
+          .describe("Map of criterion → boolean"),
+        last_action: z.string().optional()
+          .describe("Human-readable description of last completed action"),
+        error_context: z.object({
+          error: z.string(),
+          hypothesis: z.string(),
+          attempted_fix: z.string(),
+          retry_count: z.number(),
+        }).nullable().optional()
+          .describe("Error diagnosis from a failed attempt (null if no error)"),
+        // Legacy v1 fields (backward compat)
+        progress: z.number().min(0).max(100).optional().describe("(Legacy v1) Progress percentage"),
+        context: z.record(z.string(), z.unknown()).optional().describe("(Legacy v1) Arbitrary context data"),
       }
     },
     async (input) => {
