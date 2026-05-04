@@ -1,17 +1,74 @@
-# Task Board — 2026-04-21T23:01:00
+# Task Board — 2026-05-04T10:54:00
 
 | Status | Count |
 |--------|-------|
-| ⬜ Pending | 8 |
+| ⬜ Pending | 30 |
 | 🔄 Processing | 0 |
 | ✅ Done | 52 |
-| **Total** | **60** |
+| **Total** | **82** |
 
-Progress: 52/60 (87%)
+Progress: 52/82 (63%)
 
 ---
 
-## ⬜ Pending — Evolution & Local Brain (EV-series)
+## ⬜ Pending — Phase 2: Hybrid Agentic Architecture (P2-series) ⭐ PRIORITY
+
+> Ref: `dev-docs/plan_phase2-hybrid-architecture.md` + `dev-docs/2026-05-04_research_exchange-placement-3tier-architecture.md`
+> Prefix: `P2` = Phase 2 task
+> Includes: 3-Tier refactor (Sprint 0) merged into Phase 2
+
+### Sprint 0: 3-Tier Infrastructure
+- `P2-00-config-model-refactor.md` → no deps — AppConfig split + runtimeRoot
+- `P2-01-runtime-directory-bootstrap.md` → depends P2-00 — `~/.orchestrator/` structure
+- `P2-02-workspace-registration.md` → depends P2-01 — WorkspaceRegistry + register_worker
+- `P2-03-statemanager-path-migration.md` → depends P2-00, P2-02 — workspace-scoped paths
+- `P2-04-planwatcher-multiworkspace.md` → depends P2-02, P2-03 — multi-workspace + result sync
+
+### Sprint 1: Ollama + Process Management
+- `P2-05-ollama-client.md` → no deps — Ollama REST API wrapper
+- `P2-06-worker-process-manager.md` → no deps — spawn/kill subprocess
+- `P2-07-model-selector.md` → depends P2-05 — Quality/Throughput selection
+- `P2-08-server-profiles.md` → depends P2-00 — DEFAULT vs HYBRID mode
+
+### Sprint 2: Agent Runner Core
+- `P2-09-tool-executor.md` → no deps — workspace-sandboxed tool execution
+- `P2-10-token-counter.md` → no deps — context window tracking
+- `P2-11-agent-runner-skeleton.md` → depends P2-05, P2-09, P2-10 — one-shot executor
+- `P2-12-worker-prompt-system.md` → depends P2-11 — SKILL.md prompt pattern
+- `P2-13-agent-runner-reflexion.md` → depends P2-11 — bounded reflexion loop
+
+### Sprint 3: Server Dispatch Integration
+- `P2-14-task-dispatch-loop.md` → depends P2-03, P2-06, P2-07 — main server loop
+- `P2-15-vram-manager.md` → depends P2-05, P2-07 — VRAM lifecycle
+- `P2-16-server-hybrid-integration.md` → depends P2-08, P2-14, P2-15 — wire into server
+- `P2-17-git-worktree.md` → depends P2-06 — branch isolation
+
+### Sprint 4: Polish + E2E
+- `P2-18-unified-checkpoint.md` → depends P2-13 — unified checkpoint format
+- `P2-19-mandatory-changelog.md` → depends P2-12, P2-13 — worker changelog
+- `P2-20-e2e-integration.md` → depends P2-16 — full E2E tests
+- `P2-21-readme-docs-update.md` → depends P2-20 — README + docs
+
+---
+
+## ⬜ Pending — Workspace Memory Pipeline (WM-series) — DEFERRED
+
+> Ref: `dev-docs/plan_workspace-memory-pipeline.md`
+> Prefix: `WM` = Workspace Memory task
+> Status: **DEFERRED** — not blocking Phase 2, will be addressed after P2 stable
+
+- `WM01-rag-service-scaffold.md` — Phase 4 scope
+- `WM02-file-scanner-refactor.md` — improve later
+- `WM03-git-context-analyzer.md` — Phase 4 scope
+- `WM04-memory-generator.md` — Phase 4 scope
+- `WM05-scan-workspace-v2.md` — improve later
+- `WM06-update-memory-tool.md` — Phase 4 scope
+- `WM07-prompt-memory-lifecycle.md` — post Phase 2
+- `WM08-e2e-verification.md` — post Phase 2
+
+---
+
+## ✅ Done — Evolution & Local Brain (EV-series)
 
 > Ref: `dev-docs/plan_evolution-and-local-brain.md`
 > Prefix: `EV` = Evolution task
@@ -24,15 +81,15 @@ Progress: 52/60 (87%)
 - `EV05-browser-prompting.md` ✅
 
 ### Group 2: Workspace Memory Injection (Phase 2 — new MCP tools)
-- `EV06-scan-workspace-tool.md` → depends on EV01 — `scan_workspace` MCP tool
-- `EV07-session-checkpoint-tool.md` → depends on EV01 — `session_checkpoint` MCP tool
-- `EV08-stale-recovery-enhancement.md` → depends on EV07 — state-manager recovery signals
-- `EV09-agent-prompt-session.md` → depends on EV06, EV07 — prompt template + Session Protocol
+- `EV06-scan-workspace-tool.md` ✅
+- `EV07-session-checkpoint-tool.md` ✅
+- `EV08-stale-recovery-enhancement.md` ✅
+- `EV09-agent-prompt-session.md` ✅
 
 ### Group 3: Brain Watcher (Phase 3 — AG-specific)
-- `EV10-brain-watcher-service.md` → depends on EV08 — .pb poll + stuck detection
-- `EV11-desktop-notification.md` → depends on EV10 — node-notifier integration
-- `EV12-brain-watcher-integration.md` → depends on EV10, EV11 — npm script + optional server embed
+- `EV10-brain-watcher-service.md` ✅
+- `EV11-desktop-notification.md` ✅
+- `EV12-brain-watcher-integration.md` ✅
 
 > **Phase 4** (Local RAG) → Separate plan: `dev-docs/plan_local-rag-gitnaxus-obsidian.md`
 > **Phase 5** (Semi-Auto Recovery) → DEFERRED, implement after Phase 1-4 stable
