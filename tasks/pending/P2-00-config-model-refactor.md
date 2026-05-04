@@ -8,6 +8,14 @@
 - **Priority:** 1
 - **Ref:** `dev-docs/2026-05-04_research_exchange-placement-3tier-architecture.md`
 
+## Constraints (Always-on Skills)
+
+> These rules are **non-negotiable**. Violating any = task rejection.
+
+- **strict-scope**: Do ONLY what this task specifies. No extra refactoring, tests, or improvements.
+- **safe-deletion**: NEVER delete files without explicit user permission.
+- **folder-convention**: Source code in src/. Dev docs in dev-docs/. Tasks in tasks/. Never mix product and dev folders.
+
 ## What to do
 
 Tách `AppConfig` thành `GlobalConfig` (workers, logs, server) + `WorkspaceConfig` (pipeline, queue, plans). Thêm `runtimeRoot` config (mặc định `~/.orchestrator/`). `loadConfig()` resolve exchange paths từ `runtimeRoot` thay vì `root`. Thêm `workspaceId` (hash từ workspace path).

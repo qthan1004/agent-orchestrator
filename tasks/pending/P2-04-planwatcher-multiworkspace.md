@@ -8,6 +8,14 @@
 - **Priority:** 5
 - **Ref:** `dev-docs/2026-05-04_research_exchange-placement-3tier-architecture.md`
 
+## Constraints (Always-on Skills)
+
+> These rules are **non-negotiable**. Violating any = task rejection.
+
+- **strict-scope**: Do ONLY what this task specifies. No extra refactoring, tests, or improvements.
+- **safe-deletion**: NEVER delete files without explicit user permission.
+- **folder-convention**: Source code in src/. Dev docs in dev-docs/. Tasks in tasks/. Never mix product and dev folders.
+
 ## What to do
 
 PlanWatcher quét registered workspaces. complete_task ghi results ngược workspace.

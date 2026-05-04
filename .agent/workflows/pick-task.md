@@ -30,36 +30,57 @@ Key sections:
 - **Verification** — Commands to run after completion
 - **Done Criteria** — Completion checklist
 
-### 3. Execute task
+### 3. Enforce Skills (MANDATORY — before ANY code change)
+
+Before writing any code, activate ALL always-on skills. These are **non-negotiable constraints**:
+
+| Skill | Rule | Violation = |
+|-------|------|-------------|
+| **strict-scope** | Do ONLY what the task says. Before every action ask: "Did the task request this?" If NO → don't do it. | Adding unrequested refactoring, tests, cleanup, or "improvements" |
+| **safe-deletion** | NEVER delete files/dirs without explicit user permission. `SafeToAutoRun: false` for destructive commands. | Using `rm`, `rm -rf`, overwriting files not listed in task |
+| **folder-convention** | Product folders (`plan/`, `exchange/`, `prompts/`) ≠ Dev folders (`dev-docs/`, `tasks/`, `.agent/`). Never mix. | Putting dev plans in `plan/pending/`, putting tasks in `exchange/` |
+
+**Self-check before each file change:**
+1. ✅ Is this file listed in the task's **Files** section?
+2. ✅ Am I creating/modifying only what the task specifies?
+3. ✅ Am I NOT deleting anything without permission?
+4. ✅ Am I writing to the correct folder type (product vs dev)?
+
+If ANY answer is NO → **STOP and ask the user.**
+
+### 4. Execute task
 
 Follow the **What to do** section exactly:
-- Create/modify files listed in **Files**
-- Stay in scope — do NOT add anything beyond requirements (ref: skill `strict-scope`)
+- Create/modify ONLY files listed in **Files**
+- Stay in scope — do NOT add anything beyond requirements
+- If task requires deleting files → ask user first (safe-deletion)
+- If unsure about scope → ask user (strict-scope)
 
-### 4. Verify results
+### 5. Verify results
 
 Run verification commands from the task file.
-- **PASS** → proceed to step 5
-- **FAIL** → go back to step 3, debug and fix
+- **PASS** → proceed to step 6
+- **FAIL** → go back to step 4, debug and fix
 
-### 5. Mark Done Criteria
+### 6. Mark Done Criteria
 
 Review the **Done Criteria** checklist. Tick `[x]` for each completed item.
 
-### 6. Complete task — move to done
+### 7. Complete task — move to done
 // turbo
 ```bash
 node .agent/tools/complete-task.mjs
 ```
 → Moves file from `tasks/processing/` to `tasks/done/`.
 
-### 7. Report
+### 8. Report
 
 Print a brief summary:
 ```
 ✅ Task <filename> completed.
 - Files changed: <list>
 - Verification: PASSED
+- Skills enforced: strict-scope ✅ | safe-deletion ✅ | folder-convention ✅
 ```
 
 > **Note**: To pick the next task, run `/pick-task` again.

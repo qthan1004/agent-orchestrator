@@ -8,6 +8,14 @@
 - **Priority:** 13
 - **Ref:** `dev-docs/plan_phase2-hybrid-architecture.md` Addendum Update 4
 
+## Constraints (Always-on Skills)
+
+> These rules are **non-negotiable**. Violating any = task rejection.
+
+- **strict-scope**: Do ONLY what this task specifies. No extra refactoring, tests, or improvements.
+- **safe-deletion**: NEVER delete files without explicit user permission.
+- **folder-convention**: Source code in src/. Dev docs in dev-docs/. Tasks in tasks/. Never mix product and dev folders.
+
 ## What to do
 
 Create `UnifiedCheckpoint` interface shared by IDE agent and local LLM worker.
