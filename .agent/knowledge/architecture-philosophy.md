@@ -5,26 +5,42 @@
 The Orchestrator is a pure state machine for task distribution. It has **zero knowledge** of task content or target project tech stack.
 
 **Its only responsibilities:**
-- Move state files between `inbox/` → `active/` → `outbox/`
+- Manage task lifecycle (pending → dispatched → complete/failed)
 - DAG resolution: auto-unlock tasks when dependencies complete
-- Worker management: detect crash/timeout, reclaim and requeue tasks
+- Worker management: spawn subprocess, detect crash/timeout, requeue
+- Memory injection: load relevant context for worker before dispatch
 
-The Orchestrator works for any project — React, Node, a factory management system — everything is just graphs and data streams. **Never** put target-project business logic in the Orchestrator codebase.
+The Orchestrator works for any project — React, Node, Go, a factory management system — everything is just graphs and data streams. **Never** put target-project business logic in the Orchestrator codebase.
 
-## 2. Workspace-Root is the World
+## 2. Server-Centric Unidirectional Data Flow (Phase 2)
 
-All truth, conventions, and structure live entirely at the target project's `workspace-root`.
+```
+Server (Head) → dispatches task + memory bundle → Agent Runner (Body) → executes → reports back
+```
 
-- Orchestrator stores no project knowledge internally
-- Project knowledge (like this file) must live in `.agent/knowledge/` inside the target workspace
-- This makes the Orchestrator fully stateless relative to any project. Zero coupling.
+- **Server**: Owns state, schedules work, manages workers
+- **Agent Runner**: One-shot executor (stdin → LLM → tools → notify → exit)
+- **Workers**: Ephemeral subprocesses, no loop, no queue access
+- Communication: stdin/stdout + HTTP (language-agnostic)
 
-## 3. Intelligence Lives in Agents
+## 3. Intelligence Lives in Agents (via LLM)
 
-All intelligence comes from **Agents** (Planner & Worker) via LLM.
+All intelligence comes from **LLM-powered Agents** (Planner & Worker).
 
-- Agents are "workers" who pick up tasks from the Orchestrator
-- When receiving a task, agents don't invent code — they read existing code and scan `.agent/knowledge/` to learn the project's rules and stack
-- Only after this pre-flight do they start writing code
+- Agents receive task + context bundle from server
+- Agents read workspace skills from `reference/skills/` to learn project conventions
+- Post-task reflections saved to global case-bank for future learning
+- Reflexion loop: max 2 retries on error, then checkpoint + exit
 
-> **Ideal scenario**: If a Planner enters a blank project with no `.agent/knowledge/`, it should auto-scan `package.json`, read `src/`, and **generate** these knowledge files for subsequent Workers to follow. Fully self-routing and self-learning.
+## 4. Multi-Workspace by Design
+
+- Global state: `~/.orchestrator/` (config, case-bank, domain profiles)
+- Per-workspace state: registered via `register_workspace`
+- No hard-coded paths — all paths resolved from workspace root
+
+## 5. LLM Harness: Cloud + Local
+
+- `LLMAdapter` interface: unified contract for all LLM backends
+- `OllamaAdapter`: local models (Qwen, etc.)
+- `GeminiAdapter`: cloud API
+- Agent Runner uses adapter, not specific LLM — language and backend agnostic

@@ -1,3 +1,8 @@
+---
+name: Personal Behavioral Skill
+description: Behavioral layer for AI coding agents. Sits above project-specific rules. Portable across all projects and tools.
+---
+
 # Personal Behavioral Skill
 
 Behavioral layer for AI coding agents. Sits above project-specific rules. Portable across all projects and tools.

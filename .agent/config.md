@@ -6,48 +6,41 @@ enforcement: MANDATORY
 
 # Agent Boot Config
 
-**RULE ZERO**: Before executing ANY request, run this pre-flight. No exceptions. No reminders needed.
+**RULE ZERO**: Before executing ANY request, run this pre-flight. No exceptions.
 
 ## Pre-flight Protocol
 
-### 0. Load Personal Behavioral Rules (HIGHEST PRIORITY)
+### 1. Load Context
 
-Read `.agent/PERSONAL_SKILL.md`. This defines the owner's behavioral expectations, communication style, and hard boundaries for ALL agents. These rules override default agent behavior and apply across every task, every project, no exceptions.
+Read `.agent/workspace-memory.md`. This is the front door — project context, architecture, active plans.
 
-### 1. Load Knowledge
+### 2. Apply Behavioral Rules
 
-Read all files in `.agent/knowledge/`. These define architecture, constraints, and conventions. Comply with everything found here.
+Read `.agent/skills/personal-behavioral/SKILL.md`. This defines the owner's behavioral expectations, communication style, and hard boundaries. These rules **override default agent behavior** and apply across every task, every project, no exceptions.
 
-### 2. Activate Skills
+### 3. Activate Always-on Skills
 
-Scan `.agent/skills/*/SKILL.md`:
+These apply to **every task**, no exceptions:
 
-**Always-on** (every task, no exceptions):
-- `safe-deletion` — Never delete files without explicit user permission
-- `strict-scope` — Do exactly what was asked, nothing more
-- `folder-convention` — Distinguish product vs dev folders
+| Skill | Location | Rule |
+|-------|----------|------|
+| Safe Deletion | `.agent/skills/safe-deletion/SKILL.md` | Never delete without permission |
+| Strict Scope | `.agent/skills/strict-scope/SKILL.md` | Do exactly what was asked |
+| Folder Convention | `.agent/skills/folder-convention/SKILL.md` | Product vs dev folders |
 
-**Selective**: Read each skill's `description` frontmatter. Deep-read only if relevant to current task.
+### 4. Check Project Rules
 
-### 3. Match Workflows
+Read `.agent/rules/recovery-protocol.md` — error recovery behavior.
 
-Scan `.agent/workflows/*.md`. Match by trigger:
+### 5. Resume Check
 
-| Trigger | Workflow |
-|---------|----------|
-| `/pick-task` | `pick-task.md` |
-| `/push-git` | `push-git.md` |
-| Bug-related task | `save-bug-report.md` |
-| Planning task | `save-plan.md` |
-| No match | Skip |
-
-### 4. Discover Tools
-
-Scan `.agent/tools/`. Read `README.md` if available. Note what's available — do NOT run anything yet.
+- If `.agent/session.json` exists → resume session → read context + continue
+- If not → new session → proceed normally
+- Write `.agent/session.json` after each major action
 
 ## Execution Gate
 
-Only AFTER completing steps 0–4 may you begin writing code, running commands, or creating files.
+Only AFTER completing steps 1–5 may you begin writing code, running commands, or creating files.
 
 ## Auto-Reload
 

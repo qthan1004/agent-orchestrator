@@ -1,0 +1,22 @@
+# Agent Orchestrator — Codex Rules
+
+## PREFLIGHT — MANDATORY
+
+Before any task, read the entire `.agent/` directory in this order:
+
+1. `.agent/workspace-memory.md` — project context
+2. `.agent/skills/` — ALL skill files (behavioral rules, folder conventions, safe deletion, etc.)
+3. `.agent/rules/` — project-specific rules
+4. `.agent/config.md` — agent configuration
+
+## Project
+- Node.js + TypeScript + ESM
+- Phase 2: Hybrid Agentic Architecture
+- Conventional Commits for git
+
+## Standards
+- TypeScript strict, Zod validation
+- Dev docs → `dev-docs/`, Dev tasks → `tasks/pending/`
+- Product plans → `plan/pending/`, Product skills → `reference/skills/`
+- Never delete files without explicit permission
+- Never change architecture without asking
