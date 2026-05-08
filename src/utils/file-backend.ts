@@ -100,6 +100,24 @@ export function moveFile(from: string, to: string): boolean {
 }
 
 /**
+ * Copies a file.
+ * @param from - Source path.
+ * @param to - Destination path.
+ * @returns boolean
+ */
+export function copyFile(from: string, to: string): boolean {
+  try {
+    if (!fs.existsSync(from)) return false;
+    ensureDir(path.dirname(to));
+    fs.copyFileSync(from, to);
+    return true;
+  } catch (err: any) {
+    console.error(`copyFile error from ${from} to ${to}:`, err.message);
+    return false;
+  }
+}
+
+/**
  * Lists files in a directory, optionally filtered by extension.
  * @param dirPath - The directory path.
  * @param ext - The extension (e.g., '.md', 'json').

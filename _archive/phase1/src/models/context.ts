@@ -1,4 +1,3 @@
-// @ts-nocheck
 import type { AppConfig } from "./config.js";
 import type { StateManager } from "../mcp-server/state-manager.js";
 import type { Logger } from "../utils/logger.js";

@@ -1,17 +1,10 @@
 import { STATE_EVENTS } from '../constants.js';
 import type { Logger } from '../utils/logger.js';
 import type { StateManager } from './state-manager.js';
-import path from 'path';
-import fs from 'fs';
-import { listFiles, ensureDir, readFile, moveFile, writeJSON, copyFile } from '../utils/file-backend.js';
-import type { WorkspaceRegistry } from '../utils/workspace-registry.js';
-import type { AppConfig } from '../models/index.js';
 
 export interface PlanWatcherParams {
   stateManager: StateManager;
   logger: Logger;
-  config: AppConfig;
-  workspaceRegistry?: WorkspaceRegistry;
   intervalMs?: number;
 }
 
@@ -40,8 +33,6 @@ export interface PlanWatcherStatus extends PlanWatcherStats {
 export class PlanWatcher {
   stateManager: StateManager;
   logger: Logger;
-  config: AppConfig;
-  workspaceRegistry?: WorkspaceRegistry;
   intervalMs: number;
   private _timer: NodeJS.Timeout | null;
   private _running: boolean;
@@ -53,11 +44,9 @@ export class PlanWatcher {
    * @param {import('../utils/logger.js').Logger} params.logger
    * @param {number} [params.intervalMs=30000] - Polling interval (default 30s)
    */
-  constructor({ stateManager, logger, config, workspaceRegistry, intervalMs = 30_000 }: PlanWatcherParams) {
+  constructor({ stateManager, logger, intervalMs = 30_000 }: PlanWatcherParams) {
     this.stateManager = stateManager;
     this.logger = logger;
-    this.config = config;
-    this.workspaceRegistry = workspaceRegistry;
     this.intervalMs = intervalMs;
 
     this._timer = null;
@@ -124,72 +113,33 @@ export class PlanWatcher {
     this._stats.lastPollAt = new Date().toISOString();
 
     try {
-      const workspaces = this.workspaceRegistry ? this.workspaceRegistry.getAll() : [];
-      let foundAny = false;
+      const result = this.stateManager.checkPlans();
 
-      // 1. Scan all registered workspaces
-      for (const ws of workspaces) {
-        const wsPendingDir = path.join(ws.path, '.agent', 'plans', 'pending');
-        if (fs.existsSync(wsPendingDir)) {
-          const files = listFiles(wsPendingDir, '.md').sort();
-          if (files.length > 0) {
-            // Pick oldest
-            const nextFile = files[0];
-            const src = path.join(wsPendingDir, nextFile);
-            
-            const wsProcessingDir = path.join(ws.path, '.agent', 'plans', 'processing');
-            ensureDir(wsProcessingDir);
-            const dest = path.join(wsProcessingDir, nextFile);
+      if (result.status === 'ready') {
+        // New plan detected and moved to processing!
+        this._stats.plansDetected++;
+        this._stats.lastPlanDetected = {
+          filename: result.current,
+          detectedAt: new Date().toISOString(),
+        };
 
-            const runtimeProcessingDir = path.join(this.config.runtimeRoot, 'workspaces', ws.id, 'plans', 'processing');
-            ensureDir(runtimeProcessingDir);
-            const runtimeDest = path.join(runtimeProcessingDir, nextFile);
+        this.logger.log(STATE_EVENTS.PLAN_DETECTED, {
+          filename: result.current,
+          plan_path: result.plan_path,
+          pending_remaining: result.pending_count,
+          message: `📋 Auto-detected new plan: ${result.current}`
+        });
 
-            // Copy to runtime, move original to workspace processing
-            copyFile(src, runtimeDest);
-            moveFile(src, dest);
-
-            foundAny = true;
-            this._stats.plansDetected++;
-            this._stats.lastPlanDetected = {
-              filename: nextFile,
-              detectedAt: new Date().toISOString(),
-            };
-
-            this.logger.log(STATE_EVENTS.PLAN_DETECTED, {
-              filename: nextFile,
-              workspace: ws.id,
-              message: `📋 Auto-detected new plan: ${nextFile} in workspace ${ws.id}`
-            });
-
-            console.log(`  📋 Plan detected: ${nextFile} in workspace ${ws.id} → moved to processing/`);
-          }
+        console.log(`  📋 Plan detected: ${result.current} → moved to processing/`);
+        if (result.pending_count > 0) {
+          console.log(`     ${result.pending_count} more plan(s) still pending`);
         }
+
+      } else if (result.status === 'busy') {
+        // Already processing a plan — skip silently (no spam)
+        // Only log at debug level periodically
       }
-
-      // 2. Backward compatibility: if no workspaces registered, fall back to stateManager checkPlans
-      // Wait, checkPlans will scan the config.plans.pending (which could be the root one)
-      if (workspaces.length === 0) {
-        const result = this.stateManager.checkPlans();
-
-        if (result.status === 'ready') {
-          foundAny = true;
-          this._stats.plansDetected++;
-          this._stats.lastPlanDetected = {
-            filename: result.current,
-            detectedAt: new Date().toISOString(),
-          };
-
-          this.logger.log(STATE_EVENTS.PLAN_DETECTED, {
-            filename: result.current,
-            plan_path: result.plan_path,
-            pending_remaining: result.pending_count,
-            message: `📋 Auto-detected new plan: ${result.current} (Legacy mode)`
-          });
-
-          console.log(`  📋 Plan detected: ${result.current} → moved to processing/ (Legacy mode)`);
-        }
-      }
+      // 'idle' — nothing pending, nothing to do
 
     } catch (err: any) {
       console.error(`  ⚠ Plan watcher error: ${err.message}`);

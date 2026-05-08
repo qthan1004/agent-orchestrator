@@ -14,9 +14,6 @@ import type { ServerContext, TaskDef, TaskGraph, TaskResult } from '../models/in
 import { executeScanWorkspace } from './tools/scan-workspace.js';
 import { executeSessionCheckpoint } from './tools/session-checkpoint.js';
 import type { SessionCheckpointInput } from './tools/session-checkpoint.js';
-import { WorkspaceRegistry } from '../utils/workspace-registry.js';
-import { bootstrapWorkspace } from '../utils/bootstrap.js';
-import { ensureDir, writeJSON } from '../utils/file-backend.js';
 
 const STRIP_FIELDS = ['status', 'assigned_to', 'priority', 'metadata', 'dependencies', 'done_criteria'];
 
@@ -97,7 +94,7 @@ export function registerTools(server: McpServer, context: ServerContext): void {
         const worker = workerRegistry.register();
         const status = stateManager.getStatus();
         const planStatus = stateManager.checkPlansQuick();
-        const { plannerAliveThresholdMs } = context.config.global.recovery;
+        const { plannerAliveThresholdMs } = context.config.recovery;
         
         // Determine role — SINGLE PLANNER enforced
         let role: WorkerRoleValue = WORKER_ROLE.WORKER;
@@ -121,15 +118,7 @@ export function registerTools(server: McpServer, context: ServerContext): void {
         workerRegistry.setRole(worker.id, role);
         
         // Priority: agent param > server config > null
-        const resolvedWorkspace = workspace_path || context.config.workspace?.workspaceRoot || null;
-        let workspaceId: string | undefined;
-
-        if (resolvedWorkspace) {
-          const registry = new WorkspaceRegistry(context.config.runtimeRoot);
-          const ws = registry.register(resolvedWorkspace);
-          workspaceId = ws.id;
-          bootstrapWorkspace(context.config.runtimeRoot, workspaceId);
-        }
+        const resolvedWorkspace = workspace_path || context.config.workspaceRoot || null;
 
         return {
           content: [{
@@ -139,7 +128,6 @@ export function registerTools(server: McpServer, context: ServerContext): void {
               role: role,
               server_root: context.config.root,
               workspace_root: resolvedWorkspace,
-              workspace_id: workspaceId,
               queue_summary: status,
               has_pending_plans: planStatus.hasPending || planStatus.hasProcessing
             })
@@ -188,7 +176,7 @@ export function registerTools(server: McpServer, context: ServerContext): void {
         if (!worker) throw new Error("Invalid worker_id");
         
         // Long poll
-        const { pollTimeoutMs, checkIntervalMs } = context.config.global.polling;
+        const { pollTimeoutMs, checkIntervalMs } = context.config.polling;
         const task = await waitForTask(stateManager.queue, { 
           timeoutMs: pollTimeoutMs, 
           checkIntervalMs 
@@ -338,32 +326,13 @@ export function registerTools(server: McpServer, context: ServerContext): void {
           
           if (logger) logger.log(STATE_EVENTS.TASK_COMPLETED, { task_id, status, worker_id });
           stateManager.saveCheckpoint();
-
-          // Sync result to workspace
-          try {
-            const wsRoot = context.config.workspace?.workspaceRoot;
-            if (wsRoot) {
-              const wsResultDir = path.join(wsRoot, '.agent', 'results');
-              ensureDir(wsResultDir);
-              const wsResultPath = path.join(wsResultDir, `result-${task_id}.json`);
-              const syncResult = {
-                task_id: result.task_id,
-                status: result.status,
-                summary: result.summary,
-                completed_at: result.completed_at
-              };
-              writeJSON(wsResultPath, syncResult);
-            }
-          } catch (err: any) {
-            if (logger) logger.log('WORKSPACE_SYNC_FAILED', { task_id, error: err.message });
-          }
           
           return tryAutoPickup({ accepted: true, completed: task_id });
         }
 
         // ─── FAILED / BLOCKED: requeue to inbox for retry ───
         const retryCount = stateManager.getTaskRetryCount(task_id);
-        const maxTaskRetries = context.config.global.recovery.maxTaskRetries;
+        const maxTaskRetries = context.config.recovery.maxTaskRetries;
 
         if (retryCount >= maxTaskRetries) {
           // Permanently failed → outbox (won't be auto-recovered)
@@ -391,7 +360,7 @@ export function registerTools(server: McpServer, context: ServerContext): void {
           }) }] };
         }
 
-        const workspaceRoot = context.config.workspace?.workspaceRoot || context.config.root;
+        const workspaceRoot = context.config.workspaceRoot || context.config.root;
         const newRetryCount = stateManager.requeueWithRetry(task_id, workspaceRoot);
         worker.current_task = null;
         // Don't increment tasks_completed for failed/blocked tasks
@@ -482,7 +451,7 @@ export function registerTools(server: McpServer, context: ServerContext): void {
     },
     async () => {
       try {
-        const { planPollTimeoutMs, checkIntervalMs } = context.config.global.polling;
+        const { planPollTimeoutMs, checkIntervalMs } = context.config.polling;
         const result = await waitForPlan(stateManager, {
           timeoutMs: planPollTimeoutMs,
           checkIntervalMs: checkIntervalMs * 2  // plan check ít thường xuyên hơn
@@ -617,7 +586,7 @@ export function registerTools(server: McpServer, context: ServerContext): void {
     },
     withHeartbeat(async ({ task_id, reason, attempt }) => {
       try {
-        const maxRetries = context.config.global.recovery.maxTaskRetries;
+        const maxRetries = context.config.recovery.maxTaskRetries;
         if (attempt > maxRetries) throw new Error(`Max retry attempt exceeded (max: ${maxRetries})`);
 
         // Use requeueWithRetry to properly track retry count on disk
@@ -649,7 +618,7 @@ export function registerTools(server: McpServer, context: ServerContext): void {
       try {
         // Check task exists in active/
         const activePath = path.join(
-          context.config.workspace.exchange.active, 
+          context.config.exchange.active, 
           `${FILE_PREFIXES.TASK}${task_id}.json`
         );
         
@@ -801,7 +770,7 @@ export function registerTools(server: McpServer, context: ServerContext): void {
     },
     async (input) => {
       try {
-        const workspaceRoot = context.config.workspace?.workspaceRoot || context.config.root;
+        const workspaceRoot = context.config.workspaceRoot || context.config.root;
         const result = executeSessionCheckpoint(workspaceRoot, input as SessionCheckpointInput);
 
         return {

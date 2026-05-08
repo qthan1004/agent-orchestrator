@@ -1,4 +1,3 @@
-// @ts-nocheck
 import crypto from 'crypto';
 import path from 'path';
 import { WORKER_STATUS, WORKER_ROLE } from '../constants.js';

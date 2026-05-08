@@ -3,7 +3,7 @@ import fs from 'fs';
 import { readJSON, writeJSON, moveFile, listFiles, ensureDir, readFile } from '../utils/file-backend.js';
 import { TaskQueue, type TaskQueueStatus } from './task-queue.js';
 import { TASK_STATUS, FILE_PREFIXES, STATE_EVENTS, RECOVERY_EVENTS, RECOVERY_DEFAULTS, type TaskStatusValue } from '../constants.js';
-import type { WorkspaceConfig, TaskDef, TaskGraph, TaskResult } from '../models/index.js';
+import type { AppConfig, TaskDef, TaskGraph, TaskResult } from '../models/index.js';
 import type { Logger } from '../utils/logger.js';
 
 const MAX_CHECKPOINTS = 10;
@@ -47,16 +47,16 @@ export type CheckPlansResult =
     };
 
 export class StateManager {
-  config: WorkspaceConfig;
+  config: AppConfig;
   queue: TaskQueue;
   logger: Logger | null;
   plan: PlanMeta | null;
 
   /**
    * @param {import('../utils/logger.js').Logger} logger
-   * @param {object} config - WorkspaceConfig with workspace-scoped paths
+   * @param {object} config - Config from loadConfig(overrides)
    */
-  constructor(logger: Logger | null, config: WorkspaceConfig) {
+  constructor(logger: Logger | null, config: AppConfig) {
     this.config = config;
     this.queue = new TaskQueue();
     this.logger = logger;
@@ -369,7 +369,7 @@ export class StateManager {
     // Auto-recover FAILED tasks in outbox: move them back to inbox as PENDING
     // BUT respect retry_count — permanently failed tasks (>= MAX_TASK_RETRIES) stay in outbox
     const failedTasks: string[] = [];
-    const maxTaskRetries = RECOVERY_DEFAULTS.MAX_TASK_RETRIES; // Note: Use default since recovery is in GlobalConfig now
+    const maxTaskRetries = this.config.recovery?.maxTaskRetries ?? RECOVERY_DEFAULTS.MAX_TASK_RETRIES;
     for (const [taskId, task] of rebuiltMap) {
       if (task.status === TASK_STATUS.FAILED) {
         const retryCount = task.retry_count || 0;

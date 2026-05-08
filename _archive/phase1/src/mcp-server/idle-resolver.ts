@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { AGENT_ACTION, WORKER_ROLE, type AgentActionValue } from '../constants.js';
 import type { AppConfig } from '../models/index.js';
 import type { WorkerRegistry } from '../utils/worker-registry.js';

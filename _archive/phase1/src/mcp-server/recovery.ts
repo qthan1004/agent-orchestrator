@@ -62,9 +62,9 @@ export class RecoveryManager {
     this.config = config;
 
     this.monitorIntervalMs = recoveryConfig.monitorIntervalMs ?? RECOVERY_DEFAULTS.MONITOR_INTERVAL_MS;
-    this.staleWorkerThresholdMs = recoveryConfig.staleWorkerThresholdMs ?? config.global.recovery?.staleWorkerThresholdMs ?? RECOVERY_DEFAULTS.STALE_WORKER_THRESHOLD_MS;
+    this.staleWorkerThresholdMs = recoveryConfig.staleWorkerThresholdMs ?? config.recovery?.staleWorkerThresholdMs ?? RECOVERY_DEFAULTS.STALE_WORKER_THRESHOLD_MS;
     this.maxRetries = recoveryConfig.maxRetries ?? RECOVERY_DEFAULTS.MAX_RETRIES;
-    this.maxTaskRetries = config.global.recovery?.maxTaskRetries ?? RECOVERY_DEFAULTS.MAX_TASK_RETRIES;
+    this.maxTaskRetries = config.recovery?.maxTaskRetries ?? RECOVERY_DEFAULTS.MAX_TASK_RETRIES;
 
     this._monitorTimer = null;
   }
@@ -73,7 +73,7 @@ export class RecoveryManager {
 
   /** Path to the clean-shutdown marker file. */
   get _markerPath(): string {
-    return path.join(this.config.runtimeRoot, SHUTDOWN_MARKER_FILE);
+    return path.join(this.config.exchange.base, SHUTDOWN_MARKER_FILE);
   }
 
   /** Write marker indicating a clean shutdown. */
@@ -111,7 +111,7 @@ export class RecoveryManager {
    * Returns an array of orphan task IDs.
    */
   detectOrphans(): string[] {
-    const activeDir = this.config.workspace.exchange.active;
+    const activeDir = this.config.exchange.active;
     const taskFiles = listFiles(activeDir, '.json')
       .filter(f => f.startsWith(FILE_PREFIXES.TASK));
 
@@ -211,7 +211,7 @@ export class RecoveryManager {
    * Guards against double-move race with complete_task.
    */
   private _requeueFailedFromOutbox(): number {
-    const outboxDir = this.config.workspace.exchange.outbox;
+    const outboxDir = this.config.exchange.outbox;
     const taskFiles = listFiles(outboxDir, '.json')
       .filter(f => f.startsWith(FILE_PREFIXES.TASK));
 

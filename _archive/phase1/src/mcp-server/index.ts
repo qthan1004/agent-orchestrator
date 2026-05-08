@@ -1,4 +1,3 @@
-// @ts-nocheck
 import express from 'express';
 import type { ErrorRequestHandler, NextFunction, Request, Response } from 'express';
 import { setupMcpRoutes } from './transport.js';
@@ -11,7 +10,6 @@ import { Logger } from '../utils/logger.js';
 import { bootstrapDirectories } from '../utils/bootstrap.js';
 import { startBrainWatcher, stopBrainWatcher } from '../agents/antigravity/brain-watcher.js';
 import type { AppConfig, ServerContext } from '../models/index.js';
-import { WorkspaceRegistry } from '../utils/workspace-registry.js';
 
 export async function startServer(config: AppConfig): Promise<void> {
   const { port, host } = config.server;
@@ -58,12 +56,9 @@ export async function startServer(config: AppConfig): Promise<void> {
 
   // Plan watcher — auto-polls plan/pending/ directory
   const planWatcherIntervalMs = config.planWatcher?.intervalMs || 30_000;
-  const workspaceRegistry = new WorkspaceRegistry(config.runtimeRoot);
   const planWatcher = new PlanWatcher({
     stateManager,
     logger,
-    config,
-    workspaceRegistry,
     intervalMs: planWatcherIntervalMs
   });
   planWatcher.start();

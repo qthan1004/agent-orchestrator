@@ -36,32 +36,21 @@ export interface RecoveryConfig {
   maxTaskRetries: number;
 }
 
-export interface GlobalConfig {
-  server: ServerConfig;
-  polling: PollingConfig;
-  recovery: RecoveryConfig;
-  templates: string;
-}
-
-export interface WorkspaceConfig {
-  workspaceId: string;
-  workspaceRoot: string | null;
-  exchange: ExchangeConfig;
-  plans: DirConfig;
-  tasks: DirConfig;
-  planWatcher: PlanWatcherConfig;
-}
-
 export interface AppConfig {
   root: string;
-  runtimeRoot: string;
-  global: GlobalConfig;
-  workspace: WorkspaceConfig;
+  workspaceRoot: string | null;
+  exchange: ExchangeConfig;
+  templates: string;
+  plans: DirConfig;
+  tasks: DirConfig;
+  server: ServerConfig;
+  planWatcher: PlanWatcherConfig;
+  polling: PollingConfig;
+  recovery: RecoveryConfig;
 }
 
 export interface ConfigOverrides {
   root?: string;
-  runtimeRoot?: string;
   workspaceRoot?: string | null;
   port?: number;
   host?: string;

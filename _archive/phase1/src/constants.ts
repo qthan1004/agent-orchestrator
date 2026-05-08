@@ -1,12 +1,5 @@
-import os from 'os';
-import { join } from 'path';
-
 export const VERSION = "0.2.0" as const;
 export type VersionValue = typeof VERSION;
-
-export const RUNTIME_DIR_NAME = ".orchestrator" as const;
-export const WORKSPACE_DIR_NAME = "workspaces" as const;
-export const DEFAULT_RUNTIME_PATH = join(os.homedir(), RUNTIME_DIR_NAME);
 
 export const TOOL_NAMES = {
   HELLO_WORLD: "hello_world",
