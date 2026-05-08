@@ -2,7 +2,7 @@ import { resolve, join } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { createHash } from 'crypto';
-import { DIR_NAMES, POLL_DEFAULTS, RECOVERY_DEFAULTS, WORKSPACE_DIR_NAME } from './constants.js';
+import { DIR_NAMES, POLL_DEFAULTS, RECOVERY_DEFAULTS, WORKSPACE_DIR_NAME, SERVER_PROFILES } from './constants.js';
 import type { AppConfig, ConfigOverrides } from './models/config.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -24,9 +24,13 @@ export function loadConfig(overrides: ConfigOverrides = {}): AppConfig {
     exchangeBase = join(root, DIR_NAMES.EXCHANGE);
   }
 
+  const profileName = overrides.profile || 'default';
+  const profileConfig = profileName === 'hybrid' ? SERVER_PROFILES.HYBRID : SERVER_PROFILES.DEFAULT;
+
   return {
     root,
     runtimeRoot,
+    profile: profileName,
     global: {
       server: {
         port: overrides.port || 3847,
@@ -38,7 +42,7 @@ export function loadConfig(overrides: ConfigOverrides = {}): AppConfig {
         planPollTimeoutMs: overrides.planPollTimeoutMs || POLL_DEFAULTS.PLAN_POLL_TIMEOUT_MS,
       },
       recovery: {
-        staleWorkerThresholdMs: overrides.staleWorkerThresholdMs || RECOVERY_DEFAULTS.STALE_WORKER_THRESHOLD_MS,
+        staleWorkerThresholdMs: overrides.staleWorkerThresholdMs || profileConfig.staleThresholdMs,
         plannerAliveThresholdMs: overrides.plannerAliveThresholdMs || RECOVERY_DEFAULTS.PLANNER_ALIVE_THRESHOLD_MS,
         maxTaskRetries: overrides.maxTaskRetries || RECOVERY_DEFAULTS.MAX_TASK_RETRIES,
       },

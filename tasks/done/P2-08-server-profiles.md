@@ -64,8 +64,8 @@ npm run build
 ```
 
 ## Done Criteria
-- [ ] `SERVER_PROFILES.DEFAULT` và `.HYBRID` defined
-- [ ] Startup prompt: `? Server profile (default/hybrid)`
-- [ ] HYBRID mode: staleThreshold=15s, autoKill=true
-- [ ] DEFAULT mode: unchanged behavior (backward compat)
-- [ ] `npm run build` pass
+- [x] `SERVER_PROFILES.DEFAULT` và `.HYBRID` defined
+- [x] Startup prompt: `? Server profile (default/hybrid)`
+- [x] HYBRID mode: staleThreshold=15s, autoKill=true
+- [x] DEFAULT mode: unchanged behavior (backward compat)
+- [x] `npm run build` pass

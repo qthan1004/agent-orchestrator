@@ -152,6 +152,23 @@ export const RECOVERY_EVENTS = {
 export type RecoveryEventValue =
   (typeof RECOVERY_EVENTS)[keyof typeof RECOVERY_EVENTS];
 
+export const SERVER_PROFILES = {
+  DEFAULT: {
+    staleThresholdMs: 30 * 60_000,    // 30 minutes
+    autoKillWorker: false,
+    workerType: 'IDE' as const,
+    maxConcurrentWorkers: 1,
+    roleManagement: 'blurred' as const,
+  },
+  HYBRID: {
+    staleThresholdMs: 15_000,         // 15 seconds
+    autoKillWorker: true,
+    workerType: 'LOCAL_LLM' as const,
+    maxConcurrentWorkers: 1,          // 1 for 9B, 2 for 4B
+    roleManagement: 'strict' as const,
+  }
+} as const;
+
 export const RECOVERY_DEFAULTS = {
   MONITOR_INTERVAL_MS: 5_000, // 5s (check every 5s)
   STALE_WORKER_THRESHOLD_MS: 90_000, // 90s — worker task stuck detection
