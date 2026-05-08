@@ -56,9 +56,9 @@ npm run build
 ```
 
 ## Done Criteria
-- [ ] Path outside workspace → rejected with clear error
-- [ ] Path traversal (`../../etc/passwd`) → rejected
-- [ ] All 5 tools implemented and functional
-- [ ] Tool not in allowedTools → rejected
-- [ ] 51st tool call → error thrown
-- [ ] `npm run build` pass
+- [x] Path outside workspace → rejected with clear error
+- [x] Path traversal (`../../etc/passwd`) → rejected
+- [x] All 5 tools implemented and functional
+- [x] Tool not in allowedTools → rejected
+- [x] 51st tool call → error thrown
+- [x] `npm run build` pass
