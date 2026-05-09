@@ -3,9 +3,9 @@
 ## Info
 - **ID:** P2-24-workspace-code-search
 - **Repo:** `~/workspace/code-search-engine` (NEW — standalone package)
-- **Group:** Sprint 4 (Polish + Intelligence)
+- **Group:** Post-Core Intelligence
 - **Dependencies:** None (standalone — orchestrator integrates later)
-- **Priority:** 13
+- **Priority:** 19
 - **Ref:** `dev-docs/2026-05-08_research_cocoindex-analysis.md`
 - **Inspired by:** [cocoindex-code](https://github.com/cocoindex-io/cocoindex-code) — rewritten in TypeScript, zero Python dependency
 

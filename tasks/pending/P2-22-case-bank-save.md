@@ -3,10 +3,10 @@
 ## Info
 - **ID:** P2-22-case-bank-save
 - **Module:** `src/worker/case-bank.ts` (NEW)
-- **Group:** Sprint 4 (Polish + Intelligence)
-- **Dependencies:** P2-13, P2-01
-- **Priority:** 12
-- **Ref:** `dev-docs/2026-05-07_plan_phase2-revised-with-research-insights.md`, `dev-docs/2026-05-07_research_planner-intelligence-domain-adaptation-cold-start.md`
+- **Group:** Post-Core Intelligence
+- **Dependencies:** P2-13, P2-01, P2-23, P2-26
+- **Priority:** 17
+- **Ref:** Phase 2 memory boundary rules
 
 ## Constraints (Always-on Skills)
 
@@ -18,19 +18,28 @@
 
 ## What to do
 
-After AgentRunner completes a task (success or fail), save a reflection markdown file to the global case-bank.
+After AgentRunner completes a task (success or fail), save a reflection markdown file into the **workspace-scoped case bank by default**.
 
-### Location:
-`~/.orchestrator/case-bank/{date}_{task-id}.md`
+### Default location
 
-### Reflection format (markdown):
+`<workspace-runtime>/memory/case-bank/{date}_{task-id}.md`
+
+### Scope rules
+
+- Default write target is **workspace-local**
+- Cross-workspace/global memory is **not** the default
+- Any future promotion to global knowledge must be explicit and outside this task
+- Reflection metadata must include `workspace_id` or normalized workspace path
+
+### Reflection format (markdown)
+
 ```markdown
 # Reflection: {task-id}
 <!-- Date: {ISO date} -->
 <!-- Outcome: SUCCESS | FAILED | PARTIAL -->
 <!-- Domain: {detected or 'unknown'} -->
 <!-- Task Type: {action type} -->
-<!-- Workspace: {workspace name} -->
+<!-- Workspace: {workspace_id} -->
 
 ## What Worked
 - {auto-generated from successful steps}
@@ -42,16 +51,18 @@ After AgentRunner completes a task (success or fail), save a reflection markdown
 - {LLM-generated self-reflection, 2-3 bullet points}
 ```
 
-### Flow:
-1. AgentRunner finishes task → calls `CaseBank.saveReflection(taskResult)`
-2. CaseBank generates reflection prompt → sends to LLM (1 short call)
-3. Saves markdown file to `~/.orchestrator/case-bank/`
-4. Updates `_index.md` with new entry
+### Flow
 
-### Constraints:
-- Reflection LLM call must be < 500 tokens (very short)
-- If LLM call fails → save basic reflection (no "Lesson" section) → no crash
-- Global scope: reflections shared across all workspaces
+1. AgentRunner completes task
+2. Reflection save is routed under that worker's registered workspace scope
+3. If short reflection generation succeeds, include `Lesson`
+4. If reflection generation fails, save a basic reflection anyway
+
+### Constraints
+
+- Reflection generation call must be < 500 tokens
+- Failure to generate reflection must not crash execution
+- No implicit writes to global case-bank
 
 ## Files
 | Action | Path |
@@ -59,8 +70,8 @@ After AgentRunner completes a task (success or fail), save a reflection markdown
 | NEW | `src/worker/case-bank.ts` |
 
 ## Done Criteria
-- [ ] Saves reflection .md to `~/.orchestrator/case-bank/`
-- [ ] Reflection contains: outcome, domain, what_worked, what_failed, lesson
-- [ ] Updates `_index.md`
-- [ ] Graceful fallback if LLM reflection call fails
+- [ ] Saves reflection `.md` to workspace-scoped case bank
+- [ ] Reflection contains workspace identity metadata
+- [ ] No default global write path
+- [ ] Graceful fallback if reflection generation fails
 - [ ] `npm run build` pass

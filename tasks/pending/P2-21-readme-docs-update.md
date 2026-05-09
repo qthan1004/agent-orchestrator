@@ -3,8 +3,8 @@
 ## Info
 - **ID:** P2-21-readme-docs-update
 - **Module:** `README.md`, `dev-docs/`
-- **Group:** Sprint 4 (Polish + E2E)
-- **Dependencies:** P2-20
+- **Group:** Core Verification
+- **Dependencies:** P2-20, P2-27
 - **Priority:** 15
 - **Ref:** All Phase 2 docs
 
@@ -18,33 +18,49 @@
 
 ## What to do
 
-Update README and documentation to reflect new architecture.
+Update README and technical docs so they lock in the canonical Phase 2 architecture instead of the legacy pull model.
 
-### README changes:
-- Architecture diagram: 3-tier (source / runtime / workspace) + HYBRID mode
-- Ollama setup: install, pull model, verify
-- New startup flow: profile selection
-- Updated directory structure (no more `exchange/` in source root)
-- HYBRID mode usage guide
+### Architecture points that MUST be explicit
 
-### Dev docs:
-- Move `plan_phase2-hybrid-architecture.md` → `dev-docs/done/`
-- Move `2026-05-04_research_exchange-placement-3tier-architecture.md` → `dev-docs/done/`
+- Canonical flow is `Planner -> Orchestrator -> Worker`
+- There is exactly **one Planner** per orchestration session
+- Workers are a scalable execution pool
+- Workers do **not** pick tasks
+- Orchestrator owns assignment, retries, state transitions, and dispatch
+- Worker registration must include explicit `workspace_path`
+- IPC, state, checkpoints, and memory are workspace-scoped by default
+- Any legacy pull APIs must be documented as compatibility-only or deprecated
 
-### Task board:
-- Update `tasks/README.md` counts + P2 section status
+### README changes
+
+- Architecture diagram: Planner / Orchestrator / Worker
+- 3-tier structure with workspace-scoped runtime state
+- Startup flow with explicit workspace registration
+- HYBRID mode as orchestrator-owned dispatch
+- Remove canonical examples based on `get_next_task`
+
+### Dev docs
+
+- Update technical flow docs to remove ambiguous pull-model language
+- Mark `get_next_task` as legacy/deprecated if still present
+- Clarify local memory vs optional promoted/global knowledge
+
+### Task board
+
+- Update `tasks/README.md` counts + Phase 2 section
+- Include newly added architecture-alignment tasks
 
 ## Files
 | Action | Path |
 |--------|------|
 | MODIFY | `README.md` |
-| MOVE | `dev-docs/plan_phase2-hybrid-architecture.md` → `dev-docs/done/` |
-| MOVE | `dev-docs/2026-05-04_research_*.md` → `dev-docs/done/` |
+| MODIFY | relevant docs in `dev-docs/` |
 | MODIFY | `tasks/README.md` |
 
 ## Done Criteria
-- [ ] README shows 3-tier + HYBRID architecture
-- [ ] Ollama setup instructions present
-- [ ] Directory structure updated
-- [ ] Completed plans moved to `done/`
-- [ ] Task board counts updated
+- [ ] README states `Planner -> Orchestrator -> Worker`
+- [ ] Single-planner rule is explicit
+- [ ] Worker assignment model is explicit
+- [ ] Workspace-scoped registration/state/memory is documented
+- [ ] Legacy pull flow removed from canonical docs
+- [ ] Task board reflects added architecture tasks

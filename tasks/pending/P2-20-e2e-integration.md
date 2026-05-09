@@ -3,10 +3,10 @@
 ## Info
 - **ID:** P2-20-e2e-integration
 - **Module:** `tests/`
-- **Group:** Sprint 4 (Polish + E2E)
-- **Dependencies:** P2-16
+- **Group:** Core Verification
+- **Dependencies:** P2-16, P2-25, P2-26, P2-28, P2-30
 - **Priority:** 14
-- **Ref:** `dev-docs/plan_phase2-hybrid-architecture.md`
+- **Ref:** Phase 2 assignment architecture
 
 ## Constraints (Always-on Skills)
 
@@ -18,33 +18,63 @@
 
 ## What to do
 
-Full E2E tests for both DEFAULT and HYBRID profiles.
+Write full E2E tests for the canonical Phase 2 architecture:
 
-### Test scenarios:
+`Planner -> Orchestrator -> Worker`
 
-**DEFAULT mode** (legacy MCP flow):
-- register_worker → get_next_task → complete_task
-- Verify backward compatibility with all existing flows
+### Canonical behavior to test
 
-**HYBRID mode** (dispatch loop):
-- Start server HYBRID → create plan in workspace → PlanWatcher detects
-- Planner decomposes → TaskDispatchLoop spawns worker → worker executes
-- Result appears in workspace `.agent/results/`
+- There is exactly **one Planner** in the orchestration session.
+- Workers must register with an explicit `workspace_path`.
+- Orchestrator assigns tasks downward to workers.
+- Workers do **not** pull or pick arbitrary tasks.
+- Task state transitions are owned by the Orchestrator.
+- IPC, logs, checkpoints, and memory are scoped to the registered workspace.
 
-**Error cases:**
-- Worker crash → task requeued
-- Worker timeout → killed + requeued
-- Ollama down → error logged, no crash
+### Test scenarios
+
+**Session setup**
+- Register worker with `workspace_path`
+- Verify `workspace_id` is created from that exact path
+- Verify workspace-scoped runtime paths are created and used
+
+**Planner -> Orchestrator -> Worker flow**
+- Start server in HYBRID mode
+- Create plan in a specific workspace
+- Planner decomposes once
+- Orchestrator assigns a concrete task to a specific worker
+- Worker executes assigned task only
+- Worker reports progress and completion
+- Result appears in that workspace's scoped output/state
+
+**Assignment ownership**
+- Worker cannot fetch a random next task
+- Worker cannot complete a task not assigned to it
+- Orchestrator rejects task execution outside assigned workspace context
+
+**Recovery / failure**
+- Assigned worker crash -> assigned task requeued by orchestrator
+- Assigned worker timeout -> worker killed + task requeued
+- Clean restart preserves workspace-scoped state correctly
+- Ollama down -> error logged, server does not crash
+
+### Legacy compatibility
+
+- `get_next_task` is **not** part of the canonical E2E flow
+- If legacy pull APIs still exist temporarily, test them separately as compatibility only
 
 ## Files
 | Action | Path |
 |--------|------|
-| NEW | `tests/e2e-hybrid.ts` |
+| NEW | `tests/e2e-hybrid-assignment.ts` |
 | MODIFY | existing test files as needed |
 
 ## Done Criteria
-- [ ] DEFAULT mode E2E passes (legacy flow)
-- [ ] HYBRID mode E2E: plan → decompose → dispatch → worker → result
-- [ ] Worker crash → task requeued
-- [ ] Worker timeout → worker killed
-- [ ] `npm test` → all pass
+- [ ] E2E validates `Planner -> Orchestrator -> Worker`
+- [ ] Worker registration requires explicit `workspace_path`
+- [ ] Task assignment is orchestrator-owned, not worker-pulled
+- [ ] Workspace-scoped IPC/state is verified in runtime
+- [ ] Worker crash -> task requeued
+- [ ] Worker timeout -> worker killed
+- [ ] Legacy pull flow removed from canonical E2E
+- [ ] `npm test` -> all pass

@@ -3,10 +3,10 @@
 ## Info
 - **ID:** P2-23-domain-auto-detect
 - **Module:** `src/worker/domain-detector.ts` (NEW)
-- **Group:** Sprint 4 (Polish + Intelligence)
-- **Dependencies:** P2-01
-- **Priority:** 12
-- **Ref:** `dev-docs/2026-05-07_plan_phase2-revised-with-research-insights.md`, `dev-docs/2026-05-07_research_planner-intelligence-domain-adaptation-cold-start.md` (Bootstrap Protocol Phase A)
+- **Group:** Post-Core Intelligence
+- **Dependencies:** P2-01, P2-26, P2-30
+- **Priority:** 16
+- **Ref:** Bootstrap Protocol Phase A
 
 ## Constraints (Always-on Skills)
 
@@ -18,15 +18,23 @@
 
 ## What to do
 
-Scan workspace root for manifest files and detect project domain. Phase 2 = Tier 1 only (manifest detection).
+Scan the explicitly registered workspace root for manifest files and detect project domain.
 
-### Detection rules:
+Phase 2 scope = manifest-based detection only.
+
+### Architecture rule
+
+- Detection input must be the `workspace_path` already registered with the Orchestrator
+- No workspace auto-discovery by worker startup
+- Domain detection belongs to workspace/session setup, not ad hoc worker self-discovery
+
+### Detection rules
 
 | Manifest File | Domain Tag |
 |---------------|-----------|
-| `package.json` with "react" dep | `react-web` |
-| `package.json` with "next" dep | `nextjs-web` |
-| `package.json` with "express" dep | `node-backend` |
+| `package.json` with `react` dep | `react-web` |
+| `package.json` with `next` dep | `nextjs-web` |
+| `package.json` with `express` dep | `node-backend` |
 | `package.json` (other) | `node-general` |
 | `go.mod` | `golang` |
 | `Cargo.toml` | `rust` |
@@ -35,24 +43,26 @@ Scan workspace root for manifest files and detect project domain. Phase 2 = Tier
 | `docker-compose.yml` only | `containerized` |
 | Nothing found | `unknown` |
 
-### API:
+### API
+
 ```typescript
 interface DomainDetector {
   detect(workspaceRoot: string): Promise<DomainInfo>;
 }
 
 interface DomainInfo {
-  domain: string;       // e.g., 'node-backend'
+  domain: string;
   confidence: 'high' | 'medium' | 'low';
-  manifest: string;     // e.g., 'package.json'
-  details?: Record<string, string>; // e.g., { framework: 'express', language: 'typescript' }
+  manifest: string;
+  details?: Record<string, string>;
 }
 ```
 
-### Usage:
-- Called by AgentRunner at startup → domain tag included in reflection metadata
-- Called by P2-22 (Case Bank) to tag reflections with domain
-- Future: used by Planner to load domain-specific profiles
+### Usage
+
+- Called during workspace/session setup in the Orchestrator flow
+- Result is attached to workspace-scoped metadata
+- Worker may consume detected domain from assignment payload later
 
 ## Files
 | Action | Path |
@@ -60,8 +70,9 @@ interface DomainInfo {
 | NEW | `src/worker/domain-detector.ts` |
 
 ## Done Criteria
-- [ ] Scans workspace root for manifest files
-- [ ] Returns correct domain tag for each manifest type
+- [ ] Scans explicit workspace root only
+- [ ] No implicit workspace discovery
+- [ ] Returns correct domain tag per manifest type
 - [ ] Returns `unknown` with `low` confidence when no manifest found
 - [ ] Pure function, no side effects
 - [ ] `npm run build` pass
