@@ -775,7 +775,7 @@ export function registerTools(server: McpServer, context: ServerContext): void {
   server.registerTool(
     TOOL_NAMES.SESSION_CHECKPOINT,
     {
-      description: "Save, load, or clear session state for agent resume. Supports v2 schema with error_context for intelligent retry.",
+      description: "Save, load, or clear session state for agent resume. Supports UnifiedCheckpoint shared schema.",
       inputSchema: {
         action: z.enum(['save', 'load', 'clear']).describe("Action to perform"),
         task_id: z.string().optional().describe("Task ID"),
@@ -783,20 +783,27 @@ export function registerTools(server: McpServer, context: ServerContext): void {
           .describe("Current phase of the task"),
         files_changed: z.array(z.string()).optional()
           .describe("Files created or modified this session"),
-        done_criteria_status: z.record(z.string(), z.boolean()).optional()
-          .describe("Map of criterion → boolean"),
-        last_action: z.string().optional()
-          .describe("Human-readable description of last completed action"),
+        completed_steps: z.array(z.string()).optional()
+          .describe("Checklist steps completed"),
+        remaining_steps: z.array(z.string()).optional()
+          .describe("Checklist steps left"),
         error_context: z.object({
           error: z.string(),
           hypothesis: z.string(),
           attempted_fix: z.string(),
-          retry_count: z.number(),
+          retry_count: z.number().optional()
         }).nullable().optional()
           .describe("Error diagnosis from a failed attempt (null if no error)"),
-        // Legacy v1 fields (backward compat)
-        progress: z.number().min(0).max(100).optional().describe("(Legacy v1) Progress percentage"),
-        context: z.record(z.string(), z.unknown()).optional().describe("(Legacy v1) Arbitrary context data"),
+        token_usage: z.object({
+          used: z.number(),
+          limit: z.number()
+        }).optional()
+          .describe("Token usage statistics"),
+        // Legacy v1/v2 fields (backward compat)
+        done_criteria_status: z.record(z.string(), z.boolean()).optional(),
+        last_action: z.string().optional(),
+        progress: z.number().min(0).max(100).optional(),
+        context: z.record(z.string(), z.unknown()).optional(),
       }
     },
     async (input) => {

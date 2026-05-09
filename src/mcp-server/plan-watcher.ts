@@ -1,4 +1,4 @@
-import { STATE_EVENTS } from '../constants.js';
+import { STATE_EVENTS, SYSTEM_MESSAGE } from '../constants.js';
 import type { Logger } from '../utils/logger.js';
 import type { StateManager } from './state-manager.js';
 import path from 'path';
@@ -97,7 +97,7 @@ export class PlanWatcher {
       message: `Plan watcher started (polling every ${this.intervalMs / 1000}s)`
     });
 
-    console.log(`  🔍 Plan watcher: polling every ${this.intervalMs / 1000}s`);
+    console.log(SYSTEM_MESSAGE.PLAN_WATCHER_POLLING(this.intervalMs / 1000));
   }
 
   /**
@@ -159,10 +159,10 @@ export class PlanWatcher {
             this.logger.log(STATE_EVENTS.PLAN_DETECTED, {
               filename: nextFile,
               workspace: ws.id,
-              message: `📋 Auto-detected new plan: ${nextFile} in workspace ${ws.id}`
+              message: `Auto-detected new plan: ${nextFile} in workspace ${ws.id}`
             });
 
-            console.log(`  📋 Plan detected: ${nextFile} in workspace ${ws.id} → moved to processing/`);
+            console.log(SYSTEM_MESSAGE.PLAN_WATCHER_DETECTED(nextFile, ws.id));
           }
         }
       }
@@ -184,15 +184,15 @@ export class PlanWatcher {
             filename: result.current,
             plan_path: result.plan_path,
             pending_remaining: result.pending_count,
-            message: `📋 Auto-detected new plan: ${result.current} (Legacy mode)`
+            message: `Auto-detected new plan: ${result.current} (Legacy mode)`
           });
 
-          console.log(`  📋 Plan detected: ${result.current} → moved to processing/ (Legacy mode)`);
+          console.log(SYSTEM_MESSAGE.PLAN_WATCHER_DETECTED_LEGACY(result.current));
         }
       }
 
     } catch (err: any) {
-      console.error(`  ⚠ Plan watcher error: ${err.message}`);
+      console.error(SYSTEM_MESSAGE.PLAN_WATCHER_ERROR(err.message));
       this.logger.log('PLAN_WATCHER_ERROR', {
         error: err.message,
         message: `Plan watcher poll failed: ${err.message}`

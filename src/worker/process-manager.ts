@@ -1,6 +1,7 @@
 import { spawn as spawnProcess } from 'child_process';
 import type { ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
+import { SYSTEM_MESSAGE } from '../constants.js';
 
 export interface WorkerPayload {
   worker_id: string;
@@ -60,11 +61,11 @@ export class WorkerProcessManager extends EventEmitter {
 
     // Forward stdout/stderr for debugging
     child.stdout?.on('data', (data) => {
-      console.log(`[Worker ${worker_id} / PID ${pid}] STDOUT:`, data.toString().trim());
+      console.log(SYSTEM_MESSAGE.PROCESS_STDOUT(worker_id, pid), data.toString().trim());
     });
 
     child.stderr?.on('data', (data) => {
-      console.error(`[Worker ${worker_id} / PID ${pid}] STDERR:`, data.toString().trim());
+      console.error(SYSTEM_MESSAGE.PROCESS_STDERR(worker_id, pid), data.toString().trim());
     });
 
     // Setup timeout auto-kill
@@ -91,7 +92,7 @@ export class WorkerProcessManager extends EventEmitter {
     });
 
     child.on('error', (err) => {
-      console.error(`[Worker ${worker_id} / PID ${pid}] Error:`, err.message);
+      console.error(SYSTEM_MESSAGE.PROCESS_ERROR(worker_id, pid), err.message);
     });
 
     return { pid, worker_id };

@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { SYSTEM_MESSAGE } from '../constants.js';
 
 /**
  * Ensures that a directory exists format.
@@ -11,7 +12,7 @@ export function ensureDir(dirPath: string): boolean {
     fs.mkdirSync(dirPath, { recursive: true });
     return true;
   } catch (err: any) {
-    console.error(`ensureDir error for ${dirPath}:`, err.message);
+    console.error(SYSTEM_MESSAGE.FILE_ENSURE_DIR_ERROR(dirPath), err.message);
     return false;
   }
 }
@@ -30,7 +31,7 @@ export function atomicWrite(filePath: string, content: string): boolean {
     fs.renameSync(tmpPath, filePath);
     return true;
   } catch (err: any) {
-    console.error(`atomicWrite error for ${filePath}:`, err.message);
+    console.error(SYSTEM_MESSAGE.FILE_ATOMIC_WRITE_ERROR(filePath), err.message);
     return false;
   }
 }
@@ -46,7 +47,7 @@ export function readJSON<T = any>(filePath: string): T | null {
     const content = fs.readFileSync(filePath, 'utf8');
     return JSON.parse(content) as T;
   } catch (err: any) {
-    console.error(`readJSON error for ${filePath}:`, err.message);
+    console.error(SYSTEM_MESSAGE.FILE_READ_JSON_ERROR(filePath), err.message);
     return null;
   }
 }
@@ -61,7 +62,7 @@ export function readFile(filePath: string): string | null {
     if (!fs.existsSync(filePath)) return null;
     return fs.readFileSync(filePath, 'utf8');
   } catch (err: any) {
-    console.error(`readFile error for ${filePath}:`, err.message);
+    console.error(SYSTEM_MESSAGE.FILE_READ_FILE_ERROR(filePath), err.message);
     return null;
   }
 }
@@ -76,7 +77,7 @@ export function writeJSON(filePath: string, data: any): boolean {
   try {
     return atomicWrite(filePath, JSON.stringify(data, null, 2));
   } catch (err: any) {
-    console.error(`writeJSON error for ${filePath}:`, err.message);
+    console.error(SYSTEM_MESSAGE.FILE_WRITE_JSON_ERROR(filePath), err.message);
     return false;
   }
 }
@@ -94,7 +95,7 @@ export function moveFile(from: string, to: string): boolean {
     fs.renameSync(from, to);
     return true;
   } catch (err: any) {
-    console.error(`moveFile error from ${from} to ${to}:`, err.message);
+    console.error(SYSTEM_MESSAGE.FILE_MOVE_ERROR(from, to), err.message);
     return false;
   }
 }
@@ -112,7 +113,7 @@ export function copyFile(from: string, to: string): boolean {
     fs.copyFileSync(from, to);
     return true;
   } catch (err: any) {
-    console.error(`copyFile error from ${from} to ${to}:`, err.message);
+    console.error(SYSTEM_MESSAGE.FILE_COPY_ERROR(from, to), err.message);
     return false;
   }
 }
@@ -133,7 +134,7 @@ export function listFiles(dirPath: string, ext?: string): string[] {
     const normalizedExt = ext.startsWith('.') ? ext : `.${ext}`;
     return files.filter(f => f.endsWith(normalizedExt));
   } catch (err: any) {
-    console.error(`listFiles error for ${dirPath}:`, err.message);
+    console.error(SYSTEM_MESSAGE.FILE_LIST_ERROR(dirPath), err.message);
     return [];
   }
 }
@@ -149,7 +150,7 @@ export function deleteFile(filePath: string): boolean {
     fs.unlinkSync(filePath);
     return true;
   } catch (err: any) {
-    console.error(`deleteFile error for ${filePath}:`, err.message);
+    console.error(SYSTEM_MESSAGE.FILE_DELETE_ERROR(filePath), err.message);
     return false;
   }
 }

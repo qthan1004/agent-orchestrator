@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { ensureDir } from './file-backend.js';
+import { SYSTEM_MESSAGE } from '../constants.js';
 
 export class Logger {
   private logsDir: string;
@@ -51,7 +52,7 @@ export class Logger {
       // appendFileSync creates the file and appends
       fs.appendFileSync(logPath, entry, 'utf8');
     } catch (err: any) {
-      console.error(`Logger error writing event ${event}:`, err.message);
+      console.error(SYSTEM_MESSAGE.LOGGER_WRITE_ERROR(event), err.message);
     }
   }
 }

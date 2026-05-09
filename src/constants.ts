@@ -205,3 +205,80 @@ export const POLL_DEFAULTS = {
 } as const;
 export type PollDefaultValue =
   (typeof POLL_DEFAULTS)[keyof typeof POLL_DEFAULTS];
+
+export const SYSTEM_MESSAGE = {
+  // Setup & Bootstrap
+  BOOTSTRAP_FAILED: 'Failed to create directories:',
+  BOOTSTRAP_CREATED: (created: number, skipped: number) => `Created ${created} missing directories (${skipped} already existed).`,
+  BOOTSTRAP_CLEAN: 'All directories present.',
+  WORKERS_CLEANED: (count: number) => `Cleaned ${count} disconnected worker(s) from previous session.`,
+  HYBRID_ACTIVATED: 'HYBRID profile activated: Dispatch loop and VRAM monitoring started.',
+  JSON_PARSE_ERROR: (method: string, url: string) => `JSON parse error from ${method} ${url}:`,
+  RECOVERY_CLEAN: 'clean',
+  RECOVERY_ORPHANS: (count: number) => `recovered ${count} orphans`,
+  SHUTDOWN_RECEIVED: (signal: string) => `\nReceived ${signal}. Shutting down gracefully...`,
+  SETUP_BANNER: '\nMCP Orchestrator Setup',
+  SETUP_INVALID_PROFILE: 'Invalid profile. Defaulting to "default".',
+  SETUP_CUSTOM_APPLIED: '\n  Custom config applied (session-only)\n',
+  SETUP_DEFAULTS_APPLIED: '\n  Defaults applied\n',
+  
+  // Plan Watcher
+  PLAN_WATCHER_POLLING: (seconds: number) => `  Plan watcher: polling every ${seconds}s`,
+  PLAN_WATCHER_DETECTED: (filename: string, workspaceId: string) => `  Plan detected: ${filename} in workspace ${workspaceId} → moved to processing/`,
+  PLAN_WATCHER_DETECTED_LEGACY: (filename: string) => `  Plan detected: ${filename} → moved to processing/ (Legacy mode)`,
+  PLAN_WATCHER_ERROR: (errorMsg: string) => `  Plan watcher error: ${errorMsg}`,
+
+  // Dispatch Loop
+  DISPATCH_NOT_HYBRID: '[DispatchLoop] Profile is not hybrid. Loop will not start.',
+  DISPATCH_STARTING: '[DispatchLoop] Starting hybrid task dispatch loop...',
+  DISPATCH_STOPPING: '[DispatchLoop] Stopping dispatch loop gracefully...',
+  DISPATCH_WORKER_TIMEOUT: (workerId: string, taskId: string) => `[DispatchLoop] Worker ${workerId} timed out. Requeuing task ${taskId}.`,
+  DISPATCH_WORKER_EXITED: (workerId: string, code: number | null, taskId: string) => `[DispatchLoop] Worker ${workerId} exited with code ${code}. Requeuing task ${taskId}.`,
+  DISPATCH_WORKER_SUCCESS: (workerId: string, taskId: string) => `[DispatchLoop] Worker ${workerId} finished task ${taskId} successfully.`,
+  DISPATCH_MODEL_UNLOADED: (model: string) => `[DispatchLoop] Unloaded model ${model} to free VRAM.`,
+  DISPATCH_MODEL_UNLOAD_FAILED: (model: string, error: string) => `[DispatchLoop] Failed to unload model ${model}: ${error}`,
+  DISPATCH_ERROR: (error: string) => `[DispatchLoop] Error in loop: ${error}`,
+
+  // VRAM Manager
+  VRAM_UNLOADED: (model: string) => `[VRAM] Unloaded model: ${model}`,
+  VRAM_UNLOAD_FAILED: (model: string) => `[VRAM] Failed to unload model ${model}:`,
+  VRAM_OLLAMA_DOWN: '[WARNING] Ollama is not responding to health check.',
+  VRAM_ALERT_HIGH: (percent: number, loaded: string) => `[ALERT] VRAM utilization is above 90%! (${percent.toFixed(1)}% used, models loaded: ${loaded})`,
+  VRAM_CHECK_ERROR: '[VRAM Monitor] Error during health check:',
+
+  // Process Manager
+  PROCESS_STDOUT: (workerId: string, pid: number) => `[Worker ${workerId} / PID ${pid}] STDOUT:`,
+  PROCESS_STDERR: (workerId: string, pid: number) => `[Worker ${workerId} / PID ${pid}] STDERR:`,
+  PROCESS_ERROR: (workerId: string, pid: number) => `[Worker ${workerId} / PID ${pid}] Error:`,
+
+  // Model Selector
+  MODEL_WARNING_VRAM: (mode: string, required: number, free: number) => `[WARNING] Selected ${mode} profile requires ~${required}GB VRAM, but only ~${free.toFixed(1)}GB is free.`,
+  MODEL_CHECK_ERROR: (error: string) => `[WARNING] Failed to check VRAM: ${error}`,
+
+  // Agent Runner
+  AGENT_NOTIFY_FAILED: 'Failed to notify server:',
+  AGENT_PARSE_FAILED: 'Failed to parse stdin payload:',
+  AGENT_TOKEN_CHECKPOINT: 'Token checkpoint reached (80%)',
+  AGENT_ERROR: 'Agent runner error:',
+
+  // Prompt Builder
+  PROMPT_BASE_FAILED: (path: string, error: string) => `Failed to load base prompt from ${path}: ${error}`,
+  PROMPT_SKILL_FAILED: (path: string, error: string) => `Failed to load skill prompt from ${path}: ${error}`,
+
+  // File Backend & Others
+  FILE_ENSURE_DIR_ERROR: (path: string) => `ensureDir error for ${path}:`,
+  FILE_ATOMIC_WRITE_ERROR: (path: string) => `atomicWrite error for ${path}:`,
+  FILE_READ_JSON_ERROR: (path: string) => `readJSON error for ${path}:`,
+  FILE_READ_FILE_ERROR: (path: string) => `readFile error for ${path}:`,
+  FILE_WRITE_JSON_ERROR: (path: string) => `writeJSON error for ${path}:`,
+  FILE_MOVE_ERROR: (from: string, to: string) => `moveFile error from ${from} to ${to}:`,
+  FILE_COPY_ERROR: (from: string, to: string) => `copyFile error from ${from} to ${to}:`,
+  FILE_LIST_ERROR: (path: string) => `listFiles error for ${path}:`,
+  FILE_DELETE_ERROR: (path: string) => `deleteFile error for ${path}:`,
+
+  LOGGER_WRITE_ERROR: (event: string) => `Logger error writing event ${event}:`,
+  RECOVERY_WRITE_MARKER: 'Failed to write shutdown marker:',
+  RECOVERY_CLEAR_MARKER: 'Failed to clear shutdown marker:',
+  SERVER_START_FAILED: 'Failed to start server:',
+  SERVER_UNKNOWN_CMD: (cmd: string) => `Unknown command: ${cmd}`
+} as const;

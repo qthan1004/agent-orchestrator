@@ -36,8 +36,8 @@ Thêm bounded reflexion vào AgentRunner.
 | MODIFY | `src/worker/agent-runner.ts` |
 
 ## Done Criteria
-- [ ] Tool error → injected into next LLM turn → retry
-- [ ] Max 2 reflexion loops then checkpoint + exit
-- [ ] No-tool detection (3 turns) → exit(1)
-- [ ] JSON malformed → 3 retries then exit(1)
-- [ ] Exit checkpoint contains `error_context`
+- [x] Tool error → injected into next LLM turn → retry
+- [x] Max 2 reflexion loops then checkpoint + exit
+- [x] No-tool detection (3 turns) → exit(1)
+- [x] JSON malformed → 3 retries then exit(1)
+- [x] Exit checkpoint contains `error_context`

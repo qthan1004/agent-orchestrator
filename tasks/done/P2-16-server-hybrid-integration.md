@@ -40,7 +40,7 @@ Wire all HYBRID components into server startup/shutdown.
 | MODIFY | `src/mcp-server/index.ts` |
 
 ## Done Criteria
-- [ ] HYBRID: dispatch loop starts, workers spawn
-- [ ] `/health` shows ollama_status, vram, dispatch info
-- [ ] Graceful shutdown stops loop + unloads models
-- [ ] DEFAULT: unchanged behavior
+- [x] HYBRID: dispatch loop starts, workers spawn
+- [x] `/health` shows ollama_status, vram, dispatch info
+- [x] Graceful shutdown stops loop + unloads models
+- [x] DEFAULT: unchanged behavior

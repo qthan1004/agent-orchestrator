@@ -1,5 +1,6 @@
 import readline from 'readline/promises';
 import type { ConfigOverrides } from '../models/index.js';
+import { SYSTEM_MESSAGE } from '../constants.js';
 
 const DEFAULTS = {
   port: 3847,
@@ -14,12 +15,12 @@ export async function promptConfig(): Promise<ConfigOverrides> {
     output: process.stdout 
   });
 
-  console.log('\n🚀 MCP Orchestrator Setup');
+  console.log(SYSTEM_MESSAGE.SETUP_BANNER);
   console.log('────────────────────────\n');
 
   const profile = (await rl.question('? Server profile (default/hybrid) [default]: ')).trim().toLowerCase() || 'default';
   if (profile !== 'default' && profile !== 'hybrid') {
-    console.log('❌ Invalid profile. Defaulting to "default".');
+    console.log(SYSTEM_MESSAGE.SETUP_INVALID_PROFILE);
   }
   const validProfile = (profile === 'hybrid' ? 'hybrid' : 'default') as 'default' | 'hybrid';
 
@@ -46,7 +47,7 @@ export async function promptConfig(): Promise<ConfigOverrides> {
     
     config = { workspaceRoot, port, staleWorkerSeconds, pollTimeoutSec, planWatcherSec };
     
-    console.log('\n  ✅ Custom config applied (session-only)\n');
+    console.log(SYSTEM_MESSAGE.SETUP_CUSTOM_APPLIED);
   } else {
     // Default mode → show values, ask confirm
     console.log('  Current defaults:');
@@ -64,7 +65,7 @@ export async function promptConfig(): Promise<ConfigOverrides> {
     }
     
     config = { ...DEFAULTS, workspaceRoot: process.cwd() };
-    console.log('\n  ✅ Defaults applied\n');
+    console.log(SYSTEM_MESSAGE.SETUP_DEFAULTS_APPLIED);
   }
 
   rl.close();

@@ -33,10 +33,10 @@ export function setupMcpRoutes(app: Express, context: ServerContext): McpTranspo
     const sessionId = getSessionId(req);
 
     if (sessionId && transports[sessionId]) {
-      // ✅ Reuse existing session
+      // Reuse existing session
       await transports[sessionId].handleRequest(req, res, req.body);
     } else if (!sessionId && isInitializeRequest(req.body)) {
-      // ✅ New session → new transport + new server
+      // New session → new transport + new server
       const transport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => crypto.randomUUID(),
         onsessioninitialized: (sid: string) => {
@@ -51,7 +51,7 @@ export function setupMcpRoutes(app: Express, context: ServerContext): McpTranspo
       await server.connect(transport);
       await transport.handleRequest(req, res, req.body);
     } else {
-      // ❌ Bad request
+      // Bad request
       res.status(400).json({
         jsonrpc: '2.0',
         error: { code: -32000, message: 'Bad Request: No valid session ID provided' },

@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { SYSTEM_MESSAGE } from '../constants.js';
 
 export interface PromptTask {
   id: string;
@@ -28,7 +29,7 @@ export class PromptBuilder {
     try {
       baseContent = await fs.readFile(basePath, 'utf-8');
     } catch (error: any) {
-      console.error(`Failed to load base prompt from ${basePath}: ${error.message}`);
+      console.error(SYSTEM_MESSAGE.PROMPT_BASE_FAILED(basePath, error.message));
       baseContent = '# Base Worker Rules\nBase rules not found. Please ensure prompts/workers/base-worker.md exists.';
     }
 
@@ -37,7 +38,7 @@ export class PromptBuilder {
     try {
       skillContent = await fs.readFile(skillPath, 'utf-8');
     } catch (error: any) {
-      console.error(`Failed to load skill prompt from ${skillPath}: ${error.message}`);
+      console.error(SYSTEM_MESSAGE.PROMPT_SKILL_FAILED(skillPath, error.message));
       skillContent = `> Note: No specific skill instructions found for action '${task.action}'.`;
     }
 

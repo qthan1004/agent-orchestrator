@@ -36,6 +36,6 @@ Worker must generate structured changelog on task completion.
 | MODIFY | `prompts/workers/base-worker.md` |
 
 ## Done Criteria
-- [ ] Prompt includes changelog template
-- [ ] Result JSON has `changelog` field
-- [ ] Changelog lists files + changes description
+- [x] Prompt includes changelog template
+- [x] Result JSON has `changelog` field
+- [x] Changelog lists files + changes description

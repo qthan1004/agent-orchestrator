@@ -36,7 +36,7 @@ Tạo `GitWorktreeManager` — branch isolation via `git worktree`.
 | NEW | `src/worker/git-worktree.ts` |
 
 ## Done Criteria
-- [ ] `create()` → worktree dir exists, isolated from main
-- [ ] Worker sandbox scoped to worktree path
-- [ ] `remove()` → worktree cleaned up
-- [ ] Skip when task has no branch requirement
+- [x] `create()` → worktree dir exists, isolated from main
+- [x] Worker sandbox scoped to worktree path
+- [x] `remove()` → worktree cleaned up
+- [x] Skip when task has no branch requirement

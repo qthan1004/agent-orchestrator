@@ -45,9 +45,9 @@ while (running):
 | NEW | `src/worker/dispatch-loop.ts` |
 
 ## Done Criteria
-- [ ] Loop picks task → spawns worker → waits → loops
-- [ ] Worker exit(0) → task outbox
-- [ ] Worker crash → task requeued to inbox
-- [ ] Worker timeout → killed + requeued
-- [ ] Queue empty → sleep 2s, retry
-- [ ] `stop()` gracefully exits loop
+- [x] Loop picks task → spawns worker → waits → loops
+- [x] Worker exit(0) → task outbox
+- [x] Worker crash → task requeued to inbox
+- [x] Worker timeout → killed + requeued
+- [x] Queue empty → sleep 2s, retry
+- [x] `stop()` gracefully exits loop

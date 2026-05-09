@@ -5,7 +5,8 @@ import {
   RECOVERY_DEFAULTS,
   SHUTDOWN_MARKER_FILE,
   TASK_STATUS,
-  FILE_PREFIXES
+  FILE_PREFIXES,
+  SYSTEM_MESSAGE
 } from '../constants.js';
 import { listFiles, readJSON } from '../utils/file-backend.js';
 import type { AppConfig, TaskDef, WorkerInfo } from '../models/index.js';
@@ -84,7 +85,7 @@ export class RecoveryManager {
         message: 'Clean shutdown marker written'
       });
     } catch (err: any) {
-      console.error('Failed to write shutdown marker:', err.message);
+      console.error(SYSTEM_MESSAGE.RECOVERY_WRITE_MARKER, err.message);
     }
   }
 
@@ -100,7 +101,7 @@ export class RecoveryManager {
         fs.unlinkSync(this._markerPath);
       }
     } catch (err: any) {
-      console.error('Failed to clear shutdown marker:', err.message);
+      console.error(SYSTEM_MESSAGE.RECOVERY_CLEAR_MARKER, err.message);
     }
   }
 

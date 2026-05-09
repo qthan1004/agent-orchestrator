@@ -1,6 +1,7 @@
 import type { TaskDef } from '../models/task.js';
 import type { TaskQueueStatus } from '../mcp-server/task-queue.js';
 import { OllamaAdapter } from './adapters/ollama-adapter.js';
+import { SYSTEM_MESSAGE } from '../constants.js';
 
 export interface ModelProfile {
   mode: 'quality' | 'throughput';
@@ -77,11 +78,11 @@ export class ModelSelector {
       }
 
       if (hasNvidiaSmi && freeVramGB < profile.estimated_vram_gb) {
-        console.warn(`[WARNING] Selected ${profile.mode} profile requires ~${profile.estimated_vram_gb}GB VRAM, but only ~${freeVramGB.toFixed(1)}GB is free.`);
+        console.warn(SYSTEM_MESSAGE.MODEL_WARNING_VRAM(profile.mode, profile.estimated_vram_gb, freeVramGB));
       }
 
     } catch (err) {
-      console.warn(`[WARNING] Failed to check VRAM: ${(err as Error).message}`);
+      console.warn(SYSTEM_MESSAGE.MODEL_CHECK_ERROR((err as Error).message));
     }
   }
 }

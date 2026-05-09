@@ -46,7 +46,7 @@ interface UnifiedCheckpoint {
 | MODIFY | `src/mcp-server/tools.ts` (session_checkpoint) |
 
 ## Done Criteria
-- [ ] `UnifiedCheckpoint` type shared between worker + server
-- [ ] AgentRunner writes unified format
-- [ ] session_checkpoint reads/writes same format
-- [ ] Old v1 format still loadable
+- [x] `UnifiedCheckpoint` type shared between worker + server
+- [x] AgentRunner writes unified format
+- [x] session_checkpoint reads/writes same format
+- [x] Old v1 format still loadable

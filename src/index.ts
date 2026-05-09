@@ -2,6 +2,7 @@ import { startServer } from './mcp-server/index.js';
 import { loadConfig } from './config.js';
 import { promptConfig } from './utils/startup-prompt.js';
 import type { ConfigOverrides } from './models/index.js';
+import { SYSTEM_MESSAGE } from './constants.js';
 
 const args: string[] = process.argv.slice(2);
 const isServe = args.includes('serve') || args.length === 0;
@@ -20,10 +21,10 @@ if (isServe) {
   const config = loadConfig(overrides);
   
   startServer(config).catch(err => {
-    console.error('Failed to start server:', err);
+    console.error(SYSTEM_MESSAGE.SERVER_START_FAILED, err);
     process.exit(1);
   });
 } else {
-  console.log(`Unknown command: ${args.join(' ')}`);
+  console.log(SYSTEM_MESSAGE.SERVER_UNKNOWN_CMD(args.join(' ')));
   process.exit(1);
 }

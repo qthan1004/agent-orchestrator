@@ -39,7 +39,7 @@ Tạo `VramManager` — VRAM lifecycle management.
 | NEW | `src/worker/vram-manager.ts` |
 
 ## Done Criteria
-- [ ] `unloadAfterUse(model)` frees VRAM
-- [ ] `checkVram()` returns usage data
-- [ ] Warning at > 90% utilization
-- [ ] `canSpawn(profile)` guards against OOM
+- [x] `unloadAfterUse(model)` frees VRAM
+- [x] `checkVram()` returns usage data
+- [x] Warning at > 90% utilization
+- [x] `canSpawn(profile)` guards against OOM
