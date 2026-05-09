@@ -41,8 +41,8 @@ Tạo `PromptBuilder` class + prompt templates cho workers.
 | NEW | `prompts/workers/skill-refactor.md` |
 
 ## Done Criteria
-- [ ] `buildPrompt(task)` returns system prompt string
-- [ ] Base rules always included
-- [ ] Action-specific skill loaded dynamically
-- [ ] Missing skill → fallback, no crash
-- [ ] Template vars replaced correctly
+- [x] `buildPrompt(task)` returns system prompt string
+- [x] Base rules always included
+- [x] Action-specific skill loaded dynamically
+- [x] Missing skill → fallback, no crash
+- [x] Template vars replaced correctly

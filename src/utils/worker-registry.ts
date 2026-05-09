@@ -1,26 +1,34 @@
-// @ts-nocheck
 import crypto from 'crypto';
 import path from 'path';
 import { WORKER_STATUS, WORKER_ROLE } from '../constants.js';
-import { loadConfig } from '../config.js';
 import { readJSON, writeJSON, ensureDir } from './file-backend.js';
 import type { WorkerInfo } from '../models/index.js';
-
-const config = loadConfig();
-const registryFilePath = path.join(config.exchange.base, 'workers.json');
 
 export const generateWorkerId = (): string => `w-${crypto.randomBytes(4).toString('hex')}`;
 
 export class WorkerRegistry {
   private workers: Map<string, WorkerInfo>;
+  private registryFilePath: string | null;
 
-  constructor() {
+  constructor(registryFilePath?: string) {
     this.workers = new Map<string, WorkerInfo>();
+    this.registryFilePath = registryFilePath || null;
+    if (this.registryFilePath) {
+      this._load();
+    }
+  }
+
+  /**
+   * Set the registry file path (called during server init when config is available).
+   */
+  setRegistryPath(filePath: string): void {
+    this.registryFilePath = filePath;
     this._load();
   }
 
   private _load(): void {
-    const data = readJSON<WorkerInfo[]>(registryFilePath);
+    if (!this.registryFilePath) return;
+    const data = readJSON<WorkerInfo[]>(this.registryFilePath);
     if (data && Array.isArray(data)) {
       for (const w of data) {
         this.workers.set(w.id, w);
@@ -29,8 +37,9 @@ export class WorkerRegistry {
   }
 
   private _save(): void {
-    ensureDir(path.dirname(registryFilePath));
-    writeJSON(registryFilePath, Array.from(this.workers.values()));
+    if (!this.registryFilePath) return;
+    ensureDir(path.dirname(this.registryFilePath));
+    writeJSON(this.registryFilePath, Array.from(this.workers.values()));
   }
 
   register(): WorkerInfo {
@@ -152,5 +161,5 @@ export class WorkerRegistry {
   }
 }
 
-// Export a singleton instance
+// Export a singleton instance (registry path set later via setRegistryPath)
 export const workerRegistry = new WorkerRegistry();

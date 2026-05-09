@@ -36,9 +36,9 @@ Entry point cho worker subprocess. One-shot executor: stdin → LLM → tools �
 | NEW | `src/worker/agent-runner.ts` |
 
 ## Done Criteria
-- [ ] Reads payload from stdin JSON
-- [ ] Chat loop with Ollama (tool_calls → execute → inject)
-- [ ] Exits after final answer (no tool_calls)
-- [ ] Calls complete_task HTTP endpoint on exit
-- [ ] Exit code 0 success, 1 failure
-- [ ] `npm run build` pass
+- [x] Reads payload from stdin JSON
+- [x] Chat loop with Ollama (tool_calls → execute → inject)
+- [x] Exits after final answer (no tool_calls)
+- [x] Calls complete_task HTTP endpoint on exit
+- [x] Exit code 0 success, 1 failure
+- [x] `npm run build` pass

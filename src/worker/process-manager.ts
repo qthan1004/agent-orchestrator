@@ -134,11 +134,14 @@ export class WorkerProcessManager extends EventEmitter {
         // Process might have exited already
       }
       
-      // Stage 3: kill -9 <pid> (nuclear) if still alive after another 3s
+      // Stage 3: platform-specific nuclear kill if still alive after another 3s
       const nuclearKillTimer = setTimeout(() => {
         try {
           import('child_process').then(cp => {
-            cp.exec(`kill -9 ${pid}`, () => {});
+            const cmd = process.platform === 'win32'
+              ? `taskkill /F /PID ${pid}`
+              : `kill -9 ${pid}`;
+            cp.exec(cmd, () => {});
           });
         } catch (err) {
           // Ignore

@@ -38,7 +38,7 @@ class TokenCounter {
 | NEW | `src/worker/token-counter.ts` |
 
 ## Done Criteria
-- [ ] Tracks cumulative tokens correctly
-- [ ] `shouldCheckpoint()` true at 80%+
-- [ ] `getUsage()` returns structured data
-- [ ] `npm run build` pass
+- [x] Tracks cumulative tokens correctly
+- [x] `shouldCheckpoint()` true at 80%+
+- [x] `getUsage()` returns structured data
+- [x] `npm run build` pass

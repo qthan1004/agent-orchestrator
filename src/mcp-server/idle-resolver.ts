@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { AGENT_ACTION, WORKER_ROLE, type AgentActionValue } from '../constants.js';
 import type { AppConfig } from '../models/index.js';
 import type { WorkerRegistry } from '../utils/worker-registry.js';
@@ -32,7 +31,7 @@ export function resolveIdleAction({
   const planStatus = stateManager.checkPlansQuick();
   
   if (planStatus.hasPending || planStatus.hasProcessing) {
-    const activePlanner = workerRegistry.getActivePlanner(config.recovery.plannerAliveThresholdMs);
+    const activePlanner = workerRegistry.getActivePlanner(config.global.recovery.plannerAliveThresholdMs);
     
     if (!activePlanner) {
       // Promote worker → planner

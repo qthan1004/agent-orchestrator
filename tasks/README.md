@@ -1,46 +1,42 @@
-# Task Board — 2026-05-08
+# Task Board — 2026-05-09
 
 | Status | Count |
 |--------|-------|
-| ⬜ Pending | 34 |
+| ⬜ Pending | 23 |
 | 🔄 Processing | 0 |
-| ✅ Done | 0 |
-| **Total** | **34** |
+| ✅ Done | 12 |
+| **Total** | **35** |
 
-Progress: 0/34 (0%)
+Progress: 12/35 (34%)
 ---
+
+## ✅ Done — Pre-Sprint 0 + Sprint 0 + Sprint 1
+- `P2-PRE-phase1-cleanup.md` ✅
+- `P2-00-config-model-refactor.md` ✅
+- `P2-01-runtime-directory-bootstrap.md` ✅
+- `P2-02-workspace-registration.md` ✅
+- `P2-03-statemanager-path-migration.md` ✅
+- `P2-04-planwatcher-multiworkspace.md` ✅
+- `P2-05-ollama-client.md` ✅
+- `P2-05b-cloud-llm-adapter.md` ✅
+- `P2-06-worker-process-manager.md` ✅
+- `P2-07-model-selector.md` ✅
+- `P2-08-server-profiles.md` ✅
+- `P2-09-tool-executor.md` ✅
 
 ## ⬜ Pending — Phase 2: Hybrid Agentic Architecture (P2-series) ⭐ PRIORITY
 
 > Ref: `dev-docs/plan_phase2-hybrid-architecture.md`
 > Revised: `dev-docs/2026-05-07_plan_phase2-revised-with-research-insights.md`
 > Prefix: `P2` = Phase 2 task
-> Includes: 3-Tier refactor (Sprint 0) merged into Phase 2
 > Language: **Node.js/TypeScript** (Go migration planned for Phase 3)
 
-### Pre-Sprint 0: Clean Slate ⚡ **NEW**
-- `P2-PRE-phase1-cleanup.md` → no deps — **RUN FIRST** — Archive Phase 1 code, clean codebase for P2
-
-### Sprint 0: 3-Tier Infrastructure
-- `P2-00-config-model-refactor.md` → no deps — AppConfig split + runtimeRoot
-- `P2-01-runtime-directory-bootstrap.md` → depends P2-00 — `~/.orchestrator/` structure ⚡ **+case-bank/ dir**
-- `P2-02-workspace-registration.md` → depends P2-01 — WorkspaceRegistry + register_worker
-- `P2-03-statemanager-path-migration.md` → depends P2-00, P2-02 — workspace-scoped paths
-- `P2-04-planwatcher-multiworkspace.md` → depends P2-02, P2-03 — multi-workspace + result sync
-
-### Sprint 1: LLM Adapter + Process Management ⚡ **renamed**
-- `P2-05-llm-adapter.md` → no deps — LLMAdapter interface + OllamaAdapter ⚡ **renamed from ollama-client**
-- `P2-06-worker-process-manager.md` → no deps — spawn/kill subprocess
-- `P2-07-model-selector.md` → depends P2-05 — Quality/Throughput selection
-- `P2-08-server-profiles.md` → depends P2-00 — DEFAULT vs HYBRID mode
-
-### Sprint 2: Agent Runner Core ⚡ **expanded**
-- `P2-09-tool-executor.md` → no deps — workspace-sandboxed tool execution
+### Sprint 2: Agent Runner Core ⚡ **NEXT**
 - `P2-10-token-counter.md` → no deps — context window tracking
-- `P2-11-agent-runner-skeleton.md` → depends P2-05, P2-09, P2-10 — one-shot executor ⚡ **uses LLMAdapter, documents language-agnostic contract**
-- `P2-12-worker-prompt-system.md` → depends P2-11 — SKILL.md prompt pattern ⚡ **loads from reference/skills/**
-- `P2-13-agent-runner-reflexion.md` → depends P2-11 — bounded reflexion loop ⚡ **+post-task reflection save to case-bank**
-- `P2-05b-cloud-llm-adapter.md` → depends P2-05 — GeminiAdapter for cloud LLM ⚡ **NEW**
+- `P2-11-agent-runner-skeleton.md` → depends P2-05, P2-09, P2-10 — one-shot executor
+- `P2-12-worker-prompt-system.md` → depends P2-11 — SKILL.md prompt pattern
+- `P2-13-agent-runner-reflexion.md` → depends P2-11 — bounded reflexion loop
+- `P2-24-workspace-code-search.md` → no deps — workspace code search tool
 
 ### Sprint 3: Server Dispatch Integration
 - `P2-14-task-dispatch-loop.md` → depends P2-03, P2-06, P2-07 — main server loop

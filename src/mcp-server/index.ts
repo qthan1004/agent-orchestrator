@@ -1,4 +1,4 @@
-// @ts-nocheck
+import path from 'path';
 import express from 'express';
 import type { ErrorRequestHandler, NextFunction, Request, Response } from 'express';
 import { setupMcpRoutes } from './transport.js';
@@ -9,12 +9,11 @@ import { PlanWatcher } from './plan-watcher.js';
 import { workerRegistry } from '../utils/worker-registry.js';
 import { Logger } from '../utils/logger.js';
 import { bootstrapDirectories } from '../utils/bootstrap.js';
-import { startBrainWatcher, stopBrainWatcher } from '../agents/antigravity/brain-watcher.js';
 import type { AppConfig, ServerContext } from '../models/index.js';
 import { WorkspaceRegistry } from '../utils/workspace-registry.js';
 
 export async function startServer(config: AppConfig): Promise<void> {
-  const { port, host } = config.server;
+  const { port, host } = config.global.server;
 
   // Bootstrap: tạo toàn bộ thư mục cần thiết trước khi khởi tạo bất kỳ service nào
   const { created, failed, skipped } = bootstrapDirectories(config);
@@ -28,7 +27,11 @@ export async function startServer(config: AppConfig): Promise<void> {
     console.log('📁 All directories present.');
   }
 
-  const logger = new Logger(config.exchange.logs);
+  const logger = new Logger(config.workspace.exchange.logs);
+
+  // Initialize worker registry with config-derived path
+  const registryFilePath = path.join(config.workspace.exchange.base, 'workers.json');
+  workerRegistry.setRegistryPath(registryFilePath);
 
   // Cleanup disconnected workers from previous runs
   const cleanedWorkers = workerRegistry.cleanupDisconnected();
@@ -37,8 +40,8 @@ export async function startServer(config: AppConfig): Promise<void> {
     logger.log('WORKERS_CLEANED', { count: cleanedWorkers });
   }
 
-  // StateManager receives config with overrides (from startup-prompt)
-  const stateManager = new StateManager(logger, config);
+  // StateManager receives workspace config (workspace-scoped paths)
+  const stateManager = new StateManager(logger, config.workspace);
 
   // Recovery manager — handles crash recovery + stale worker monitoring
   const recoveryManager = new RecoveryManager({
@@ -57,7 +60,7 @@ export async function startServer(config: AppConfig): Promise<void> {
   const { wasClean, orphanCount } = recoveryManager.runStartupRecovery();
 
   // Plan watcher — auto-polls plan/pending/ directory
-  const planWatcherIntervalMs = config.planWatcher?.intervalMs || 30_000;
+  const planWatcherIntervalMs = config.workspace.planWatcher?.intervalMs || 30_000;
   const workspaceRegistry = new WorkspaceRegistry(config.runtimeRoot);
   const planWatcher = new PlanWatcher({
     stateManager,
@@ -67,11 +70,6 @@ export async function startServer(config: AppConfig): Promise<void> {
     intervalMs: planWatcherIntervalMs
   });
   planWatcher.start();
-
-  // Start brain watcher alongside MCP server
-  if (process.env.AG_BRAIN_WATCHER !== 'false') {
-    startBrainWatcher();
-  }
 
   // Pass workerRegistry via context for DI (tools.ts uses it from here)
   const context: ServerContext = { stateManager, workerRegistry, logger, config, recoveryManager, planWatcher };
@@ -149,10 +147,6 @@ export async function startServer(config: AppConfig): Promise<void> {
 
     // Stop plan watcher
     planWatcher.stop();
-    
-    if (process.env.AG_BRAIN_WATCHER !== 'false') {
-      stopBrainWatcher();
-    }
 
     // Clear all workers since server is dying
     workerRegistry.clearAll();

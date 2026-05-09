@@ -9,6 +9,7 @@
 1. **`.agent/workspace-memory.md`** — Hiểu project context, architecture, active plans
 2. **`.agent/skills/`** — Đọc TẤT CẢ skill files:
    - `personal-behavioral/SKILL.md` — Behavioral rules (ALWAYS APPLY)
+   - `coding-standards/SKILL.md` — Cross-platform, shared types, no magic numbers
    - `folder-convention/SKILL.md` — Product vs dev folder rules
    - `safe-deletion/SKILL.md` — Never delete without permission
    - `strict-scope/SKILL.md` — Only do what's asked
