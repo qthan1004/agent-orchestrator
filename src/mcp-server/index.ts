@@ -106,10 +106,12 @@ export async function startServer(config: AppConfig): Promise<void> {
   const dispatchLoop = new TaskDispatchLoop({
     queue: stateManager.queue,
     stateManager,
+    workerRegistry,
     profile: config.profile,
     serverUrl: `http://127.0.0.1:${port}`,
     workspaceRoot: config.workspace.workspaceRoot,
-    allowedTools: ['*']
+    allowedTools: ['*'],
+    workspaceId: config.workspace.workspaceId
   });
 
   // Start dispatch loop
@@ -166,6 +168,58 @@ export async function startServer(config: AppConfig): Promise<void> {
     healthData.active_workers = processManager.getActive().length;
 
     res.json(healthData);
+  });
+
+  app.post('/api/worker/complete', (req: Request, res: Response) => {
+    const { worker_id, task_id, summary, success, error_context, changelog } = req.body || {};
+
+    if (typeof worker_id !== 'string' || typeof task_id !== 'string' || typeof summary !== 'string' || typeof success !== 'boolean') {
+      res.status(400).json({ accepted: false, error: 'Invalid worker completion payload' });
+      return;
+    }
+
+    const worker = workerRegistry.getWorker(worker_id);
+    if (!worker) {
+      res.status(404).json({ accepted: false, error: `Unknown worker: ${worker_id}` });
+      return;
+    }
+
+    if (worker.current_task !== task_id) {
+      res.status(409).json({ accepted: false, error: `Worker ${worker_id} is not assigned to task ${task_id}` });
+      return;
+    }
+
+    try {
+      if (success) {
+        stateManager.moveToOutbox(task_id, {
+          task_id,
+          status: 'done',
+          summary,
+          worker_id,
+          completed_at: new Date().toISOString(),
+          changelog
+        } as any);
+        worker.tasks_completed++;
+      } else if (summary === 'scope_violation') {
+        stateManager.moveToOutbox(task_id, {
+          task_id,
+          status: 'blocked',
+          summary,
+          worker_id,
+          completed_at: new Date().toISOString(),
+          blocked_reason: error_context?.error || 'Worker attempted to write outside declared target_files.'
+        } as any);
+      } else {
+        stateManager.requeueWithRetry(task_id, config.workspace.workspaceRoot);
+      }
+
+      workerRegistry.clearAssignment(worker_id);
+      stateManager.saveCheckpoint();
+      res.json({ accepted: true });
+    } catch (err: any) {
+      workerRegistry.clearAssignment(worker_id);
+      res.status(500).json({ accepted: false, error: err.message });
+    }
   });
 
   // Setup MCP routes (controller)

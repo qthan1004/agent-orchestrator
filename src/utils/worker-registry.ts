@@ -149,6 +149,28 @@ export class WorkerRegistry {
     return false;
   }
 
+  assignTask(workerId: string, taskId: string): boolean {
+    const worker = this.workers.get(workerId);
+    if (!worker) return false;
+
+    worker.current_task = taskId;
+    worker.status = WORKER_STATUS.BUSY;
+    worker.last_heartbeat = new Date().toISOString();
+    this._save();
+    return true;
+  }
+
+  clearAssignment(workerId: string): boolean {
+    const worker = this.workers.get(workerId);
+    if (!worker) return false;
+
+    worker.current_task = null;
+    worker.status = WORKER_STATUS.IDLE;
+    worker.last_heartbeat = new Date().toISOString();
+    this._save();
+    return true;
+  }
+
   getActivePlanner(plannerAliveThresholdMs: number): WorkerInfo | null {
     const now = Date.now();
     for (const w of this.workers.values()) {

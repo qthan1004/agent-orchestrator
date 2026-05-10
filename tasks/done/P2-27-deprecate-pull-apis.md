@@ -23,6 +23,6 @@ Mark legacy pull-model APIs as deprecated and remove them from canonical flow.
 - They must not appear in primary docs, E2E, or architecture diagrams
 
 ## Done Criteria
-- [ ] Pull APIs marked deprecated or quarantined
-- [ ] Canonical docs no longer use them
-- [ ] Canonical tests no longer depend on them
+- [x] Pull APIs marked deprecated or quarantined
+- [x] Canonical docs no longer use them
+- [x] Canonical tests no longer depend on them

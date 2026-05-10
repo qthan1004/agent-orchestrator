@@ -19,7 +19,7 @@ Refactor HYBRID dispatch semantics so the Orchestrator assigns work to workers e
 - Capacity and routing stay orchestrator-owned
 
 ## Done Criteria
-- [ ] Dispatch loop uses assignment semantics
-- [ ] Worker does not self-select tasks
-- [ ] Workspace-scoped payload is included
-- [ ] Hybrid mode matches canonical architecture
+- [x] Dispatch loop uses assignment semantics
+- [x] Worker does not self-select tasks
+- [x] Workspace-scoped payload is included
+- [x] Hybrid mode matches canonical architecture

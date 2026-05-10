@@ -93,6 +93,23 @@ export interface AssignmentPayload {
   metadata?: Record<string, unknown>;
 }
 
+export interface DispatchRoutingMetadata {
+  mode: 'quality' | 'throughput';
+  model: string;
+  max_workers: number;
+  estimated_vram_gb: number;
+}
+
+export interface AssignmentEnvelope {
+  operation: typeof ASSIGNMENT_OPERATIONS.ASSIGN_TASK;
+  worker_id: string;
+  task_id: string;
+  workspace: WorkspaceScopedContext;
+  payload: AssignmentPayload;
+  routing: DispatchRoutingMetadata;
+  assigned_at: string;
+}
+
 export interface AssignTaskRequest {
   worker_id: string;
   task_id: string;

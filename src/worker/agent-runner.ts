@@ -6,6 +6,7 @@ import { PromptBuilder, PromptTask } from './prompt-builder.js';
 import fs from 'fs';
 import path from 'path';
 import { UnifiedCheckpoint } from '../models/checkpoint.js';
+import type { AssignmentEnvelope } from '../models/assignment.js';
 
 /** Default LLM context window size in tokens. */
 const DEFAULT_CONTEXT_LIMIT = 8192;
@@ -17,6 +18,7 @@ interface WorkerPayload {
   worker_id: string;
   task_id: string;
   task_details: string;
+  assignment?: AssignmentEnvelope;
   target_files?: string[];
   workspace_root: string;
   server_url: string;
@@ -60,7 +62,7 @@ async function main() {
     process.exit(1);
   }
 
-  const { worker_id, task_id, task_details, target_files = [], workspace_root, server_url, allowed_tools, model, action = 'implement', module = '' } = payload;
+  const { worker_id, task_id, task_details, assignment, target_files = [], workspace_root, server_url, allowed_tools, model, action = 'implement', module = '' } = payload;
 
   const adapter = createAdapter({ adapter: 'ollama' });
   const toolExecutor = new ToolExecutor(workspace_root, allowed_tools, target_files);
@@ -77,7 +79,24 @@ async function main() {
 
   const messages: ChatMessage[] = [
     { role: ChatRole.SYSTEM, content: systemPromptContent },
-    { role: ChatRole.USER, content: task_details }
+    {
+      role: ChatRole.USER,
+      content: assignment
+        ? [
+            'Assigned task from orchestrator.',
+            `Worker ID: ${assignment.worker_id}`,
+            `Task ID: ${assignment.task_id}`,
+            `Workspace ID: ${assignment.workspace.workspace_id}`,
+            `Workspace Path: ${assignment.workspace.workspace_path}`,
+            'Rules:',
+            '- Execute only the assigned task payload.',
+            '- Do not self-select another task.',
+            '- Respect target_files scope when writing.',
+            '',
+            task_details
+          ].join('\n')
+        : task_details
+    }
   ];
 
   // Dummy tool definitions based on allowed_tools to satisfy Ollama
