@@ -59,13 +59,23 @@ export class WorkerProcessManager extends EventEmitter {
       child.stdin.end();
     }
 
-    // Forward stdout/stderr for debugging
+    // ─── Forward worker output to server console (transparent execution) ───
     child.stdout?.on('data', (data) => {
-      console.log(SYSTEM_MESSAGE.PROCESS_STDOUT(worker_id, pid), data.toString().trim());
+      const lines = data.toString().trim();
+      if (lines) {
+        for (const line of lines.split('\n')) {
+          console.log(`  │ \x1b[36m[${worker_id}]\x1b[0m ${line}`);
+        }
+      }
     });
 
     child.stderr?.on('data', (data) => {
-      console.error(SYSTEM_MESSAGE.PROCESS_STDERR(worker_id, pid), data.toString().trim());
+      const lines = data.toString().trim();
+      if (lines) {
+        for (const line of lines.split('\n')) {
+          console.error(`  │ \x1b[33m[${worker_id}]\x1b[0m ${line}`);
+        }
+      }
     });
 
     // Setup timeout auto-kill
@@ -88,6 +98,8 @@ export class WorkerProcessManager extends EventEmitter {
     child.on('exit', (code, signal) => {
       clearTimeout(timeoutTimer);
       this.activeWorkers.delete(pid);
+      const exitInfo = signal ? `signal=${signal}` : `code=${code}`;
+      console.log(`  └─ \x1b[90m[${worker_id}] Worker exited (${exitInfo}) — PID ${pid}\x1b[0m`);
       this.emit('worker:exit', { pid, worker_id, task_id, code, signal });
     });
 
@@ -95,6 +107,7 @@ export class WorkerProcessManager extends EventEmitter {
       console.error(SYSTEM_MESSAGE.PROCESS_ERROR(worker_id, pid), err.message);
     });
 
+    console.log(`  ┌─ \x1b[32m[${worker_id}] Worker spawned\x1b[0m — PID ${pid} — task: ${task_id || 'none'}`);
     return { pid, worker_id };
   }
 

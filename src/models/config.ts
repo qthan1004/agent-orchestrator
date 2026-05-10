@@ -55,7 +55,7 @@ export interface WorkspaceConfig {
 export interface AppConfig {
   root: string;
   runtimeRoot: string;
-  profile: 'default' | 'hybrid';
+  profile: 'hybrid';
   global: GlobalConfig;
   workspace: WorkspaceConfig;
 }
@@ -64,7 +64,7 @@ export interface ConfigOverrides {
   root?: string;
   runtimeRoot?: string;
   workspaceRoot?: string | null;
-  profile?: 'default' | 'hybrid';
+  profile?: 'hybrid';
   port?: number;
   host?: string;
   planWatcherIntervalMs?: number;

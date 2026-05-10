@@ -12,12 +12,10 @@ export const TOOL_NAMES = {
   HELLO_WORLD: "hello_world",
   REGISTER_WORKER: "register_worker",
   GET_STATUS: "get_status",
-  GET_NEXT_TASK: "get_next_task",
   COMPLETE_TASK: "complete_task",
   REPORT_PROGRESS: "report_progress",
   GET_QUEUE_STATUS: "get_queue_status",
   GET_CHECKPOINT: "get_checkpoint",
-  CHECK_PLANS: "check_plans",
   SUBMIT_DECOMPOSITION: "submit_decomposition",
   REQUEST_RETRY: "request_retry",
   FORCE_RELEASE_TASK: "force_release_task",
@@ -153,13 +151,6 @@ export type RecoveryEventValue =
   (typeof RECOVERY_EVENTS)[keyof typeof RECOVERY_EVENTS];
 
 export const SERVER_PROFILES = {
-  DEFAULT: {
-    staleThresholdMs: 30 * 60_000,    // 30 minutes
-    autoKillWorker: false,
-    workerType: 'IDE' as const,
-    maxConcurrentWorkers: 1,
-    roleManagement: 'blurred' as const,
-  },
   HYBRID: {
     staleThresholdMs: 15_000,         // 15 seconds
     autoKillWorker: true,
@@ -192,7 +183,6 @@ export type WorkerRoleValue = (typeof WORKER_ROLE)[keyof typeof WORKER_ROLE];
 export const AGENT_ACTION = {
   EXECUTE: "EXECUTE", // Có task → agent execute
   IDLE: "IDLE", // Không có gì → agent idle
-  BECOME_PLANNER: "BECOME_PLANNER", // Có plan mới → promote to planner
   DECOMPOSE: "DECOMPOSE", // Plan sẵn sàng → decompose
   WAIT: "WAIT", // Đang bận → chờ
 } as const;

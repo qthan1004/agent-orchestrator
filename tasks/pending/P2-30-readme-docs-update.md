@@ -1,10 +1,10 @@
-# Task P2-21: README + Docs Update
+# Task P2-30: README + Docs Update
 
 ## Info
-- **ID:** P2-21-readme-docs-update
+- **ID:** P2-30-readme-docs-update
 - **Module:** `README.md`, `dev-docs/`
 - **Group:** Core Verification
-- **Dependencies:** P2-20, P2-27
+- **Dependencies:** P2-29, P2-27
 - **Priority:** 15
 - **Ref:** All Phase 2 docs
 

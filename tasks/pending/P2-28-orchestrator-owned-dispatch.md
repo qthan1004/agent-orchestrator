@@ -4,7 +4,7 @@
 - **ID:** P2-28-orchestrator-owned-dispatch
 - **Module:** `src/worker/dispatch-loop.ts`, `src/mcp-server/`
 - **Group:** Architecture Core
-- **Dependencies:** P2-25, P2-26, P2-30
+- **Dependencies:** P2-25, P2-20, P2-22
 - **Priority:** 11
 
 ## What to do

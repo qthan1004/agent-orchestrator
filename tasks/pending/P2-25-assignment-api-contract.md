@@ -5,7 +5,7 @@
 - **Module:** `src/mcp-server/`, `src/models/`
 - **Group:** Architecture Core
 - **Dependencies:** None
-- **Priority:** 10
+- **Priority:** 6
 - **Ref:** Phase 2 assignment-first architecture
 
 ## What to do

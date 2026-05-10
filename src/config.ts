@@ -24,8 +24,8 @@ export function loadConfig(overrides: ConfigOverrides = {}): AppConfig {
     exchangeBase = join(root, DIR_NAMES.EXCHANGE);
   }
 
-  const profileName = overrides.profile || 'default';
-  const profileConfig = profileName === 'hybrid' ? SERVER_PROFILES.HYBRID : SERVER_PROFILES.DEFAULT;
+  const profileName = 'hybrid' as const;
+  const profileConfig = SERVER_PROFILES.HYBRID;
 
   return {
     root,

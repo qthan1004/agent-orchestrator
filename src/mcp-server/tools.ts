@@ -2,12 +2,9 @@ import { z } from 'zod';
 import fs from 'fs';
 import path from 'path';
 import {
-  TOOL_NAMES, STATE_EVENTS, TASK_STATUS, AGENT_ACTION, WORKER_ROLE,
+  TOOL_NAMES, STATE_EVENTS, TASK_STATUS, AGENT_ACTION,
   WORKER_STATUS, FILE_PREFIXES, VERSION, DIR_NAMES
 } from '../constants.js';
-import type { WorkerRoleValue } from '../constants.js';
-import { waitForTask, waitForPlan } from './poll-helpers.js';
-import { resolveIdleAction } from './idle-resolver.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { ServerContext, TaskDef, TaskGraph, TaskResult } from '../models/index.js';
@@ -86,7 +83,7 @@ export function registerTools(server: McpServer, context: ServerContext): void {
   server.registerTool(
     TOOL_NAMES.REGISTER_WORKER,
     {
-      description: "Register a new worker and get a unique UUID",
+      description: "Register a new worker and get a unique UUID. Orchestrator assigns role separately.",
       inputSchema: {
         workspace_path: z.string().optional()
           .describe("Absolute path to the target project workspace. Overrides server config.")
@@ -96,29 +93,6 @@ export function registerTools(server: McpServer, context: ServerContext): void {
       try {
         const worker = workerRegistry.register();
         const status = stateManager.getStatus();
-        const planStatus = stateManager.checkPlansQuick();
-        const { plannerAliveThresholdMs } = context.config.global.recovery;
-        
-        // Determine role — SINGLE PLANNER enforced
-        let role: WorkerRoleValue = WORKER_ROLE.WORKER;
-        
-        if (status.pending === 0 && status.active === 0) {
-          // No tasks in queue
-          if (planStatus.hasPending || planStatus.hasProcessing) {
-            // Plans available → need planner?
-            const activePlanner = workerRegistry.getActivePlanner(plannerAliveThresholdMs);
-            if (!activePlanner) {
-              role = WORKER_ROLE.PLANNER;
-            } else {
-              role = WORKER_ROLE.IDLE; // planner exists, no tasks
-            }
-          } else {
-            role = WORKER_ROLE.IDLE; // nothing to do
-          }
-        }
-        // else: tasks available → WORKER (default)
-        
-        workerRegistry.setRole(worker.id, role);
         
         // Priority: agent param > server config > null
         const resolvedWorkspace = workspace_path || context.config.workspace?.workspaceRoot || null;
@@ -136,12 +110,10 @@ export function registerTools(server: McpServer, context: ServerContext): void {
             type: "text",
             text: JSON.stringify({
               worker_id: worker.id,
-              role: role,
               server_root: context.config.root,
               workspace_root: resolvedWorkspace,
               workspace_id: workspaceId,
-              queue_summary: status,
-              has_pending_plans: planStatus.hasPending || planStatus.hasProcessing
+              queue_summary: status
             })
           }]
         };
@@ -177,60 +149,6 @@ export function registerTools(server: McpServer, context: ServerContext): void {
   );
 
   server.registerTool(
-    TOOL_NAMES.GET_NEXT_TASK,
-    {
-      description: "Get the next pending task for the worker to execute",
-      inputSchema: { worker_id: z.string().describe("Your worker UUID from register_worker") }
-    },
-    withHeartbeat(async ({ worker_id }) => {
-      try {
-        const worker = workerRegistry.getWorker(worker_id);
-        if (!worker) throw new Error("Invalid worker_id");
-        
-        // Long poll
-        const { pollTimeoutMs, checkIntervalMs } = context.config.global.polling;
-        const task = await waitForTask(stateManager.queue, { 
-          timeoutMs: pollTimeoutMs, 
-          checkIntervalMs 
-        });
-        
-        if (!task) {
-          // No task → check if should become planner
-          const idleResult = resolveIdleAction({ stateManager, workerRegistry, workerId: worker_id, config: context.config });
-          // Backward compatibility via task_id: null
-          return {
-            content: [{ type: "text", text: JSON.stringify({ ...idleResult, task_id: null }) }]
-          };
-        }
-        
-        // Có task → assign
-        stateManager.moveToActive(task.id);
-        worker.current_task = task.id;
-        workerRegistry.setRole(worker_id, WORKER_ROLE.WORKER);
-        
-        if (logger) logger.log(STATE_EVENTS.TASK_ASSIGNED, { task_id: task.id, worker_id });
-        
-        return {
-          content: [{
-            type: "text",
-            text: JSON.stringify({
-              action: AGENT_ACTION.EXECUTE,
-              task_id: task.id,
-              task_details: compactTask(task),
-              context: {
-                group_id: findGroupForTask(task.id),
-                total_remaining: stateManager.queue.getStatus().pending
-              }
-            })
-          }]
-        };
-      } catch (err) {
-        return formatError(err);
-      }
-    }, context)
-  );
-
-  server.registerTool(
     TOOL_NAMES.COMPLETE_TASK,
     {
       description: "Complete a currently assigned task",
@@ -238,11 +156,10 @@ export function registerTools(server: McpServer, context: ServerContext): void {
         task_id: z.string().describe("Task ID"),
         status: z.enum([TASK_STATUS.DONE, TASK_STATUS.BLOCKED, TASK_STATUS.FAILED]).describe("Completion status"),
         summary: z.string().describe("Short summary of what was done"),
-        worker_id: z.string().describe("Your worker UUID"),
-        auto_pickup: z.boolean().optional().default(true).describe("Auto-pickup next task")
+        worker_id: z.string().describe("Your worker UUID")
       }
     },
-    withHeartbeat(async ({ task_id, status, summary, worker_id, auto_pickup = true }) => {
+    withHeartbeat(async ({ task_id, status, summary, worker_id }) => {
       try {
         const worker = workerRegistry.getWorker(worker_id);
         if (!worker) throw new Error("Invalid worker_id");
@@ -263,7 +180,6 @@ export function registerTools(server: McpServer, context: ServerContext): void {
 
           // Task may have been requeued by recovery — check if it's still valid
           if (!stateManager.isTaskInActive(task_id)) {
-            // Task was already requeued or completed by another worker
             if (logger) {
               logger.log('LATE_RESULT_DISCARDED', {
                 worker_id,
@@ -278,7 +194,7 @@ export function registerTools(server: McpServer, context: ServerContext): void {
                 reason: 'late_result',
                 task_id,
                 message: `Task ${task_id} was already requeued/completed. Your result was discarded.`,
-                next_task: { action: AGENT_ACTION.IDLE }
+                next_action: { action: AGENT_ACTION.IDLE }
               }) }]
             };
           }
@@ -292,43 +208,6 @@ export function registerTools(server: McpServer, context: ServerContext): void {
         }
 
         const result: TaskResult & Record<string, unknown> = { task_id, status, summary, worker_id, completed_at: new Date().toISOString() };
-
-        // ─── Helper: try auto-pickup next task ───
-        const tryAutoPickup = (responseBase: Record<string, unknown>): ToolResponse => {
-          if (!auto_pickup) {
-            return { content: [{ type: "text", text: JSON.stringify({
-              ...responseBase,
-              next_task: { action: AGENT_ACTION.IDLE }
-            }) }] };
-          }
-
-          const nextTask = stateManager.queue.getNextTask();
-          if (nextTask) {
-            stateManager.moveToActive(nextTask.id);
-            worker.current_task = nextTask.id;
-            return { content: [{ type: "text", text: JSON.stringify({
-              ...responseBase,
-              next_task: {
-                action: AGENT_ACTION.EXECUTE,
-                task_id: nextTask.id,
-                task_details: compactTask(nextTask),
-                context: {
-                  group_id: findGroupForTask(nextTask.id),
-                  total_remaining: stateManager.queue.getStatus().pending
-                }
-              }
-            }) }] };
-          }
-
-          // No more tasks → check planner re-election
-          const idleResult = resolveIdleAction({ 
-            stateManager, workerRegistry, workerId: worker_id, config: context.config 
-          });
-          return { content: [{ type: "text", text: JSON.stringify({
-            ...responseBase,
-            next_task: idleResult
-          }) }] };
-        };
 
         // ─── DONE: move to outbox normally ───
         if (status === TASK_STATUS.DONE) {
@@ -358,7 +237,13 @@ export function registerTools(server: McpServer, context: ServerContext): void {
             if (logger) logger.log('WORKSPACE_SYNC_FAILED', { task_id, error: err.message });
           }
           
-          return tryAutoPickup({ accepted: true, completed: task_id });
+          return {
+            content: [{ type: "text", text: JSON.stringify({
+              accepted: true,
+              completed: task_id,
+              next_action: { action: AGENT_ACTION.IDLE }
+            }) }]
+          };
         }
 
         // ─── FAILED / BLOCKED: requeue to inbox for retry ───
@@ -371,7 +256,6 @@ export function registerTools(server: McpServer, context: ServerContext): void {
           result.retry_count = retryCount;
           stateManager.moveToOutbox(task_id, result);
           worker.current_task = null;
-          // Don't increment tasks_completed for permanent failures
           
           if (logger) {
             logger.log(STATE_EVENTS.TASK_PERMANENTLY_FAILED, {
@@ -387,14 +271,13 @@ export function registerTools(server: McpServer, context: ServerContext): void {
             permanently_failed: task_id,
             retry_count: retryCount,
             message: `Task permanently failed after ${retryCount} attempts. Dependent tasks blocked until manual intervention.`,
-            next_task: { action: AGENT_ACTION.IDLE }
+            next_action: { action: AGENT_ACTION.IDLE }
           }) }] };
         }
 
         const workspaceRoot = context.config.workspace?.workspaceRoot || context.config.root;
         const newRetryCount = stateManager.requeueWithRetry(task_id, workspaceRoot);
         worker.current_task = null;
-        // Don't increment tasks_completed for failed/blocked tasks
         
         if (logger) {
           logger.log(STATE_EVENTS.TASK_REQUEUED, { task_id, status, worker_id, retry_count: newRetryCount });
@@ -402,7 +285,14 @@ export function registerTools(server: McpServer, context: ServerContext): void {
         
         stateManager.saveCheckpoint();
         
-        return tryAutoPickup({ accepted: true, requeued: task_id, retry_count: newRetryCount });
+        return {
+          content: [{ type: "text", text: JSON.stringify({
+            accepted: true,
+            requeued: task_id,
+            retry_count: newRetryCount,
+            next_action: { action: AGENT_ACTION.IDLE }
+          }) }]
+        };
       } catch (err) {
         return formatError(err);
       }
@@ -475,47 +365,6 @@ export function registerTools(server: McpServer, context: ServerContext): void {
     }
   );
 
-  server.registerTool(
-    TOOL_NAMES.CHECK_PLANS,
-    {
-      description: "Check for new plan files in plan/pending/. Returns 'ready' with plan path if found (auto-moves to processing/), 'busy' if already processing one, 'idle' if none pending.",
-    },
-    async () => {
-      try {
-        const { planPollTimeoutMs, checkIntervalMs } = context.config.global.polling;
-        const result = await waitForPlan(stateManager, {
-          timeoutMs: planPollTimeoutMs,
-          checkIntervalMs: checkIntervalMs * 2  // plan check ít thường xuyên hơn
-        });
-        
-        if (result.status === 'idle') {
-          return { content: [{ type: "text", text: JSON.stringify({ action: AGENT_ACTION.IDLE }) }] };
-        }
-        
-        if (result.status === 'busy') {
-          // A plan is already in processing/. This could be because PlanWatcher auto-moved it, 
-          // or a previous planner crashed. We should give it to the current planner to decompose.
-          return { content: [{ type: "text", text: JSON.stringify({ 
-            action: AGENT_ACTION.DECOMPOSE, 
-            plan_path: result.plan_path,
-            content: result.content,
-            pending_count: result.pending_count
-          }) }] };
-        }
-        
-        // ready
-        return { content: [{ type: "text", text: JSON.stringify({
-          action: AGENT_ACTION.DECOMPOSE,
-          plan_path: result.plan_path,
-          content: result.content,
-          pending_count: result.pending_count
-        }) }] };
-      } catch (err) {
-        return formatError(err);
-      }
-    }
-  );
-
   const TaskDefSchema = z.object({
     id: z.string().regex(/^\d{2}-[a-z0-9-]+$/, "id must be in XX-kebab-case format"),
     module: z.string(),
@@ -538,7 +387,7 @@ export function registerTools(server: McpServer, context: ServerContext): void {
         }).describe("DAG constraint groups"),
         reasoning: z.string().describe("Justification for the breakdown"),
         source_plan: z.string().describe("Filename of the plan being decomposed (from check_plans)"),
-        worker_id: z.string().optional().describe("Planner worker UUID for role transition")
+        worker_id: z.string().optional().describe("Planner worker UUID")
       }
     },
     withHeartbeat(async ({ tasks, graph, reasoning, source_plan, worker_id }) => {
@@ -567,34 +416,11 @@ export function registerTools(server: McpServer, context: ServerContext): void {
          stateManager.storeTasks(mutableTasks, mutableGraph);
          stateManager.completePlan(source_plan);
          
-         const planStatus = stateManager.checkPlansQuick();
-         let nextAction;
-         
-         if (planStatus.hasPending) {
-           const nextPlan = stateManager.checkPlans(); // move pending → processing
-           nextAction = nextPlan.status === 'ready'
-             ? {
-                 action: AGENT_ACTION.DECOMPOSE,
-                 plan_path: nextPlan.plan_path,
-                 content: nextPlan.content,
-                 pending_count: nextPlan.pending_count
-               }
-             : { action: AGENT_ACTION.IDLE };
-           // keep PLANNER role if worker_id provided
-         } else {
-           nextAction = { action: AGENT_ACTION.IDLE };
-           // Hết plan -> chuyển sang WORKER
-           if (worker_id) {
-             workerRegistry.setRole(worker_id, WORKER_ROLE.WORKER);
-           }
-         }
-         
          return {
            content: [{ type: "text", text: JSON.stringify({
              accepted: true,
              plan_completed: source_plan,
-             tasks_created: mutableTasks.length,
-             next_plan: nextAction
+             tasks_created: mutableTasks.length
            }) }]
          };
       } catch (err: any) {

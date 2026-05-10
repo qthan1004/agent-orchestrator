@@ -1,10 +1,10 @@
-# Task P2-29: Memory Boundary Tests
+# Task P2-33: Memory Boundary Tests
 
 ## Info
-- **ID:** P2-29-memory-boundary-tests
+- **ID:** P2-33-memory-boundary-tests
 - **Module:** `tests/`
 - **Group:** Post-Core Intelligence
-- **Dependencies:** P2-22, P2-26
+- **Dependencies:** P2-32, P2-20
 - **Priority:** 18
 
 ## What to do

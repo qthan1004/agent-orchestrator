@@ -1,11 +1,11 @@
-# Task P2-30: Worker Registration Validation
+# Task P2-22: Worker Registration Validation
 
 ## Info
-- **ID:** P2-30-worker-registration-validation
+- **ID:** P2-22-worker-registration-validation
 - **Module:** `src/mcp-server/tools.ts`, `src/models/`
 - **Group:** Architecture Core
-- **Dependencies:** P2-26
-- **Priority:** 10
+- **Dependencies:** P2-20
+- **Priority:** 3
 
 ## What to do
 

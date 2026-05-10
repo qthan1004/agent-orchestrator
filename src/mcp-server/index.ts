@@ -11,6 +11,7 @@ import { Logger } from '../utils/logger.js';
 import { bootstrapDirectories } from '../utils/bootstrap.js';
 import type { AppConfig, ServerContext } from '../models/index.js';
 import { WorkspaceRegistry } from '../utils/workspace-registry.js';
+import { ensureOllamaRunning } from '../utils/ollama-launcher.js';
 
 import { TaskDispatchLoop } from '../worker/dispatch-loop.js';
 import { VramManager } from '../worker/vram-manager.js';
@@ -75,34 +76,34 @@ export async function startServer(config: AppConfig): Promise<void> {
   // Pass workerRegistry via context for DI (tools.ts uses it from here)
   const context: ServerContext = { stateManager, workerRegistry, logger, config, recoveryManager, planWatcher };
 
-  let dispatchLoop: TaskDispatchLoop | undefined;
-  let vramManager: VramManager | undefined;
-  let ollamaAdapter: OllamaAdapter | undefined;
-
-  // HYBRID Startup
-  if (config.profile === 'hybrid') {
-    // 1. Initialize: OllamaClient, ModelSelector, WorkerProcessManager, VramManager, TaskDispatchLoop
-    ollamaAdapter = new OllamaAdapter(process.env.OLLAMA_BASE_URL);
-    const modelSelector = new ModelSelector();
-    const processManager = new WorkerProcessManager();
-    vramManager = new VramManager(process.env.OLLAMA_BASE_URL);
-    
-    dispatchLoop = new TaskDispatchLoop({
-      queue: stateManager.queue,
-      stateManager,
-      profile: config.profile,
-      serverUrl: `http://127.0.0.1:${port}`, // Assume local server url
-      workspaceRoot: config.workspace.workspaceRoot || config.runtimeRoot,
-      allowedTools: ['*'] // default to all
-    });
-
-    // 2. Start dispatch loop
-    dispatchLoop.start();
-
-    // 3. Start VRAM monitoring
-    vramManager.startMonitoring();
-    console.log(SYSTEM_MESSAGE.HYBRID_ACTIVATED);
+  // Ensure Ollama is running before initializing LLM components
+  const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+  const ollamaReady = await ensureOllamaRunning(ollamaBaseUrl);
+  if (!ollamaReady) {
+    console.warn('  ⚠ Ollama not available — dispatch loop will not spawn workers until Ollama is reachable.');
   }
+
+  // Initialize Hybrid components (always-on — IDE/default mode archived)
+  const ollamaAdapter = new OllamaAdapter(ollamaBaseUrl);
+  const modelSelector = new ModelSelector();
+  const processManager = new WorkerProcessManager();
+  const vramManager = new VramManager(ollamaBaseUrl);
+  
+  const dispatchLoop = new TaskDispatchLoop({
+    queue: stateManager.queue,
+    stateManager,
+    profile: config.profile,
+    serverUrl: `http://127.0.0.1:${port}`,
+    workspaceRoot: config.workspace.workspaceRoot || config.runtimeRoot,
+    allowedTools: ['*']
+  });
+
+  // Start dispatch loop
+  dispatchLoop.start();
+
+  // Start VRAM monitoring
+  vramManager.startMonitoring();
+  console.log(SYSTEM_MESSAGE.HYBRID_ACTIVATED);
 
   const app = express();
 
@@ -141,20 +142,14 @@ export async function startServer(config: AppConfig): Promise<void> {
       plan_watcher: planWatcher.getStats()
     };
 
-    if (config.profile === 'hybrid') {
-      try {
-        healthData.ollama_status = ollamaAdapter ? await ollamaAdapter.health() : false;
-      } catch (e) {
-        healthData.ollama_status = false;
-      }
-      healthData.vram = vramManager ? vramManager.checkVram() : null;
-      
-      if (dispatchLoop) {
-        healthData.dispatch_loop = (dispatchLoop as any).running ? 'running' : 'stopped';
-        const pm = (dispatchLoop as any).processManager;
-        healthData.active_workers = pm ? pm.getActive().length : 0;
-      }
+    try {
+      healthData.ollama_status = await ollamaAdapter.health();
+    } catch (e) {
+      healthData.ollama_status = false;
     }
+    healthData.vram = vramManager.checkVram();
+    healthData.dispatch_loop = (dispatchLoop as any).running ? 'running' : 'stopped';
+    healthData.active_workers = processManager.getActive().length;
 
     res.json(healthData);
   });
@@ -198,42 +193,28 @@ export async function startServer(config: AppConfig): Promise<void> {
     // Clear all workers since server is dying
     workerRegistry.clearAll();
 
-    // HYBRID Graceful Shutdown
-    if (config.profile === 'hybrid') {
-      if (dispatchLoop) {
-        // 1. Stop dispatch loop
-        dispatchLoop.stop();
+    // Graceful Shutdown: stop dispatch, kill workers, unload models
+    dispatchLoop.stop();
 
-        // 2. Kill active workers
-        const pm = (dispatchLoop as any).processManager;
-        if (pm) {
-          const active = pm.getActive();
-          for (const worker of active) {
-            console.log(`[Shutdown] Killing active worker ${worker.worker_id} (PID ${worker.pid})...`);
-            pm.kill(worker.pid);
-          }
-        }
-      }
-
-      // 3. Unload all models from VRAM
-      if (ollamaAdapter) {
-        try {
-          const psData = await ollamaAdapter.ps();
-          if (psData && psData.models) {
-            for (const m of psData.models) {
-              await ollamaAdapter.unload(m.name);
-              console.log(`[Shutdown] Unloaded model ${m.name} from VRAM.`);
-            }
-          }
-        } catch (err: any) {
-          console.warn(`[Shutdown] Failed to unload models: ${err.message}`);
-        }
-      }
-
-      if (vramManager) {
-        vramManager.stopMonitoring();
-      }
+    const activeWorkers = processManager.getActive();
+    for (const worker of activeWorkers) {
+      console.log(`[Shutdown] Killing active worker ${worker.worker_id} (PID ${worker.pid})...`);
+      processManager.kill(worker.pid);
     }
+
+    try {
+      const psData = await ollamaAdapter.ps();
+      if (psData && psData.models) {
+        for (const m of psData.models) {
+          await ollamaAdapter.unload(m.name);
+          console.log(`[Shutdown] Unloaded model ${m.name} from VRAM.`);
+        }
+      }
+    } catch (err: any) {
+      console.warn(`[Shutdown] Failed to unload models: ${err.message}`);
+    }
+
+    vramManager.stopMonitoring();
 
     // Run graceful shutdown (stop monitoring, checkpoint, marker)
     recoveryManager.runGracefulShutdown();

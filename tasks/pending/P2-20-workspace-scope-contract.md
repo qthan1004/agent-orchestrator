@@ -1,11 +1,11 @@
-# Task P2-26: Workspace Scope Contract
+# Task P2-20: Workspace Scope Contract
 
 ## Info
-- **ID:** P2-26-workspace-scope-contract
+- **ID:** P2-20-workspace-scope-contract
 - **Module:** `src/config.ts`, `src/models/`, runtime layout
 - **Group:** Architecture Core
 - **Dependencies:** None
-- **Priority:** 10
+- **Priority:** 1
 - **Ref:** Workspace-scoped IPC and memory
 
 ## What to do
