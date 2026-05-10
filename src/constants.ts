@@ -23,6 +23,8 @@ export const TOOL_NAMES = {
   PING: "ping",
   SCAN_WORKSPACE: "scan_workspace",
   SESSION_CHECKPOINT: "session_checkpoint",
+  CLOSE_WORKSPACE: "close_workspace",
+  REOPEN_WORKSPACE: "reopen_workspace",
 } as const;
 export type ToolNameValue = (typeof TOOL_NAMES)[keyof typeof TOOL_NAMES];
 

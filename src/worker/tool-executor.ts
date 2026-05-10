@@ -13,12 +13,18 @@ export interface ToolResult {
 export class ToolExecutor {
   private workspaceRoot: string;
   private allowedTools: Set<string>;
+  private declaredTargetFiles: Set<string>;
   private callCount: number = 0;
   private maxCalls: number = 50;
 
-  constructor(workspaceRoot: string, allowedTools: string[]) {
+  constructor(workspaceRoot: string, allowedTools: string[], declaredTargetFiles: string[] = []) {
     this.workspaceRoot = path.resolve(workspaceRoot);
     this.allowedTools = new Set(allowedTools);
+    this.declaredTargetFiles = new Set(
+      declaredTargetFiles
+        .map(file => file.replace(/\\/g, '/').replace(/^\.?\//, ''))
+        .filter(Boolean)
+    );
   }
 
   public getCallCount(): number {
@@ -43,6 +49,17 @@ export class ToolExecutor {
     }
     
     return resolved;
+  }
+
+  private ensureWriteAllowed(inputPath: string): void {
+    if (this.declaredTargetFiles.size === 0) return;
+
+    const resolved = this.resolvePath(inputPath);
+    const relativePath = path.relative(this.workspaceRoot, resolved).replace(/\\/g, '/');
+
+    if (!this.declaredTargetFiles.has(relativePath)) {
+      throw new Error(`SCOPE_VIOLATION: file not in declared target_files (${inputPath})`);
+    }
   }
 
   public async execute(toolName: string, args: Record<string, unknown>): Promise<ToolResult> {
@@ -118,6 +135,7 @@ export class ToolExecutor {
     if (typeof args.path !== 'string') throw new Error('Missing or invalid path');
     if (typeof args.content !== 'string') throw new Error('Missing or invalid content');
     
+    this.ensureWriteAllowed(args.path);
     const p = this.resolvePath(args.path);
     await fs.promises.mkdir(path.dirname(p), { recursive: true });
     await fs.promises.writeFile(p, args.content, 'utf-8');
@@ -130,6 +148,7 @@ export class ToolExecutor {
     if (typeof args.target !== 'string') throw new Error('Missing or invalid target string');
     if (typeof args.replacement !== 'string') throw new Error('Missing or invalid replacement string');
     
+    this.ensureWriteAllowed(args.path);
     const p = this.resolvePath(args.path);
     if (!fs.existsSync(p)) {
       throw new Error(`File not found: ${args.path}`);

@@ -1,5 +1,7 @@
 export * from './worker.js';
 export * from './task.js';
+export * from './task-metadata.js';
+export * from './assignment.js';
 export * from './config.js';
 export * from './plan.js';
 export * from './context.js';

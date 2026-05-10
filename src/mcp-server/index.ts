@@ -8,7 +8,7 @@ import { RecoveryManager } from './recovery.js';
 import { PlanWatcher } from './plan-watcher.js';
 import { workerRegistry } from '../utils/worker-registry.js';
 import { Logger } from '../utils/logger.js';
-import { bootstrapDirectories } from '../utils/bootstrap.js';
+import { bootstrapDirectories, bootstrapWorkspace } from '../utils/bootstrap.js';
 import type { AppConfig, ServerContext } from '../models/index.js';
 import { WorkspaceRegistry } from '../utils/workspace-registry.js';
 import { ensureOllamaRunning } from '../utils/ollama-launcher.js';
@@ -32,6 +32,20 @@ export async function startServer(config: AppConfig): Promise<void> {
     console.log(SYSTEM_MESSAGE.BOOTSTRAP_CREATED(created.length, skipped));
   } else {
     console.log(SYSTEM_MESSAGE.BOOTSTRAP_CLEAN);
+  }
+
+  // Register and bootstrap the primary workspace BEFORE any services start
+  const primaryRegistry = new WorkspaceRegistry(config.runtimeRoot);
+  const primaryWorkspace = primaryRegistry.register(config.workspace.workspaceRoot);
+  const wsBoot = bootstrapWorkspace(config.runtimeRoot, primaryWorkspace.id);
+  if (wsBoot.failed.length > 0) {
+    console.error(SYSTEM_MESSAGE.BOOTSTRAP_FAILED, wsBoot.failed);
+    process.exit(1);
+  }
+  console.log(`  Primary workspace: ${primaryWorkspace.name} [${primaryWorkspace.id}]`);
+  console.log(`    Path: ${primaryWorkspace.path}`);
+  if (wsBoot.created.length > 0) {
+    console.log(`    Created ${wsBoot.created.length} workspace directories (${wsBoot.skipped} existed).`);
   }
 
   const logger = new Logger(config.workspace.exchange.logs);
@@ -94,7 +108,7 @@ export async function startServer(config: AppConfig): Promise<void> {
     stateManager,
     profile: config.profile,
     serverUrl: `http://127.0.0.1:${port}`,
-    workspaceRoot: config.workspace.workspaceRoot || config.runtimeRoot,
+    workspaceRoot: config.workspace.workspaceRoot,
     allowedTools: ['*']
   });
 

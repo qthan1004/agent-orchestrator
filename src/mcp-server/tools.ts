@@ -7,6 +7,7 @@ import {
 } from '../constants.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import { parseTaskMetadata } from '../models/task-metadata.js';
 import type { ServerContext, TaskDef, TaskGraph, TaskResult } from '../models/index.js';
 import { executeScanWorkspace } from './tools/scan-workspace.js';
 import { executeSessionCheckpoint } from './tools/session-checkpoint.js';
@@ -80,30 +81,35 @@ export function registerTools(server: McpServer, context: ServerContext): void {
     }
   );
 
+  // Canonical contract is assignment-first: the orchestrator assigns work,
+  // and workers only acknowledge, report progress, and complete owned tasks.
   server.registerTool(
     TOOL_NAMES.REGISTER_WORKER,
     {
-      description: "Register a new worker and get a unique UUID. Orchestrator assigns role separately.",
+      description: "Register a new worker and get a unique UUID. Orchestrator assigns role separately. workspace_path is required — no implicit workspace discovery.",
       inputSchema: {
-        workspace_path: z.string().optional()
-          .describe("Absolute path to the target project workspace. Overrides server config.")
+        workspace_path: z.string().min(1, "workspace_path must not be empty")
+          .describe("Absolute path to the target project workspace. Required — no implicit workspace discovery.")
       }
     },
     async ({ workspace_path }) => {
       try {
+        // Validate: reject whitespace-only or non-absolute paths
+        const trimmed = workspace_path.trim();
+        if (!trimmed) {
+          return formatError(new Error('workspace_path must not be empty or whitespace-only.'));
+        }
+        if (!path.isAbsolute(trimmed)) {
+          return formatError(new Error(`workspace_path must be an absolute path. Received: "${trimmed}"`));
+        }
+
         const worker = workerRegistry.register();
         const status = stateManager.getStatus();
         
-        // Priority: agent param > server config > null
-        const resolvedWorkspace = workspace_path || context.config.workspace?.workspaceRoot || null;
-        let workspaceId: string | undefined;
-
-        if (resolvedWorkspace) {
-          const registry = new WorkspaceRegistry(context.config.runtimeRoot);
-          const ws = registry.register(resolvedWorkspace);
-          workspaceId = ws.id;
-          bootstrapWorkspace(context.config.runtimeRoot, workspaceId);
-        }
+        const registry = new WorkspaceRegistry(context.config.runtimeRoot);
+        const ws = registry.register(trimmed);
+        const workspaceId = ws.id;
+        bootstrapWorkspace(context.config.runtimeRoot, workspaceId);
 
         return {
           content: [{
@@ -111,9 +117,10 @@ export function registerTools(server: McpServer, context: ServerContext): void {
             text: JSON.stringify({
               worker_id: worker.id,
               server_root: context.config.root,
-              workspace_root: resolvedWorkspace,
+              workspace_root: trimmed,
               workspace_id: workspaceId,
-              queue_summary: status
+              queue_summary: status,
+              contract_mode: "assignment-first"
             })
           }]
         };
@@ -139,6 +146,77 @@ export function registerTools(server: McpServer, context: ServerContext): void {
               uptime: process.uptime(),
               transport: "streamable-http",
               connected_workers: workerRegistry.getActiveWorkerCount()
+            })
+          }]
+        };
+      } catch (err) {
+        return formatError(err);
+      }
+    }
+  );
+
+  server.registerTool(
+    'submit_task',
+    {
+      description: "Register a planner-created workspace task file for assignment-first dispatch.",
+      inputSchema: {
+        task_id: z.string().min(1).describe("Task ID declared by the planner."),
+        workspace_id: z.string().min(1).describe("Workspace ID that owns the task."),
+        task_content_path: z.string().min(1).describe('Path to the markdown task file, relative to the workspace root.')
+      }
+    },
+    async ({ task_id, workspace_id, task_content_path }) => {
+      try {
+        if (workspace_id !== context.config.workspace.workspaceId) {
+          throw new Error(`Workspace mismatch: expected ${context.config.workspace.workspaceId}, received ${workspace_id}`);
+        }
+
+        const registry = new WorkspaceRegistry(context.config.runtimeRoot);
+        const workspace = registry.getById(workspace_id);
+        if (!workspace) {
+          throw new Error(`Workspace "${workspace_id}" not found in registry.`);
+        }
+        if (workspace.status !== 'active') {
+          throw new Error(`Workspace "${workspace_id}" is not active.`);
+        }
+
+        if (path.isAbsolute(task_content_path)) {
+          throw new Error('task_content_path must be relative to the workspace root.');
+        }
+
+        const resolvedTaskPath = path.resolve(workspace.path, task_content_path);
+        const normalizedWorkspaceRoot = path.resolve(workspace.path);
+        if (!resolvedTaskPath.startsWith(normalizedWorkspaceRoot)) {
+          throw new Error(`Task path escapes workspace root: ${task_content_path}`);
+        }
+        if (!fs.existsSync(resolvedTaskPath)) {
+          throw new Error(`Task file not found: ${task_content_path}`);
+        }
+
+        const content = fs.readFileSync(resolvedTaskPath, 'utf8');
+        const metadata = parseTaskMetadata({
+          content,
+          workspace_id,
+          task_content_path,
+          submitted_task_id: task_id,
+        });
+
+        context.stateManager.queue.registerTaskMetadata(metadata);
+
+        const taskFilePath = path.join(context.config.workspace.exchange.inbox, `${FILE_PREFIXES.TASK}${metadata.task_id}.json`);
+        writeJSON(taskFilePath, metadata);
+
+        const queuePath = path.join(context.config.workspace.exchange.base, FILE_PREFIXES.QUEUE);
+        writeJSON(queuePath, { groups: context.stateManager.queue.groups });
+
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              status: 'registered',
+              task_id: metadata.task_id,
+              target_files_count: metadata.target_files.length,
+              depends_on_count: metadata.depends_on.length
             })
           }]
         };
@@ -220,7 +298,7 @@ export function registerTools(server: McpServer, context: ServerContext): void {
 
           // Sync result to workspace
           try {
-            const wsRoot = context.config.workspace?.workspaceRoot;
+            const wsRoot = context.config.workspace.workspaceRoot;
             if (wsRoot) {
               const wsResultDir = path.join(wsRoot, '.agent', 'results');
               ensureDir(wsResultDir);
@@ -275,7 +353,7 @@ export function registerTools(server: McpServer, context: ServerContext): void {
           }) }] };
         }
 
-        const workspaceRoot = context.config.workspace?.workspaceRoot || context.config.root;
+        const workspaceRoot = context.config.workspace.workspaceRoot;
         const newRetryCount = stateManager.requeueWithRetry(task_id, workspaceRoot);
         worker.current_task = null;
         
@@ -634,13 +712,119 @@ export function registerTools(server: McpServer, context: ServerContext): void {
     },
     async (input) => {
       try {
-        const workspaceRoot = context.config.workspace?.workspaceRoot || context.config.root;
+        const workspaceRoot = context.config.workspace.workspaceRoot;
         const result = executeSessionCheckpoint(workspaceRoot, input as SessionCheckpointInput);
 
         return {
           content: [{
             type: "text",
             text: JSON.stringify(result)
+          }]
+        };
+      } catch (err) {
+        return formatError(err);
+      }
+    }
+  );
+
+  // ── close_workspace ─────────────────────────────────────
+  server.registerTool(
+    TOOL_NAMES.CLOSE_WORKSPACE,
+    {
+      description: "Close/detach a workspace from the server. Stops accepting new plans and task assignments. Runtime state is preserved on disk. Rejects if active tasks exist in the workspace.",
+      inputSchema: {
+        workspace_id: z.string().min(1, "workspace_id is required")
+          .describe("The workspace ID to close (8-char hex from registration).")
+      }
+    },
+    async ({ workspace_id }) => {
+      try {
+        const registry = new WorkspaceRegistry(context.config.runtimeRoot);
+        const ws = registry.getById(workspace_id);
+
+        if (!ws) {
+          return formatError(new Error(`Workspace "${workspace_id}" not found in registry.`));
+        }
+
+        if (ws.status === 'closed') {
+          return {
+            content: [{
+              type: "text",
+              text: JSON.stringify({
+                workspace_id,
+                status: 'closed',
+                message: 'Workspace is already closed.',
+                closed_at: ws.closed_at
+              })
+            }]
+          };
+        }
+
+        // Hard reject: check for active tasks in this workspace
+        const sm = stateManager as any;
+        const activeTasks = typeof sm.getActiveTasksForWorkspace === 'function'
+          ? sm.getActiveTasksForWorkspace(workspace_id)
+          : [];
+        if (activeTasks.length > 0) {
+          return formatError(new Error(
+            `Cannot close workspace "${workspace_id}": ${activeTasks.length} active task(s) remain. ` +
+            `Complete or release them first.`
+          ));
+        }
+
+        const closed = registry.close(workspace_id);
+        if (!closed) {
+          return formatError(new Error(`Failed to close workspace "${workspace_id}".`));
+        }
+
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              workspace_id: closed.id,
+              name: closed.name,
+              status: closed.status,
+              closed_at: closed.closed_at,
+              runtime_state: 'preserved',
+              message: 'Workspace closed. No new plans or tasks will be accepted. Runtime state preserved on disk.'
+            })
+          }]
+        };
+      } catch (err) {
+        return formatError(err);
+      }
+    }
+  );
+
+  // ── reopen_workspace ────────────────────────────────────
+  server.registerTool(
+    TOOL_NAMES.REOPEN_WORKSPACE,
+    {
+      description: "Explicitly reopen a previously closed workspace. Validates that the original path still exists. Reuses the same workspace_id. Runtime state (plans, queue, checkpoints, memory) is resumed.",
+      inputSchema: {
+        workspace_id: z.string().min(1, "workspace_id is required")
+          .describe("The workspace ID to reopen (8-char hex from registration).")
+      }
+    },
+    async ({ workspace_id }) => {
+      try {
+        const registry = new WorkspaceRegistry(context.config.runtimeRoot);
+        const reopened = registry.reopen(workspace_id);
+
+        // Ensure runtime directories exist
+        bootstrapWorkspace(context.config.runtimeRoot, reopened.id);
+
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              workspace_id: reopened.id,
+              name: reopened.name,
+              path: reopened.path,
+              status: reopened.status,
+              runtime_state: 'resumed',
+              message: 'Workspace reopened. Existing runtime state (plans, queue, checkpoints, memory) is now active.'
+            })
           }]
         };
       } catch (err) {

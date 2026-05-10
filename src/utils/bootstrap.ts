@@ -54,6 +54,7 @@ export function bootstrapDirectories(config: AppConfig): BootstrapResult {
 
 /**
  * Khởi tạo per-workspace structure.
+ * Directory layout matches WorkspaceConfig contract.
  *
  * @param runtimeRoot - root path (e.g. ~/.orchestrator)
  * @param workspaceId - hashed workspace ID
@@ -61,16 +62,21 @@ export function bootstrapDirectories(config: AppConfig): BootstrapResult {
  */
 export function bootstrapWorkspace(runtimeRoot: string, workspaceId: string): BootstrapResult {
   const workspaceDir = join(runtimeRoot, WORKSPACE_DIR_NAME, workspaceId);
+  const exchangeDir = join(workspaceDir, 'exchange');
+  const memoryDir = join(workspaceDir, 'memory');
   const dirs = [
     workspaceDir,
-    join(workspaceDir, 'pipeline'),
-    join(workspaceDir, 'pipeline', 'inbox'),
-    join(workspaceDir, 'pipeline', 'active'),
-    join(workspaceDir, 'pipeline', 'outbox'),
-    join(workspaceDir, 'checkpoints'),
-    join(workspaceDir, 'plans'),
-    join(workspaceDir, 'plans', 'processing'),
-    join(workspaceDir, 'plans', 'done'),
+    // Exchange (IPC) directories
+    exchangeDir,
+    join(exchangeDir, 'inbox'),
+    join(exchangeDir, 'active'),
+    join(exchangeDir, 'outbox'),
+    join(exchangeDir, 'checkpoints'),
+    join(exchangeDir, 'logs'),
+    join(exchangeDir, 'signals'),
+    // Memory directories (workspace-local)
+    memoryDir,
+    join(memoryDir, 'case-bank'),
   ];
 
   const existing: string[] = [];

@@ -61,7 +61,8 @@ export class TaskDispatchLoop {
     while (this.running) {
       try {
         const queueStatus = this.queue.getStatus();
-        const task = this.queue.getNextTask();
+        const dispatchableTasks = this.queue.getDispatchableTasks();
+        const task = dispatchableTasks[0] || null;
 
         if (!task) {
           // No task available, sleep 2s
@@ -81,6 +82,7 @@ export class TaskDispatchLoop {
           worker_id: workerId,
           task_id: task.id,
           task_details: task,
+          target_files: Array.isArray((task as any).target_files) ? (task as any).target_files : [],
           model: profile.model,
           workspace_root: this.workspaceRoot,
           server_url: this.serverUrl,

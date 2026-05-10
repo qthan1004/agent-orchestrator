@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { TASK_STATUS, type TaskStatusValue } from '../constants.js';
-import type { TaskDef, TaskGraph, TaskGroup } from '../models/index.js';
+import type { TaskDef, TaskGraph, TaskGroup, TaskMetadata } from '../models/index.js';
 
 export interface TaskQueueStatus {
   total: number;
@@ -11,29 +11,59 @@ export interface TaskQueueStatus {
   blocked: number;
 }
 
+export type QueueTask = TaskDef | TaskMetadata;
+
 export interface SerializedTaskQueue {
   graph: TaskGraph;
-  tasks: Record<string, TaskDef>;
+  tasks: Record<string, QueueTask>;
+}
+
+function getDependencies(task: QueueTask): string[] {
+  if (Array.isArray((task as TaskMetadata).depends_on)) {
+    return (task as TaskMetadata).depends_on;
+  }
+  if (Array.isArray(task.dependencies)) {
+    return task.dependencies as string[];
+  }
+  return [];
+}
+
+function getTargetFiles(task: QueueTask): string[] {
+  return Array.isArray((task as TaskMetadata).target_files)
+    ? (task as TaskMetadata).target_files
+    : [];
+}
+
+function getPriority(task: QueueTask): number {
+  return typeof (task as TaskMetadata).priority === 'number'
+    ? (task as TaskMetadata).priority
+    : 0;
+}
+
+function getCreatedAt(task: QueueTask): string {
+  return typeof (task as TaskMetadata).created_at === 'string'
+    ? (task as TaskMetadata).created_at
+    : '';
+}
+
+function normalizePath(p: string): string {
+  return p.replace(/\\/g, '/').replace(/^\.?\//, '');
 }
 
 export class TaskQueue extends EventEmitter {
-  tasks: Map<string, TaskDef>;
+  tasks: Map<string, QueueTask>;
   groups: TaskGroup[];
 
   constructor() {
     super();
-    this.tasks = new Map<string, TaskDef>(); // id -> task with status
-    this.groups = []; // Array of { group_id, tasks: [], depends_on: [] }
+    this.tasks = new Map();
+    this.groups = [];
   }
 
-  /**
-   * Validate DAG to ensure no circular dependencies.
-   * Throws an error if a cycle is found.
-   */
   validateDAG(graph: TaskGraph | null | undefined): void {
     if (!graph || !graph.groups) return;
 
-    const dependencyGraph = new Map<TaskGroup['group_id'], NonNullable<TaskGroup['depends_on']>>(); // group_id -> depends_on[]
+    const dependencyGraph = new Map<TaskGroup['group_id'], NonNullable<TaskGroup['depends_on']>>();
     for (const group of graph.groups) {
       dependencyGraph.set(group.group_id, group.depends_on || []);
     }
@@ -49,9 +79,9 @@ export class TaskQueue extends EventEmitter {
         const dependentGroups = dependencyGraph.get(groupId) || [];
         for (const depGroupId of dependentGroups) {
           if (!visitedGroups.has(depGroupId) && checkCycle(depGroupId)) {
-            return true; // Cycle detected
+            return true;
           } else if (groupsInCurrentPath.has(depGroupId)) {
-            return true; // Cycle detected
+            return true;
           }
         }
       }
@@ -60,19 +90,13 @@ export class TaskQueue extends EventEmitter {
     };
 
     for (const groupId of dependencyGraph.keys()) {
-      if (!visitedGroups.has(groupId)) {
-        if (checkCycle(groupId)) {
-          throw new Error('Circular dependency detected in task graph');
-        }
+      if (!visitedGroups.has(groupId) && checkCycle(groupId)) {
+        throw new Error('Circular dependency detected in task graph');
       }
     }
   }
 
-  /**
-   * Build internal queue from decomposition output.
-   */
   loadFromGraph(tasks: TaskDef[], graph: TaskGraph): void {
-    if (!this.groups) this.groups = [];
     const newGroups = graph?.groups || [];
     this.groups.push(...newGroups);
 
@@ -83,43 +107,51 @@ export class TaskQueue extends EventEmitter {
       });
     }
 
-    // Notify any waiting poll that tasks are available
     this.emit('task-available');
   }
 
-  /**
-   * Restore queue from in-memory state.
-   * tasksMap: Map<id, task>
-   */
-  loadFromState(tasksMap: Map<string, TaskDef>, graph: TaskGraph): void {
+  registerTaskMetadata(task: TaskMetadata): void {
+    if (this.tasks.has(task.id)) {
+      throw new Error(`Task ${task.id} is already registered.`);
+    }
+
+    this.tasks.set(task.id, { ...task, status: TASK_STATUS.PENDING });
+    this.groups.push({
+      group_id: task.task_id,
+      tasks: [task.id],
+      depends_on: [...task.depends_on],
+    });
+    this.emit('task-available');
+  }
+
+  loadFromState(tasksMap: Map<string, QueueTask>, graph: TaskGraph): void {
     this.groups = (graph?.groups || []).sort((a, b) => String(a.group_id).localeCompare(String(b.group_id)));
     this.tasks = tasksMap;
   }
 
-  /**
-   * Return an array of tasks that can run immediately.
-   */
-  getUnlockedTasks(): TaskDef[] {
-    const unlocked: TaskDef[] = [];
+  getUnlockedTasks(): QueueTask[] {
+    const unlocked: QueueTask[] = [];
 
     for (const group of this.groups) {
-      // Check if all dependent groups are fully DONE
       const deps = group.depends_on || [];
       const depsMet = deps.every(depGroupId => {
         const depGroup = this.groups.find(g => g.group_id === depGroupId);
-        if (!depGroup) return true; // Missing group dependency treated as met? Or throw? Treat as met for now.
+        if (!depGroup) {
+          const depTask = this.tasks.get(String(depGroupId));
+          return depTask ? depTask.status === TASK_STATUS.DONE : true;
+        }
         return depGroup.tasks.every(taskId => {
           const t = this.tasks.get(taskId);
           return t && t.status === TASK_STATUS.DONE;
         });
       });
 
-      if (depsMet) {
-        for (const taskId of group.tasks) {
-          const task = this.tasks.get(taskId);
-          if (task && task.status === TASK_STATUS.PENDING) {
-            unlocked.push(task);
-          }
+      if (!depsMet) continue;
+
+      for (const taskId of group.tasks) {
+        const task = this.tasks.get(taskId);
+        if (task && task.status === TASK_STATUS.PENDING) {
+          unlocked.push(task);
         }
       }
     }
@@ -127,44 +159,82 @@ export class TaskQueue extends EventEmitter {
     return unlocked;
   }
 
-  /**
-   * Get the next available task.
-   */
-  getNextTask(): TaskDef | null {
-    const unlockedTasks = this.getUnlockedTasks();
-    if (unlockedTasks.length > 0) {
-      return unlockedTasks[0];
-    }
-    return null;
+  getActiveTasks(): QueueTask[] {
+    return Array.from(this.tasks.values()).filter(task => task.status === TASK_STATUS.ACTIVE);
   }
 
-  /**
-   * Mark a task as completed (done, failed, etc).
-   */
-  updateTaskStatus(taskId: string, status: TaskStatusValue): boolean {
+  canDispatch(task: QueueTask, activeTasks: QueueTask[] = this.getActiveTasks()): boolean {
+    const dependencies = getDependencies(task);
+    const allDepsResolved = dependencies.every(depId => {
+      const depTask = this.tasks.get(depId);
+      return depTask?.status === TASK_STATUS.DONE;
+    });
+
+    if (!allDepsResolved) return false;
+
+    const taskFiles = getTargetFiles(task).map(normalizePath);
+    if (taskFiles.length === 0) return true;
+
+    const activeFiles = new Set(
+      activeTasks.flatMap(activeTask => getTargetFiles(activeTask).map(normalizePath))
+    );
+
+    return !taskFiles.some(file => activeFiles.has(file));
+  }
+
+  getDispatchableTasks(): QueueTask[] {
+    return this.getUnlockedTasks()
+      .filter(task => this.canDispatch(task))
+      .sort((a, b) => {
+        const priorityDiff = getPriority(a) - getPriority(b);
+        if (priorityDiff !== 0) return priorityDiff;
+
+        const fileCountDiff = getTargetFiles(a).length - getTargetFiles(b).length;
+        if (fileCountDiff !== 0) return fileCountDiff;
+
+        return getCreatedAt(a).localeCompare(getCreatedAt(b));
+      });
+  }
+
+  getNextTask(): QueueTask | null {
+    const dispatchableTasks = this.getDispatchableTasks();
+    return dispatchableTasks[0] || null;
+  }
+
+  updateTaskStatus(taskId: string, status: TaskStatusValue, extra?: Partial<TaskMetadata>): boolean {
     const task = this.tasks.get(taskId);
     if (!task) return false;
 
-    task.status = status;
-    this.tasks.set(taskId, task); // update Map
+    const updatedTask: QueueTask = { ...task, status };
+    if (status === TASK_STATUS.ACTIVE && 'started_at' in updatedTask) {
+      (updatedTask as TaskMetadata).started_at = new Date().toISOString();
+    }
+    if (
+      (status === TASK_STATUS.DONE || status === TASK_STATUS.FAILED || status === TASK_STATUS.BLOCKED) &&
+      'completed_at' in updatedTask
+    ) {
+      (updatedTask as TaskMetadata).completed_at = new Date().toISOString();
+    }
+    if (extra) {
+      Object.assign(updatedTask, extra);
+    }
+
+    this.tasks.set(taskId, updatedTask);
     return true;
   }
 
-  /**
-   * Reset task status to PENDING.
-   */
   requeueTask(taskId: string): void {
     const task = this.tasks.get(taskId);
     if (task) {
-      task.status = TASK_STATUS.PENDING;
+      const updatedTask: QueueTask = { ...task, status: TASK_STATUS.PENDING };
+      if ('blocked_reason' in updatedTask) {
+        delete (updatedTask as Partial<TaskMetadata>).blocked_reason;
+      }
+      this.tasks.set(taskId, updatedTask);
       this.emit('task-available');
     }
   }
 
-  /**
-   * Remove groups where ALL tasks are DONE or FAILED (terminated).
-   * Drops them from memory to prevent DAG/queue bloat.
-   */
   pruneCompletedGroups(): number {
     let prunedCount = 0;
     this.groups = this.groups.filter(group => {
@@ -184,9 +254,6 @@ export class TaskQueue extends EventEmitter {
     return prunedCount;
   }
 
-  /**
-   * Get overall task queue status.
-   */
   getStatus(): TaskQueueStatus {
     const counts = { total: 0, pending: 0, active: 0, done: 0, failed: 0, blocked: 0 };
 
@@ -200,9 +267,6 @@ export class TaskQueue extends EventEmitter {
     return counts;
   }
 
-  /**
-   * Return plain object for persistence.
-   */
   serialize(): SerializedTaskQueue {
     return {
       graph: { groups: this.groups },

@@ -17,6 +17,7 @@ interface WorkerPayload {
   worker_id: string;
   task_id: string;
   task_details: string;
+  target_files?: string[];
   workspace_root: string;
   server_url: string;
   allowed_tools: string[];
@@ -59,10 +60,10 @@ async function main() {
     process.exit(1);
   }
 
-  const { worker_id, task_id, task_details, workspace_root, server_url, allowed_tools, model, action = 'implement', module = '' } = payload;
+  const { worker_id, task_id, task_details, target_files = [], workspace_root, server_url, allowed_tools, model, action = 'implement', module = '' } = payload;
 
   const adapter = createAdapter({ adapter: 'ollama' });
-  const toolExecutor = new ToolExecutor(workspace_root, allowed_tools);
+  const toolExecutor = new ToolExecutor(workspace_root, allowed_tools, target_files);
   const tokenCounter = new TokenCounter(DEFAULT_CONTEXT_LIMIT);
   const promptBuilder = new PromptBuilder();
 
@@ -193,6 +194,14 @@ async function main() {
         const result = await toolExecutor.execute(call.function.name, args as Record<string, unknown>);
         
         if (result.error) {
+          if (result.error.startsWith('SCOPE_VIOLATION:')) {
+            await notifyComplete(server_url, worker_id, task_id, 'scope_violation', false, {
+              error: result.error,
+              hypothesis: 'Worker attempted to write outside declared target_files',
+              attempted_fix: 'Execution stopped immediately after scope violation'
+            });
+            process.exit(1);
+          }
           hasError = true;
           toolErrorDiagnosis = result.error;
         }

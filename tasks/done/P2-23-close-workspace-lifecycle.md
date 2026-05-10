@@ -33,7 +33,7 @@ Add a safe mechanism to close or detach a workspace from the running server when
 - Close must not affect unrelated workspaces on the same server
 
 ## Done Criteria
-- [ ] Workspace close/detach contract is defined
-- [ ] Closed workspace is excluded from new orchestration work
-- [ ] Behavior for active tasks/workers is explicit
-- [ ] Runtime state preservation rules are documented
+- [x] Workspace close/detach contract is defined
+- [x] Closed workspace is excluded from new orchestration work
+- [x] Behavior for active tasks/workers is explicit
+- [x] Runtime state preservation rules are documented

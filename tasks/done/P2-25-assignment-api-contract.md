@@ -28,7 +28,7 @@ Define the canonical assignment-first contract for worker execution.
 - Assignment payload must include workspace-scoped context
 
 ## Done Criteria
-- [ ] Canonical API names and payloads defined
-- [ ] Ownership rules defined
-- [ ] State transitions documented
-- [ ] Pull-model behavior excluded from canonical contract
+- [x] Canonical API names and payloads defined
+- [x] Ownership rules defined
+- [x] State transitions documented
+- [x] Pull-model behavior excluded from canonical contract

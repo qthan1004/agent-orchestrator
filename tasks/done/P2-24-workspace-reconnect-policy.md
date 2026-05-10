@@ -33,7 +33,7 @@ Define whether the server should support reconnecting a previously closed worksp
 - Reconnect must fail clearly on missing or moved paths
 
 ## Done Criteria
-- [ ] Reconnect vs fresh import policy is defined
-- [ ] Identity reuse rules are explicit
-- [ ] Failure handling for missing/moved paths is explicit
-- [ ] Recommendation is documented in canonical workspace lifecycle flow
+- [x] Reconnect vs fresh import policy is defined
+- [x] Identity reuse rules are explicit
+- [x] Failure handling for missing/moved paths is explicit
+- [x] Recommendation is documented in canonical workspace lifecycle flow

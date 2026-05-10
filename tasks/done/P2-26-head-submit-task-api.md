@@ -1,4 +1,4 @@
-# Task P2-26: Head → Server Task Submission API
+# Task P2-26: Head -> Server Task Submission API
 
 ## Info
 - **ID:** P2-26-head-submit-task-api
@@ -6,15 +6,15 @@
 - **Group:** Architecture Core
 - **Dependencies:** P2-25, P2-20
 - **Priority:** 7
-- **Ref:** Head-Body-Limb architecture — Head (Planner) → Body (Server) interface
+- **Ref:** Head-Body-Limb architecture - Head (Planner) -> Body (Server) interface
 
 ## Context
 
 The Head (Planner) is the IDE agent + human. After discussing and approving a plan, the Head decomposes it into task files in the workspace and submits them to the Server for dispatch.
 
-Design decisions (chốt 2026-05-10):
+Design decisions (chot 2026-05-10):
 - **Option A (Manual Head):** Human + IDE agent acts as Planner. No LLM-powered auto-planning.
-- **Enforce cứng:** Worker writes outside declared scope → STOP + report `scope_violation`
+- **Enforce cung:** Worker writes outside declared scope -> STOP + report `scope_violation`
 - **Metadata lean:** Server only holds task_id + workspace_id + scheduling metadata. Task content (including target_files) lives in workspace.
 
 ## What to do
@@ -53,7 +53,7 @@ submit_task({
 
 Server behavior on submit:
 1. Resolve full path: `workspace_root + task_content_path`
-2. Read task file → parse YAML frontmatter → extract `depends_on`, `target_files`, `priority`, `action`
+2. Read task file -> parse YAML frontmatter -> extract `depends_on`, `target_files`, `priority`, `action`
 3. Register in TaskQueue with parsed metadata
 4. Return `{ status: 'registered', task_id, target_files_count, depends_on_count }`
 
@@ -80,17 +80,17 @@ function canDispatch(task: TaskMetadata, activeTasks: TaskMetadata[]): boolean {
 
 Dispatch priority when multiple tasks are eligible:
 1. `priority` number (lower first)
-2. Fewer `target_files` first (finishes faster → releases locks sooner)
+2. Fewer `target_files` first (finishes faster -> releases locks sooner)
 3. FIFO (`created_at`)
 
 ### 4. Scope enforcement in ToolExecutor
 
 When worker attempts to write a file:
 1. Check if file path is in `target_files` (declared by planner)
-2. If YES → allow write
-3. If NO → reject write, worker receives error: `SCOPE_VIOLATION: file not in declared target_files`
+2. If YES -> allow write
+3. If NO -> reject write, worker receives error: `SCOPE_VIOLATION: file not in declared target_files`
 4. Worker should STOP and report `scope_violation` to server
-5. Server marks task as `blocked` with reason → planner/user reviews
+5. Server marks task as `blocked` with reason -> planner/user reviews
 
 ### 5. TaskMetadata (server-side index)
 
@@ -119,19 +119,19 @@ interface TaskMetadata {
 ## Files
 | Action | Path |
 |--------|------|
-| MODIFY | `src/mcp-server/tools.ts` — add `submit_task` tool |
-| MODIFY | `src/mcp-server/task-queue.ts` — add TaskMetadata, conflict detection |
-| MODIFY | `src/worker/dispatch-loop.ts` — use canDispatch() |
-| MODIFY | `src/worker/tool-executor.ts` — add scope enforcement |
-| NEW    | `src/models/task-metadata.ts` — TaskMetadata type + YAML parser |
+| MODIFY | `src/mcp-server/tools.ts` - add `submit_task` tool |
+| MODIFY | `src/mcp-server/task-queue.ts` - add TaskMetadata, conflict detection |
+| MODIFY | `src/worker/dispatch-loop.ts` - use canDispatch() |
+| MODIFY | `src/worker/tool-executor.ts` - add scope enforcement |
+| NEW    | `src/models/task-metadata.ts` - TaskMetadata type + YAML parser |
 
 ## Done Criteria
-- [ ] `submit_task` MCP tool registered and callable
-- [ ] Server reads task file, parses YAML frontmatter
-- [ ] TaskQueue stores metadata with target_files + depends_on
-- [ ] DispatchLoop checks dependency resolution before dispatch
-- [ ] DispatchLoop checks file conflict before dispatch
-- [ ] ToolExecutor enforces write scope (target_files only)
-- [ ] Scope violation → worker STOP + report to server
-- [ ] Priority ordering: priority → fewer files → FIFO
-- [ ] `npm run build` pass
+- [x] `submit_task` MCP tool registered and callable
+- [x] Server reads task file, parses YAML frontmatter
+- [x] TaskQueue stores metadata with target_files + depends_on
+- [x] DispatchLoop checks dependency resolution before dispatch
+- [x] DispatchLoop checks file conflict before dispatch
+- [x] ToolExecutor enforces write scope (target_files only)
+- [x] Scope violation -> worker STOP + report to server
+- [x] Priority ordering: priority -> fewer files -> FIFO
+- [x] `npm run build` pass

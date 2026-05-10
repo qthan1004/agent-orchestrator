@@ -27,7 +27,7 @@ Define workspace identity and all workspace-scoped runtime roots as hard contrac
 - Any global/shared memory must be explicitly separated
 
 ## Done Criteria
-- [ ] Workspace identity contract defined
-- [ ] Runtime path layout defined
-- [ ] Registration requirement documented
-- [ ] Global vs workspace-local boundaries documented
+- [x] Workspace identity contract defined
+- [x] Runtime path layout defined
+- [x] Registration requirement documented
+- [x] Global vs workspace-local boundaries documented

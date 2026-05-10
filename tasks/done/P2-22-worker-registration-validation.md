@@ -19,6 +19,6 @@ Enforce worker registration rules required by the Phase 2 architecture.
 - worker cannot register without workspace scope
 
 ## Done Criteria
-- [ ] Registration rejects missing `workspace_path`
-- [ ] Validation errors are explicit
-- [ ] Worker registration is aligned with workspace-scoped architecture
+- [x] Registration rejects missing `workspace_path`
+- [x] Validation errors are explicit
+- [x] Worker registration is aligned with workspace-scoped architecture

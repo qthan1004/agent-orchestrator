@@ -1,19 +1,31 @@
 import { resolve, join } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { createHash } from 'crypto';
 import { DIR_NAMES, POLL_DEFAULTS, RECOVERY_DEFAULTS, WORKSPACE_DIR_NAME, SERVER_PROFILES } from './constants.js';
+import { generateWorkspaceId } from './utils/workspace-registry.js';
 import type { AppConfig, ConfigOverrides } from './models/config.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+/**
+ * Load application configuration.
+ * workspaceRoot is required — no implicit workspace discovery.
+ *
+ * @param overrides - Configuration overrides from startup prompt or CLI
+ * @throws Error if workspaceRoot is not provided
+ */
 export function loadConfig(overrides: ConfigOverrides = {}): AppConfig {
   const root = overrides.root || resolve(__dirname, '..');
-  const workspaceRoot = overrides.workspaceRoot || null;
-  
-  const workspaceId = workspaceRoot 
-    ? createHash('md5').update(workspaceRoot).digest('hex').substring(0, 8) 
-    : 'default';
+
+  if (!overrides.workspaceRoot) {
+    throw new Error(
+      'workspaceRoot is required. No implicit workspace discovery allowed. ' +
+      'Provide an explicit workspace path at startup.'
+    );
+  }
+
+  const workspaceRoot = overrides.workspaceRoot;
+  const workspaceId = generateWorkspaceId(workspaceRoot);
 
   const runtimeRoot = overrides.runtimeRoot || root;
 
@@ -23,6 +35,14 @@ export function loadConfig(overrides: ConfigOverrides = {}): AppConfig {
   } else {
     exchangeBase = join(root, DIR_NAMES.EXCHANGE);
   }
+
+  // Workspace-local memory paths (scoped under ~/.orchestrator/workspaces/<id>/memory/)
+  const workspaceRuntimeDir = join(runtimeRoot, WORKSPACE_DIR_NAME, workspaceId);
+  const memoryBase = join(workspaceRuntimeDir, 'memory');
+  const memoryCaseBank = join(memoryBase, 'case-bank');
+
+  // Global shared memory paths (explicitly separated from workspace-local)
+  const sharedCaseBank = join(runtimeRoot, 'shared', 'case-bank');
 
   const profileName = 'hybrid' as const;
   const profileConfig = SERVER_PROFILES.HYBRID;
@@ -47,6 +67,9 @@ export function loadConfig(overrides: ConfigOverrides = {}): AppConfig {
         maxTaskRetries: overrides.maxTaskRetries || RECOVERY_DEFAULTS.MAX_TASK_RETRIES,
       },
       templates: join(root, DIR_NAMES.TEMPLATES),
+      sharedMemory: {
+        caseBank: sharedCaseBank,
+      },
     },
     workspace: {
       workspaceId,
@@ -74,7 +97,11 @@ export function loadConfig(overrides: ConfigOverrides = {}): AppConfig {
       },
       planWatcher: {
         intervalMs: overrides.planWatcherIntervalMs || 30_000,
-      }
+      },
+      memory: {
+        base: memoryBase,
+        caseBank: memoryCaseBank,
+      },
     }
   };
 }

@@ -27,7 +27,7 @@ Make workspace import mandatory at server startup so every orchestration session
 - Primary workspace registration must use the same registry contract as later workspace imports
 
 ## Done Criteria
-- [ ] Startup rejects empty or missing workspace path
-- [ ] Primary workspace is registered before server services start
-- [ ] Workspace-scoped runtime bootstrap happens during startup
-- [ ] Startup UX clearly confirms the imported primary workspace
+- [x] Startup rejects empty or missing workspace path
+- [x] Primary workspace is registered before server services start
+- [x] Workspace-scoped runtime bootstrap happens during startup
+- [x] Startup UX clearly confirms the imported primary workspace
