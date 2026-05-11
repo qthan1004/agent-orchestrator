@@ -1,0 +1,182 @@
+# Task Transaction Conventions
+
+## Core Model
+
+Treat each `task` as a `transaction`, not just a unit of work.
+
+- `task` = long-lived business identity
+- `attempt` = one execution attempt of that task
+- `worker` = one-shot process holding the attempt
+- `workspace` = owning context and resource scope
+
+This model exists to prevent state confusion during retries, crashes, late callbacks, and parallel execution.
+
+## Required Identities
+
+### 1. `workspace_id`
+
+Identifies the owning workspace of the task.
+
+- Separates execution context
+- Defines resource ownership boundary
+- Same `task_id` in different workspaces should be treated as different execution contexts
+
+### 2. `task_id`
+
+Long-term identity of the task.
+
+- Stable across retries
+- Used for audit, reporting, and history
+- Represents the transaction itself
+
+### 3. `attempt_id`
+
+Identity of the currently running execution attempt.
+
+- Must change on every dispatch or retry
+- Distinguishes current execution from stale execution
+- Prevents late or duplicate completion from corrupting task state
+
+### 4. `worker_id`
+
+Identity of the one-shot worker process.
+
+- Short-lived
+- Exists only for one execution session
+- Must be bound to exactly one `attempt_id`
+
+## Identity Relationships
+
+- One `workspace_id` can own many tasks
+- One `task_id` can have many attempts over time
+- One `attempt_id` can be owned by at most one `worker_id`
+- One one-shot `worker_id` should hold at most one `attempt_id`
+
+## Source Of Truth
+
+The system must keep a durable `execution record` in the owning workspace.
+
+Folder state such as `inbox/`, `active/`, `outbox/` is useful for visibility, but must not be the only source of truth.
+
+Use:
+
+- `execution record` for server decision-making
+- folder layout for operator visibility
+
+Server recovery and reconciliation should always read the execution record first.
+
+## Minimum Execution Record
+
+Each active task should have a durable record containing at least:
+
+- `workspace_id`
+- `task_id`
+- `attempt_id`
+- `worker_id`
+- `state`
+- `state_version`
+- `lease_expires_at`
+- `last_heartbeat_at`
+- `started_at`
+- `updated_at`
+- `checkpoint_ref`
+- `result_ref`
+
+Optional but useful:
+
+- `retry_count`
+- `error_context`
+- `resource_locks`
+- `completion_status`
+
+## Ownership Rules
+
+- Only one worker may own one active attempt
+- A worker may only complete the exact attempt it was assigned
+- A completion event must be rejected if its `attempt_id` is no longer current
+- If lease ownership has expired, the worker may no longer commit task state
+
+## State Transition Rules
+
+Only the server may change canonical task state.
+
+Workers do not directly mutate task state. Workers only emit events such as:
+
+- `progress`
+- `checkpoint`
+- `complete`
+- `fail`
+
+Before accepting any event, the server must verify:
+
+- `workspace_id`
+- `task_id`
+- `attempt_id`
+- `worker_id`
+- current state
+- lease validity
+
+## Failure Handling Rules
+
+### Worker dies mid-task
+
+- Mark the current attempt as expired or failed after lease timeout
+- Create a new `attempt_id` if retry is allowed
+- Never reuse the old attempt as if it were still live
+
+### Server dies mid-task
+
+- On restart, reconcile from execution records before dispatching new work
+- Detect which attempts are still valid, stale, or orphaned
+
+### Late callback arrives
+
+- If callback belongs to an old `attempt_id`, reject it or store it as audit only
+- Never let a stale callback overwrite current state
+
+### Duplicate callback arrives
+
+- Handle idempotently using `attempt_id`
+- A completed attempt must not be committed twice
+
+### Timeout occurs
+
+- Timeout should terminate or invalidate the current attempt
+- Retry must create a fresh `attempt_id`
+
+## Parallel Execution Rules
+
+Treat shared resources like transactional resources.
+
+At minimum, tasks should declare:
+
+- `read_set`
+- `write_set`
+
+Safe default policy:
+
+- `write/write` conflict: block parallel dispatch
+- `read/write` conflict: block as well during early architecture hardening
+- `read/read` conflict: allow
+
+This keeps concurrency control simple while the orchestration layer is still being proven.
+
+## Human Control Points
+
+Only two human gates are required:
+
+1. Approve `plan`
+2. Approve `skill` changes
+
+Everything else should be orchestrated automatically if runtime correctness is strong enough.
+
+## Design Summary
+
+- `task` is the transaction
+- `attempt` is the execution of that transaction
+- `worker` is the one-shot owner of the execution
+- `workspace` is the owning scope of the transaction
+
+If state handling becomes confusing, reduce the question to:
+
+`What is the current state of this task transaction, which attempt is active, who owns it, and is this event still valid?`
