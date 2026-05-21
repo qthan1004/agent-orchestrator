@@ -122,12 +122,12 @@ This task only extracts and wraps. The `contextThreshold` config is accepted but
 | MODIFY | `src/worker/agent-runner.ts` (simplify to use Harness) |
 
 ## Done Criteria
-- [ ] `LLMHarness` class created with `run()` method
-- [ ] Chat loop extracted from agent-runner into Harness
-- [ ] Token counting lives inside Harness
-- [ ] Tool execution delegated through Harness
-- [ ] agent-runner.ts is thin wrapper: parse → build prompt → harness.run() → notify
-- [ ] `HarnessResult` includes status, tokenUsage, summary
-- [ ] Context threshold config accepted but NOT acted on yet (placeholder for P2-30)
-- [ ] All existing behavior preserved (reflexion, guards, complete_task)
-- [ ] `npm run build` passes
+- [x] `LLMHarness` class created with `run()` method
+- [x] Chat loop extracted from agent-runner into Harness
+- [x] Token counting lives inside Harness
+- [x] Tool execution delegated through Harness
+- [x] agent-runner.ts is thin wrapper: parse → build prompt → harness.run() → notify
+- [x] `HarnessResult` includes status, tokenUsage, summary
+- [x] Context threshold config accepted but NOT acted on yet (placeholder for P2-30)
+- [x] All existing behavior preserved (reflexion, guards, complete_task)
+- [x] `npm run build` passes

@@ -114,12 +114,12 @@ if ((task as any).respawn_count >= MAX_RESPAWNS) {
 | MODIFY | `src/worker/dispatch-loop.ts` (inject handover + respawn limit) |
 
 ## Done Criteria
-- [ ] Server detects `context_exceeded` with handover in worker completion
-- [ ] `requeueWithHandover()` moves task back to pending with handover attached
-- [ ] Dispatch loop injects handover as prefix when spawning new worker
-- [ ] New worker receives previous worker's handover as initial context
-- [ ] Respawn count tracked per task
-- [ ] Max 3 respawns — after that, task marked as `blocked`
-- [ ] Respawn count and handover events logged for observability
-- [ ] Normal task completion (success/failure) NOT affected
-- [ ] `npm run build` passes
+- [x] Server detects `context_exceeded` with handover in worker completion
+- [x] `requeueWithHandover()` moves task back to pending with handover attached
+- [x] Dispatch loop injects handover as prefix when spawning new worker
+- [x] New worker receives previous worker's handover as initial context
+- [x] Respawn count tracked per task
+- [x] Max 3 respawns — after that, task marked as `blocked`
+- [x] Respawn count and handover events logged for observability
+- [x] Normal task completion (success/failure) NOT affected
+- [x] `npm run build` passes

@@ -94,7 +94,7 @@ export interface AssignmentPayload {
 }
 
 export interface DispatchRoutingMetadata {
-  mode: 'quality' | 'throughput';
+  mode: 'lite' | 'standard' | 'cloud';
   model: string;
   max_workers: number;
   estimated_vram_gb: number;

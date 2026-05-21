@@ -1,18 +1,19 @@
 import { createAdapter, ChatRole, ChatMessage, ToolDefinition } from './adapters/index.js';
 import { ToolExecutor } from './tool-executor.js';
-import { TokenCounter } from './token-counter.js';
+import { HarnessStatus, LLMHarness } from './llm-harness.js';
 import { SYSTEM_MESSAGE } from '../constants.js';
 import { PromptBuilder, PromptTask } from './prompt-builder.js';
-import fs from 'fs';
-import path from 'path';
-import { UnifiedCheckpoint } from '../models/checkpoint.js';
 import type { AssignmentEnvelope } from '../models/assignment.js';
 
 /** Default LLM context window size in tokens. */
 const DEFAULT_CONTEXT_LIMIT = 8192;
 
-/** Maximum number of tool-call loop iterations before aborting. */
-const MAX_TOOL_CALLS = 50;
+const RUNNER_TEXT = {
+  ATTEMPTED_FIX_NONE: 'None',
+  FATAL_HYPOTHESIS: 'Fatal exception in runner loop',
+  CONTEXT_EXCEEDED_ERROR: 'context_exceeded',
+  CONTEXT_EXCEEDED_HYPOTHESIS: 'Context window 85% full - handover generated'
+} as const;
 
 interface WorkerPayload {
   worker_id: string;
@@ -66,7 +67,6 @@ async function main() {
 
   const adapter = createAdapter({ adapter: 'ollama' });
   const toolExecutor = new ToolExecutor(workspace_root, allowed_tools, target_files);
-  const tokenCounter = new TokenCounter(DEFAULT_CONTEXT_LIMIT);
   const promptBuilder = new PromptBuilder();
 
   const promptTask: PromptTask = {
@@ -136,167 +136,43 @@ async function main() {
   });
 
   try {
-    let loopCount = 0;
-    let consecutiveNoTools = 0;
-    let consecutiveMalformedJson = 0;
-    let reflexionCount = 0;
-
-    while (loopCount < MAX_TOOL_CALLS) {
-      loopCount++;
-
-      const response = await adapter.chat({
-        model,
-        messages,
-        tools
-      });
-
-      tokenCounter.addUsage(response.tokenUsage.promptTokens, response.tokenUsage.completionTokens);
-      messages.push(response.message);
-
-      const toolCalls = response.message.tool_calls;
-      
-      if (!toolCalls || toolCalls.length === 0) {
-        consecutiveNoTools++;
-        if (consecutiveNoTools >= 3) {
-          await notifyComplete(server_url, worker_id, task_id, `Failed: No tool calls for 3 consecutive turns`, false, { 
-            error: 'No tool calls', hypothesis: 'LLM failed to output tool calls 3 times', attempted_fix: 'None' 
-          });
-          process.exit(1);
-        }
-        messages.push({ role: ChatRole.USER, content: "You did not call any tools. You must use a tool to progress. If the task is done, use the 'complete_task' tool." });
-        continue;
+    const harness = new LLMHarness({
+      adapter,
+      model,
+      contextLimit: DEFAULT_CONTEXT_LIMIT,
+      contextThreshold: 0.85,
+      tools,
+      toolExecutor,
+      checkpoint: {
+        workspaceRoot: workspace_root,
+        taskId: task_id
       }
-      consecutiveNoTools = 0;
+    });
 
-      let hasError = false;
-      let toolErrorDiagnosis = '';
-
-      // Execute tool calls
-      for (const call of toolCalls) {
-        if (call.function.name === 'complete_task') {
-          let summary = 'Task completed';
-          let changelog: any = undefined;
-          try {
-            const args = typeof call.function.arguments === 'string' ? JSON.parse(call.function.arguments) : call.function.arguments;
-            summary = args.summary || summary;
-            changelog = args.changelog;
-          } catch(e) {}
-          await notifyComplete(server_url, worker_id, task_id, summary, true, undefined, changelog);
-          process.exit(0);
-        }
-
-        let args: Record<string, unknown> = {};
-        try {
-          args = typeof call.function.arguments === 'string' 
-            ? JSON.parse(call.function.arguments) 
-            : call.function.arguments;
-          consecutiveMalformedJson = 0;
-        } catch (err: any) {
-          consecutiveMalformedJson++;
-          if (consecutiveMalformedJson >= 3) {
-            await notifyComplete(server_url, worker_id, task_id, `Failed: Malformed JSON 3 times`, false, { 
-              error: 'Malformed JSON', hypothesis: 'LLM consistently fails to format JSON correctly', attempted_fix: 'Retried 3 times' 
-            });
-            process.exit(1);
-          }
-          hasError = true;
-          toolErrorDiagnosis = `Invalid JSON arguments: ${err.message}`;
-          messages.push({
-            role: ChatRole.TOOL,
-            content: `Error: ${toolErrorDiagnosis}. Please fix the JSON formatting.`,
-            name: call.function.name,
-            tool_call_id: call.id
-          });
-          continue;
-        }
-          
-        const result = await toolExecutor.execute(call.function.name, args as Record<string, unknown>);
-        
-        if (result.error) {
-          if (result.error.startsWith('SCOPE_VIOLATION:')) {
-            await notifyComplete(server_url, worker_id, task_id, 'scope_violation', false, {
-              error: result.error,
-              hypothesis: 'Worker attempted to write outside declared target_files',
-              attempted_fix: 'Execution stopped immediately after scope violation'
-            });
-            process.exit(1);
-          }
-          hasError = true;
-          toolErrorDiagnosis = result.error;
-        }
-        
-        messages.push({
-          role: ChatRole.TOOL,
-          content: result.error ? `Error: ${result.error}` : (result.output || 'Success'),
-          name: call.function.name,
-          tool_call_id: call.id
-        });
-      }
-
-      if (hasError) {
-        reflexionCount++;
-        if (reflexionCount > 2) {
-           await notifyComplete(server_url, worker_id, task_id, `Reflexion failed: ${toolErrorDiagnosis}`, false, { 
-             error: toolErrorDiagnosis, 
-             hypothesis: 'Tools kept failing despite retries', 
-             attempted_fix: 'Reflexion loop maxed out at 2' 
-           });
-           process.exit(1);
-        }
-        messages.push({ role: ChatRole.USER, content: `Tool execution failed. Diagnose the error and try a different approach. You have ${3 - reflexionCount} attempts left before aborting.` });
-      } else {
-        reflexionCount = 0;
-      }
-
-      if (tokenCounter.shouldCheckpoint()) {
-        console.warn(SYSTEM_MESSAGE.AGENT_TOKEN_CHECKPOINT);
-        try {
-          const cpPath = path.join(workspace_root, '.agent', 'session.json');
-          const cpData: UnifiedCheckpoint & { version: number; created_at: string; updated_at: string } = {
-            version: 3,
-            task_id,
-            phase: 'implementation',
-            files_changed: [],
-            completed_steps: [],
-            remaining_steps: [],
-            error_context: hasError ? { 
-              error: toolErrorDiagnosis, 
-              hypothesis: 'Token limit checkpoint hit during error', 
-              attempted_fix: 'None' 
-            } : null,
-            token_usage: {
-              used: tokenCounter.getUsage().used,
-              limit: tokenCounter.getUsage().limit
-            },
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          };
-          
-          if (fs.existsSync(cpPath)) {
-            try {
-              const existing = JSON.parse(fs.readFileSync(cpPath, 'utf-8'));
-              if (existing.created_at) cpData.created_at = existing.created_at;
-              if (Array.isArray(existing.files_changed)) cpData.files_changed = existing.files_changed;
-              if (Array.isArray(existing.completed_steps)) cpData.completed_steps = existing.completed_steps;
-              if (Array.isArray(existing.remaining_steps)) cpData.remaining_steps = existing.remaining_steps;
-            } catch {}
-          } else {
-            const dir = path.dirname(cpPath);
-            if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-          }
-          fs.writeFileSync(cpPath, JSON.stringify(cpData, null, 2), 'utf-8');
-        } catch (e: any) {
-          console.error(SYSTEM_MESSAGE.AGENT_ERROR, `Failed to write checkpoint: ${e.message}`);
-        }
-      }
+    const result = await harness.run(messages);
+    if (result.status === HarnessStatus.COMPLETE) {
+      await notifyComplete(server_url, worker_id, task_id, result.summary, true, undefined, result.changelog);
+      process.exit(0);
     }
 
-    throw new Error(`Max tool calls (${MAX_TOOL_CALLS}) exceeded`);
+    if (result.status === HarnessStatus.CONTEXT_EXCEEDED) {
+      await notifyComplete(server_url, worker_id, task_id, result.summary, false, {
+        error: RUNNER_TEXT.CONTEXT_EXCEEDED_ERROR,
+        hypothesis: RUNNER_TEXT.CONTEXT_EXCEEDED_HYPOTHESIS,
+        attempted_fix: RUNNER_TEXT.ATTEMPTED_FIX_NONE,
+        handover: result.handover
+      });
+      process.exit(1);
+    }
 
+    await notifyComplete(server_url, worker_id, task_id, result.summary, false, result.errorContext);
+    process.exit(1);
   } catch (err: any) {
     console.error(SYSTEM_MESSAGE.AGENT_ERROR, err.message);
-    await notifyComplete(server_url, worker_id, task_id, `Failed: ${err.message}`, false, { 
-      error: err.message, hypothesis: 'Fatal exception in runner loop', attempted_fix: 'None' 
+    await notifyComplete(server_url, worker_id, task_id, `Failed: ${err.message}`, false, {
+      error: err.message,
+      hypothesis: RUNNER_TEXT.FATAL_HYPOTHESIS,
+      attempted_fix: RUNNER_TEXT.ATTEMPTED_FIX_NONE
     });
     process.exit(1);
   }

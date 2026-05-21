@@ -1,11 +1,11 @@
-# Task P2-36: Case Bank Save
+# Task P2-43: Case Bank Save
 
 ## Info
-- **ID:** P2-36-case-bank-save
+- **ID:** P2-43-case-bank-save
 - **Module:** `src/worker/case-bank.ts` (NEW)
 - **Group:** Post-Core Intelligence
-- **Dependencies:** P2-13, P2-01, P2-35, P2-20
-- **Priority:** 21
+- **Dependencies:** P2-13, P2-01, P2-38, P2-20, P2-42
+- **Priority:** 11
 - **Ref:** Phase 2 memory boundary rules
 - **Updated:** 2026-05-21 (entity tags + confidence scoring from Mem0 research)
 
@@ -25,7 +25,7 @@ Each reflection includes entity tags — structured metadata for future search q
 Entity tags enable Phase 3 search to find related cases even when keywords differ.
 (e.g., "Socket.IO" case found when searching "real-time events")
 
-### Confidence scoring (Adapted from Mem0 — user-gated)
+### Confidence scoring (Adapted from Mem0 — approval-gated)
 
 Each reflection gets an initial confidence score based on outcome.
 **CRITICAL RULE: Confidence is observational only — NOT auto-promotion.**
@@ -33,7 +33,7 @@ Each reflection gets an initial confidence score based on outcome.
 - Agent **CANNOT** auto-promote lessons to active knowledge
 - Agent **CANNOT** retract or modify existing reflections
 - Reflections are **READ-ONLY observations** until user explicitly promotes
-- User promotes via manual review or future MCP tool (outside this task scope)
+- Promotion requires the three-gate pipeline: Worker proposal → Planner evaluation → User evaluation/approval
 
 ### Why user-gated?
 
@@ -42,7 +42,7 @@ Risk analysis: Agent CRUD on lessons without user involvement is dangerous becau
 2. Correct lesson retracted → knowledge lost silently
 3. Edge cases in auto-promote logic are unpredictable
 
-**Rule: Agents WRITE reflections freely. Only USERS decide which become active knowledge.**
+**Rule: Agents WRITE reflections/proposals only. Only explicit User approval can promote knowledge.**
 
 ## What to do
 
@@ -122,6 +122,7 @@ Extraction is best-effort — missing entities is OK, wrong entities are low ris
 - No implicit writes to global case-bank
 - Agent CANNOT modify or delete existing reflections
 - Confidence field is informational only — no auto-promotion logic in this task
+- Promotion to approved default knowledge repo is out of scope and must follow P2-42
 
 ## Files
 | Action | Path |
@@ -136,5 +137,6 @@ Extraction is best-effort — missing entities is OK, wrong entities are low ris
 - [ ] Confidence assigned by outcome rules (not hardcoded)
 - [ ] Reflections are write-once (no modify/delete API exposed)
 - [ ] No default global write path
+- [ ] No promotion logic; P2-42 pipeline is referenced for future promotion
 - [ ] Graceful fallback if reflection generation fails
 - [ ] `npm run build` pass

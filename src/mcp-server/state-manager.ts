@@ -344,6 +344,35 @@ export class StateManager {
     return newRetryCount;
   }
 
+  requeueWithHandover(taskId: string, handover: string, workspaceRoot?: string): number {
+    const activePath = path.join(this.config.exchange.active, `${FILE_PREFIXES.TASK}${taskId}.json`);
+    const taskData = readJSON<TaskDef>(activePath);
+    if (!taskData) return 0;
+
+    const respawnCount = Number((taskData as any).respawn_count || 0) + 1;
+    (taskData as any).handover_context = handover;
+    (taskData as any).respawn_count = respawnCount;
+    writeJSON(activePath, taskData);
+
+    this.moveToInbox(taskId);
+
+    const task = this.queue.tasks.get(taskId);
+    if (task) {
+      (task as any).handover_context = handover;
+      (task as any).respawn_count = respawnCount;
+    }
+
+    if (this.logger) {
+      this.logger.log(STATE_EVENTS.TASK_REQUEUED, {
+        task_id: taskId,
+        respawn_count: respawnCount,
+        message: `Task ${taskId} requeued with handover context`
+      });
+    }
+
+    return respawnCount;
+  }
+
   // Recovery (file-based)
   restoreFromFiles(): void {
     const rebuiltMap = new Map<string, TaskDef>();

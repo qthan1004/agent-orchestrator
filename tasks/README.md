@@ -1,13 +1,13 @@
-# Task Board - 2026-05-10
+# Task Board - 2026-05-21
 
 | Status | Count |
 |--------|-------|
-| Pending | 23 |
+| Pending | 21 |
 | Processing | 0 |
-| Done | 23 |
-| **Total** | **46** |
+| Done | 36 |
+| **Total** | **57** |
 
-Progress: 23/46 (50%)
+Progress: 36/57 (63%)
 
 ---
 
@@ -35,53 +35,45 @@ Progress: 23/46 (50%)
 - `P2-17-git-worktree.md`
 - `P2-18-unified-checkpoint.md`
 - `P2-19-mandatory-changelog.md`
+- `P2-20-workspace-scope-contract.md`
+- `P2-21-mandatory-startup-workspace-path.md`
+- `P2-22-worker-registration-validation.md`
+- `P2-23-close-workspace-lifecycle.md`
+- `P2-24-workspace-reconnect-policy.md`
+- `P2-25-assignment-api-contract.md`
+- `P2-26-head-submit-task-api.md`
+- `P2-27-deprecate-pull-apis.md`
+- `P2-28-orchestrator-owned-dispatch.md`
 
-## Pending — Re-prioritized (2026-05-10)
+## Pending — Re-prioritized (2026-05-21)
 
 > **Principle**: Tasks ordered by dependency chain + E2E critical path.
 > Head (Planner) = Manual (Human + IDE agent). Design chốt 2026-05-10.
 
-### Tier 1: Foundations (no deps, do first)
+### Tier 0: Core Architecture Alignment
 
-These are independent contracts — can be done in any order or parallel.
-
-| # | Task | What | Deps |
-|---|------|------|------|
-| 1 | `T01-P2-26-workspace-scope-contract.md` | Workspace identity + runtime boundary contract | None |
-| 2 | `T02-P2-25-assignment-api-contract.md` | Worker-facing assignment API contract | None |
-
-### Tier 2: First-order dependents
+These tasks lock the core concept before more runtime work:
 
 | # | Task | What | Deps |
 |---|------|------|------|
-| 3 | `T03-P2-30-worker-registration-validation.md` | Enforce workspace_path in registration | P2-26 |
-| 4 | `T04-P2-31-mandatory-startup-workspace-path.md` | Require workspace at server startup | P2-26 |
-| 5 | `T05-P2-34-head-submit-task-api.md` | **Head→Server submit_task + metadata + conflict detection + scope enforce** | P2-25, P2-26 |
+| 1 | `P2-33-pure-orchestrator-doctrine.md` | Only Planner has brain; server/harness/worker boundaries | None |
+| 2 | `P2-34-workspace-bootstrap-template.md` | Bootstrap `.orchestrator/` inside registered workspaces | P2-33 |
+| 3 | `P2-35-registry-identity-invariants.md` | Workspace/worker/task registry invariants | P2-34 |
+| 4 | `P2-36-harness-module-boundary.md` | Extract Harness as independent runtime module | P2-33, P2-35 |
+| 5 | `P2-37-domain-routing-hint-contract.md` | Domain tag → tool/skill bundle, no intelligence | P2-33, P2-36 |
+| 6 | `P2-38-domain-routing-hint.md` | Implement shallow routing hint | P2-33, P2-36, P2-37 |
+| 7 | `P2-39-contract-e2e-gates.md` | Build + contract + real E2E done gates | P2-34, P2-35, P2-36, P2-37 |
+| 8 | `P2-40-e2e-integration.md` | Full E2E test: Planner→Server→Worker | P2-39 |
 
-### Tier 3: Dispatch integration
-
-| # | Task | What | Deps |
-|---|------|------|------|
-| 6 | `T06-P2-28-orchestrator-owned-dispatch.md` | Orchestrator pushes work (assignment semantics) | P2-25, P2-26, P2-30 |
-| 7 | `T07-P2-27-deprecate-pull-apis.md` | Mark get_next_task etc. as legacy | P2-25, P2-28 |
-
-### Tier 4: E2E + Polish
+### Tier 1: Post-core / Governance
 
 | # | Task | What | Deps |
 |---|------|------|------|
-| 8 | `T08-P2-20-e2e-integration.md` | Full E2E test: Planner→Server→Worker | P2-16, P2-25, P2-26, P2-28, P2-30 |
-| 9 | `T09-P2-32-close-workspace-lifecycle.md` | Safe workspace detach/close | P2-26, P2-31, P2-30 |
-| 10 | `T10-P2-33-workspace-reconnect-policy.md` | Reconnect previously closed workspace | P2-26, P2-31, P2-32 |
-
-### Tier 5: Post-core features (independent, lower priority)
-
-| # | Task | What | Deps |
-|---|------|------|------|
-| 11 | `T11-P2-22-case-bank-save.md` | Post-task reflection → global case-bank | P2-13 ✅ |
-| 12 | `T12-P2-23-domain-auto-detect.md` | Scan manifest → detect domain tag | P2-01 ✅ |
-| 13 | `T13-P2-21-readme-docs-update.md` | README + docs update | P2-20 |
-| 14 | `T14-P2-29-memory-boundary-tests.md` | Workspace memory isolation tests | P2-22, P2-26 |
-| 15 | `T15-P2-24-workspace-code-search.md` | Standalone code search lib (separate repo) | None |
+| 9 | `P2-41-readme-docs-update.md` | README + docs update | P2-40, P2-27 |
+| 10 | `P2-42-knowledge-promotion-pipeline.md` | Worker proposal → Planner evaluation → User approval | P2-33, P2-37 |
+| 11 | `P2-43-case-bank-save.md` | Post-task reflection proposal/report save | P2-13, P2-01, P2-38, P2-20, P2-42 |
+| 12 | `P2-44-memory-boundary-tests.md` | Workspace memory isolation tests | P2-43, P2-20 |
+| 13 | `P2-45-workspace-code-search.md` | Standalone code search lib (separate repo) | None |
 
 ### Deferred — Workspace Memory Pipeline (WM-series)
 
@@ -98,15 +90,15 @@ These are independent contracts — can be done in any order or parallel.
 
 ---
 
-## Critical Path to E2E
+## Core Critical Path
 
 ```
-P2-26 (scope contract)  ──┬──→ P2-30 (registration) ──┐
-                          ├──→ P2-31 (startup)         │
-                          │                             ↓
-P2-25 (assignment API)  ──┼──→ P2-34 (submit_task)   → P2-28 (dispatch) → P2-20 (E2E)
-                          │                             ↑
-                          └─────────────────────────────┘
+P2-33 doctrine
+  → P2-34 workspace bootstrap template
+  → P2-35 registry invariants
+  → P2-36 harness boundary
+  → P2-37 domain routing hint contract
+  → P2-38 domain routing hint implementation
+  → P2-39 contract/E2E gates
+  → P2-40 E2E integration
 ```
-
-**Shortest path**: P2-26 → P2-25 → P2-30 → P2-34 → P2-28 → P2-20

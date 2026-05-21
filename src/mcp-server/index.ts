@@ -107,7 +107,6 @@ export async function startServer(config: AppConfig): Promise<void> {
     queue: stateManager.queue,
     stateManager,
     workerRegistry,
-    profile: config.profile,
     serverUrl: `http://127.0.0.1:${port}`,
     workspaceRoot: config.workspace.workspaceRoot,
     allowedTools: ['*'],
@@ -190,6 +189,15 @@ export async function startServer(config: AppConfig): Promise<void> {
     }
 
     try {
+      if (!success && error_context?.error === 'context_exceeded' && typeof error_context?.handover === 'string') {
+        const respawnCount = stateManager.requeueWithHandover(task_id, error_context.handover, config.workspace.workspaceRoot);
+        workerRegistry.clearAssignment(worker_id);
+        stateManager.saveCheckpoint();
+        console.log(`[WorkerComplete] Task ${task_id} requeued with handover (respawn ${respawnCount}).`);
+        res.json({ accepted: true, action: 'requeued_with_handover', respawn_count: respawnCount });
+        return;
+      }
+
       if (success) {
         stateManager.moveToOutbox(task_id, {
           task_id,

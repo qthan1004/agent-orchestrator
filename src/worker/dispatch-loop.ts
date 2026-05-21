@@ -7,11 +7,12 @@ import { WorkerProcessManager } from './process-manager.js';
 import { OllamaAdapter } from './adapters/ollama-adapter.js';
 import { SYSTEM_MESSAGE } from '../constants.js';
 
+const MAX_RESPAWNS = 3;
+
 export interface DispatchLoopConfig {
   queue: TaskQueue;
   stateManager: StateManager;
   workerRegistry: WorkerRegistry;
-  profile: 'default' | 'hybrid';
   serverUrl: string;
   workspaceRoot: string;
   allowedTools: string[];
@@ -26,7 +27,6 @@ export class TaskDispatchLoop {
   private modelSelector: ModelSelector;
   private processManager: WorkerProcessManager;
   private ollamaAdapter: OllamaAdapter;
-  private profile: 'default' | 'hybrid';
   private serverUrl: string;
   private workspaceRoot: string;
   private allowedTools: string[];
@@ -36,7 +36,6 @@ export class TaskDispatchLoop {
     this.queue = config.queue;
     this.stateManager = config.stateManager;
     this.workerRegistry = config.workerRegistry;
-    this.profile = config.profile;
     this.serverUrl = config.serverUrl;
     this.workspaceRoot = config.workspaceRoot;
     this.allowedTools = config.allowedTools;
@@ -48,11 +47,6 @@ export class TaskDispatchLoop {
   }
 
   public start(): void {
-    if (this.profile !== 'hybrid') {
-      console.log(SYSTEM_MESSAGE.DISPATCH_NOT_HYBRID);
-      return;
-    }
-
     if (this.running) return;
     this.running = true;
     console.log(SYSTEM_MESSAGE.DISPATCH_STARTING);
@@ -80,6 +74,20 @@ export class TaskDispatchLoop {
 
         // 2. stateManager.moveToActive(task.id)
         this.stateManager.moveToActive(task.id);
+
+        if (Number((task as any).respawn_count || 0) >= MAX_RESPAWNS) {
+          this.stateManager.moveToOutbox(task.id, {
+            task_id: task.id,
+            status: 'blocked',
+            summary: `Task exceeded max respawns (${MAX_RESPAWNS}). Consider using a cloud model.`,
+            worker_id: 'dispatch-loop',
+            completed_at: new Date().toISOString(),
+            blocked_reason: 'max_respawns_exceeded'
+          } as any);
+          this.stateManager.saveCheckpoint();
+          console.warn(`[DispatchLoop] Task ${task.id} exceeded max respawns (${MAX_RESPAWNS}); marked blocked.`);
+          continue;
+        }
 
         // 3. modelSelector.selectProfile(task, queueStatus)
         const profile = await this.modelSelector.selectProfile(task, queueStatus);
@@ -119,14 +127,30 @@ export class TaskDispatchLoop {
           assigned_at: new Date().toISOString(),
         };
         this.workerRegistry.assignTask(workerId, task.id);
+        let taskDetails = JSON.stringify({
+          assignment,
+          description: (task as any).description || task.action,
+        }, null, 2);
+
+        if (typeof (task as any).handover_context === 'string' && (task as any).handover_context.length > 0) {
+          const handoverPrefix = [
+            '## Handover from Previous Worker',
+            '',
+            (task as any).handover_context,
+            '',
+            '---',
+            '## Original Task (continue from where previous worker stopped)',
+            ''
+          ].join('\n');
+          taskDetails = handoverPrefix + taskDetails;
+          console.log(`[DispatchLoop] Injected handover for task ${task.id} (respawn ${(task as any).respawn_count || 0}).`);
+        }
+
         const payload = {
           worker_id: workerId,
           task_id: task.id,
           assignment,
-          task_details: JSON.stringify({
-            assignment,
-            description: (task as any).description || task.action,
-          }, null, 2),
+          task_details: taskDetails,
           target_files: Array.isArray((task as any).target_files) ? (task as any).target_files : [],
           model: profile.model,
           workspace_root: this.workspaceRoot,

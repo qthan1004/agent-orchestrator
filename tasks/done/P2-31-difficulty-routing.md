@@ -146,11 +146,11 @@ Replace any references to `profile.mode === 'quality'` or `'throughput'` with ne
 | MODIFY | `src/worker/dispatch-loop.ts` (if references old mode names) |
 
 ## Done Criteria
-- [ ] `evaluateDifficulty()` function scores task by action, scope, complexity
-- [ ] 3 tiers: `lite` (4B), `standard` (7B-9B), `cloud` (Gemini/fallback)
-- [ ] `selectProfile()` uses difficulty signals instead of only queue depth
-- [ ] Cloud tier gracefully falls back to `standard` if not configured
-- [ ] `ModelProfile.mode` updated from `quality|throughput` → `lite|standard|cloud`
-- [ ] Environment variables: `ORCHESTRATOR_MODEL_LITE`, `ORCHESTRATOR_MODEL_STANDARD`, `ORCHESTRATOR_MODEL_CLOUD`
-- [ ] Difficulty evaluation logged for observability
-- [ ] `npm run build` passes
+- [x] `evaluateDifficulty()` function scores task by action, scope, complexity
+- [x] 3 tiers: `lite` (4B), `standard` (7B-9B), `cloud` (Gemini/fallback)
+- [x] `selectProfile()` uses difficulty signals instead of only queue depth
+- [x] Cloud tier gracefully falls back to `standard` if not configured
+- [x] `ModelProfile.mode` updated from `quality|throughput` → `lite|standard|cloud`
+- [x] Environment variables: `ORCHESTRATOR_MODEL_LITE`, `ORCHESTRATOR_MODEL_STANDARD`, `ORCHESTRATOR_MODEL_CLOUD`
+- [x] Difficulty evaluation logged for observability
+- [x] `npm run build` passes

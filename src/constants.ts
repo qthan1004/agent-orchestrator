@@ -204,13 +204,13 @@ export const SYSTEM_MESSAGE = {
   BOOTSTRAP_CREATED: (created: number, skipped: number) => `Created ${created} missing directories (${skipped} already existed).`,
   BOOTSTRAP_CLEAN: 'All directories present.',
   WORKERS_CLEANED: (count: number) => `Cleaned ${count} disconnected worker(s) from previous session.`,
-  HYBRID_ACTIVATED: 'HYBRID profile activated: Dispatch loop and VRAM monitoring started.',
+  HYBRID_ACTIVATED: 'Hybrid runtime activated: Dispatch loop and VRAM monitoring started.',
   JSON_PARSE_ERROR: (method: string, url: string) => `JSON parse error from ${method} ${url}:`,
   RECOVERY_CLEAN: 'clean',
   RECOVERY_ORPHANS: (count: number) => `recovered ${count} orphans`,
   SHUTDOWN_RECEIVED: (signal: string) => `\nReceived ${signal}. Shutting down gracefully...`,
   SETUP_BANNER: '\nMCP Orchestrator Setup',
-  SETUP_INVALID_PROFILE: 'Invalid profile. Defaulting to "default".',
+  SETUP_INVALID_PROFILE: 'Invalid profile. Hybrid runtime is always enabled.',
   SETUP_CUSTOM_APPLIED: '\n  Custom config applied (session-only)\n',
   SETUP_DEFAULTS_APPLIED: '\n  Defaults applied\n',
   
@@ -221,7 +221,6 @@ export const SYSTEM_MESSAGE = {
   PLAN_WATCHER_ERROR: (errorMsg: string) => `  Plan watcher error: ${errorMsg}`,
 
   // Dispatch Loop
-  DISPATCH_NOT_HYBRID: '[DispatchLoop] Profile is not hybrid. Loop will not start.',
   DISPATCH_STARTING: '[DispatchLoop] Starting hybrid task dispatch loop...',
   DISPATCH_STOPPING: '[DispatchLoop] Stopping dispatch loop gracefully...',
   DISPATCH_WORKER_TIMEOUT: (workerId: string, taskId: string) => `[DispatchLoop] Worker ${workerId} timed out. Requeuing task ${taskId}.`,

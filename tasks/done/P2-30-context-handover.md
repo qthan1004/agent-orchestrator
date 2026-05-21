@@ -116,11 +116,11 @@ This task only generates the handover. P2-32 handles what the server does with i
 | MODIFY | `src/worker/agent-runner.ts` |
 
 ## Done Criteria
-- [ ] Harness detects context usage >= 85% threshold
-- [ ] Harness injects handover prompt to model (no tools, text only)
-- [ ] Model generates handover report in natural language
-- [ ] `HarnessResult` includes `handover` string when `status === 'context_exceeded'`
-- [ ] agent-runner sends handover in `error_context` to server
-- [ ] Threshold is configurable (default 0.85)
-- [ ] Normal tasks (under threshold) are NOT affected
-- [ ] `npm run build` passes
+- [x] Harness detects context usage >= 85% threshold
+- [x] Harness injects handover prompt to model (no tools, text only)
+- [x] Model generates handover report in natural language
+- [x] `HarnessResult` includes `handover` string when `status === 'context_exceeded'`
+- [x] agent-runner sends handover in `error_context` to server
+- [x] Threshold is configurable (default 0.85)
+- [x] Normal tasks (under threshold) are NOT affected
+- [x] `npm run build` passes

@@ -1,11 +1,11 @@
-# Task P2-37: Memory Boundary Tests
+# Task P2-44: Memory Boundary Tests
 
 ## Info
-- **ID:** P2-37-memory-boundary-tests
+- **ID:** P2-44-memory-boundary-tests
 - **Module:** `tests/`
 - **Group:** Post-Core Intelligence
-- **Dependencies:** P2-36, P2-20
-- **Priority:** 22
+- **Dependencies:** P2-43, P2-20
+- **Priority:** 12
 
 ## What to do
 

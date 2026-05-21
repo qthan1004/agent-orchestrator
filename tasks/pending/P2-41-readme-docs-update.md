@@ -1,11 +1,11 @@
-# Task P2-34: README + Docs Update
+# Task P2-41: README + Docs Update
 
 ## Info
-- **ID:** P2-34-readme-docs-update
+- **ID:** P2-41-readme-docs-update
 - **Module:** `README.md`, `dev-docs/`
 - **Group:** Core Verification
-- **Dependencies:** P2-33, P2-27
-- **Priority:** 19
+- **Dependencies:** P2-40, P2-27
+- **Priority:** 9
 - **Ref:** All Phase 2 docs
 
 ## Constraints (Always-on Skills)
