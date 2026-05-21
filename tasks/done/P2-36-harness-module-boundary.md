@@ -52,10 +52,10 @@ src/harness/
 | MODIFY | existing worker runner only as needed to preserve compatibility |
 
 ## Done Criteria
-- [ ] Harness has explicit payload contract
-- [ ] Server spawns Harness only
-- [ ] Harness loads task body, not Server
-- [ ] Harness owns tool bundle exposure
-- [ ] Harness owns callback client
-- [ ] Model loop is not in server modules
-- [ ] `npm run build` passes
+- [x] Harness has explicit payload contract
+- [x] Server spawns Harness only
+- [x] Harness loads task body, not Server
+- [x] Harness owns tool bundle exposure
+- [x] Harness owns callback client
+- [x] Model loop is not in server modules
+- [x] `npm run build` passes

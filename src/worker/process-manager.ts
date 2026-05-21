@@ -1,7 +1,14 @@
 import { spawn as spawnProcess } from 'child_process';
 import type { ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
+import path from 'path';
 import { SYSTEM_MESSAGE } from '../constants.js';
+
+const DEFAULT_WORKER_TIMEOUT_MS = 5 * 60 * 1000;
+
+function getDefaultHarnessEntrypoint(): string {
+  return path.join(process.cwd(), 'dist', 'harness', 'index.js');
+}
 
 export interface WorkerPayload {
   worker_id: string;
@@ -38,10 +45,10 @@ export class WorkerProcessManager extends EventEmitter {
    * @returns { pid, worker_id }
    */
   spawn(payload: WorkerPayload, options: SpawnOptions = {}): { pid: number; worker_id: string } {
-    const scriptPath = options.scriptPath || 'src/worker/agent-runner.js';
-    const timeoutMs = options.timeoutMs || 5 * 60 * 1000; // default 5 minutes
+    const scriptPath = options.scriptPath || getDefaultHarnessEntrypoint();
+    const timeoutMs = options.timeoutMs || DEFAULT_WORKER_TIMEOUT_MS;
 
-    const child = spawnProcess('node', [scriptPath], {
+    const child = spawnProcess(process.execPath, [scriptPath], {
       stdio: ['pipe', 'pipe', 'pipe']
     });
 

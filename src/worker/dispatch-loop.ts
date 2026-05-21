@@ -1,3 +1,4 @@
+import path from 'path';
 import type { AssignmentEnvelope, AssignmentPayload } from '../models/assignment.js';
 import type { TaskQueue } from '../mcp-server/task-queue.js';
 import type { StateManager } from '../mcp-server/state-manager.js';
@@ -5,7 +6,7 @@ import type { WorkerRegistry } from '../utils/worker-registry.js';
 import { ModelSelector } from './model-selector.js';
 import { WorkerProcessManager } from './process-manager.js';
 import { OllamaAdapter } from './adapters/ollama-adapter.js';
-import { SYSTEM_MESSAGE } from '../constants.js';
+import { FILE_PREFIXES, SYSTEM_MESSAGE } from '../constants.js';
 
 const MAX_RESPAWNS = 3;
 
@@ -74,6 +75,11 @@ export class TaskDispatchLoop {
 
         // 2. stateManager.moveToActive(task.id)
         this.stateManager.moveToActive(task.id);
+        const activeTaskPath = path.join(this.stateManager.config.exchange.active, `${FILE_PREFIXES.TASK}${task.id}.json`);
+        const taskFilePath = path.relative(this.workspaceRoot, activeTaskPath).replace(/\\/g, '/');
+        if (taskFilePath.startsWith('..')) {
+          throw new Error(`Active task path escapes workspace root: ${activeTaskPath}`);
+        }
 
         if (Number((task as any).respawn_count || 0) >= MAX_RESPAWNS) {
           this.stateManager.moveToOutbox(task.id, {
@@ -110,6 +116,7 @@ export class TaskDispatchLoop {
           metadata: {
             target_files: Array.isArray((task as any).target_files) ? (task as any).target_files : [],
             read_files: Array.isArray((task as any).read_files) ? (task as any).read_files : [],
+            task_content_path: typeof (task as any).task_content_path === 'string' ? (task as any).task_content_path : '',
           }
         };
         const assignment: AssignmentEnvelope = {
@@ -127,35 +134,26 @@ export class TaskDispatchLoop {
           assigned_at: new Date().toISOString(),
         };
         this.workerRegistry.assignTask(workerId, task.id, this.stateManager.taskRegistry);
-        let taskDetails = JSON.stringify({
-          assignment,
-          description: (task as any).description || task.action,
-        }, null, 2);
-
-        if (typeof (task as any).handover_context === 'string' && (task as any).handover_context.length > 0) {
-          const handoverPrefix = [
-            '## Handover from Previous Worker',
-            '',
-            (task as any).handover_context,
-            '',
-            '---',
-            '## Original Task (continue from where previous worker stopped)',
-            ''
-          ].join('\n');
-          taskDetails = handoverPrefix + taskDetails;
+        const handoverContext = typeof (task as any).handover_context === 'string' ? (task as any).handover_context : undefined;
+        if (handoverContext) {
           console.log(`[DispatchLoop] Injected handover for task ${task.id} (respawn ${(task as any).respawn_count || 0}).`);
         }
 
         const payload = {
+          workspace_id: this.workspaceId,
           worker_id: workerId,
           task_id: task.id,
           assignment,
-          task_details: taskDetails,
+          task_file_path: taskFilePath,
+          tool_bundle: 'generic-file',
+          callback_url: `${this.serverUrl}/api/worker/complete`,
           target_files: Array.isArray((task as any).target_files) ? (task as any).target_files : [],
           model: profile.model,
           workspace_root: this.workspaceRoot,
-          server_url: this.serverUrl,
-          allowed_tools: this.allowedTools
+          allowed_tools: this.allowedTools,
+          action: 'implement',
+          module: typeof task.module === 'string' ? task.module : '',
+          handover_context: handoverContext
         };
 
         const { pid } = this.processManager.spawn(payload);
