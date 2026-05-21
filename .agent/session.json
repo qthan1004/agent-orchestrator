@@ -1,5 +1,5 @@
 {
-  "task": "renumber pending core tasks",
-  "status": "core tasks renamed and task board updated; build passed; session retained by safe-deletion protocol",
+  "task": "P2-35-registry-identity-invariants.md",
+  "status": "completed; task moved to done; session retained by safe-deletion protocol",
   "updatedAt": "2026-05-21"
 }

@@ -3,6 +3,8 @@ import path from 'path';
 import { WORKER_STATUS, WORKER_ROLE } from '../constants.js';
 import { readJSON, writeJSON, ensureDir } from './file-backend.js';
 import type { WorkerInfo } from '../models/index.js';
+import type { TaskIdentityRegistry } from './task-identity-registry.js';
+import { assertCanAssignTask, getWorkerCurrentTaskId } from './identity-invariants.js';
 
 export const generateWorkerId = (): string => `w-${crypto.randomBytes(4).toString('hex')}`;
 
@@ -23,6 +25,7 @@ export class WorkerRegistry {
    */
   setRegistryPath(filePath: string): void {
     this.registryFilePath = filePath;
+    this.workers.clear();
     this._load();
   }
 
@@ -30,7 +33,13 @@ export class WorkerRegistry {
     if (!this.registryFilePath) return;
     const data = readJSON<WorkerInfo[]>(this.registryFilePath);
     if (data && Array.isArray(data)) {
-      for (const w of data) {
+      for (const raw of data) {
+        const w: WorkerInfo = {
+          ...raw,
+          workspace_id: raw.workspace_id || 'unknown',
+          current_task_id: raw.current_task_id || raw.current_task || null,
+          current_task: raw.current_task || raw.current_task_id || null,
+        };
         this.workers.set(w.id, w);
       }
     }
@@ -42,13 +51,15 @@ export class WorkerRegistry {
     writeJSON(this.registryFilePath, Array.from(this.workers.values()));
   }
 
-  register(): WorkerInfo {
+  register(workspaceId: string): WorkerInfo {
     const id = generateWorkerId();
     const workerInfo: WorkerInfo = {
       id,
+      workspace_id: workspaceId,
       role: null,
       registered_at: new Date().toISOString(),
       last_heartbeat: new Date().toISOString(),
+      current_task_id: null,
       current_task: null,
       tasks_completed: 0,
       status: WORKER_STATUS.IDLE
@@ -87,6 +98,7 @@ export class WorkerRegistry {
     const worker = this.workers.get(id);
     if (worker) {
       worker.status = WORKER_STATUS.DISCONNECTED;
+      worker.current_task_id = null;
       worker.current_task = null;
       worker.disconnected_at = new Date().toISOString();
       this._save();
@@ -149,10 +161,34 @@ export class WorkerRegistry {
     return false;
   }
 
-  assignTask(workerId: string, taskId: string): boolean {
+  assignTask(workerId: string, taskId: string, taskRegistry?: TaskIdentityRegistry): boolean {
     const worker = this.workers.get(workerId);
     if (!worker) return false;
 
+    const currentTaskId = getWorkerCurrentTaskId(worker);
+    if (currentTaskId && currentTaskId !== taskId) {
+      throw new Error(`Worker ${workerId} already owns active task ${currentTaskId}.`);
+    }
+
+    if (taskRegistry) {
+      const task = taskRegistry.getById(taskId);
+      if (!task) {
+        throw new Error(`Task ${taskId} not found in identity registry.`);
+      }
+      assertCanAssignTask(worker, task, this.getAllWorkers());
+      taskRegistry.assignTask(taskId, workerId, worker.workspace_id);
+    } else {
+      const otherOwner = this.getAllWorkers().find(other =>
+        other.id !== workerId &&
+        other.status !== WORKER_STATUS.DISCONNECTED &&
+        getWorkerCurrentTaskId(other) === taskId
+      );
+      if (otherOwner) {
+        throw new Error(`Task ${taskId} is already owned by worker ${otherOwner.id}.`);
+      }
+    }
+
+    worker.current_task_id = taskId;
     worker.current_task = taskId;
     worker.status = WORKER_STATUS.BUSY;
     worker.last_heartbeat = new Date().toISOString();
@@ -160,10 +196,15 @@ export class WorkerRegistry {
     return true;
   }
 
-  clearAssignment(workerId: string): boolean {
+  clearAssignment(workerId: string, taskRegistry?: TaskIdentityRegistry): boolean {
     const worker = this.workers.get(workerId);
     if (!worker) return false;
 
+    const currentTaskId = getWorkerCurrentTaskId(worker);
+    if (currentTaskId && taskRegistry) {
+      taskRegistry.clearAssignment(currentTaskId);
+    }
+    worker.current_task_id = null;
     worker.current_task = null;
     worker.status = WORKER_STATUS.IDLE;
     worker.last_heartbeat = new Date().toISOString();

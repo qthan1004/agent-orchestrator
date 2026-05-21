@@ -18,6 +18,19 @@ export interface TaskResult {
   completed_at: string;
 }
 
+export interface TaskIdentityRecord {
+  task_id: string;
+  workspace_id: string;
+  task_content_path: string;
+  status: TaskStatusValue;
+  assigned_worker_id: string | null;
+  created_at: string;
+  updated_at: string;
+  started_at?: string;
+  completed_at?: string;
+  retry_count?: number;
+}
+
 export interface TaskGroup {
   group_id: number | string;
   tasks: string[];

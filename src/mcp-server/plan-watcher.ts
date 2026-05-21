@@ -3,7 +3,7 @@ import type { Logger } from '../utils/logger.js';
 import type { StateManager } from './state-manager.js';
 import path from 'path';
 import fs from 'fs';
-import { listFiles, ensureDir, readFile, moveFile, writeJSON, copyFile } from '../utils/file-backend.js';
+import { listFiles, ensureDir, readFile, moveFile } from '../utils/file-backend.js';
 import type { WorkspaceRegistry } from '../utils/workspace-registry.js';
 import type { AppConfig } from '../models/index.js';
 
@@ -129,7 +129,7 @@ export class PlanWatcher {
 
       // 1. Scan all registered workspaces
       for (const ws of workspaces) {
-        const wsPendingDir = path.join(ws.path, '.agent', 'plans', 'pending');
+        const wsPendingDir = path.join(ws.path, '.orchestrator', 'plans', 'pending');
         if (fs.existsSync(wsPendingDir)) {
           const files = listFiles(wsPendingDir, '.md').sort();
           if (files.length > 0) {
@@ -137,16 +137,10 @@ export class PlanWatcher {
             const nextFile = files[0];
             const src = path.join(wsPendingDir, nextFile);
             
-            const wsProcessingDir = path.join(ws.path, '.agent', 'plans', 'processing');
+            const wsProcessingDir = path.join(ws.path, '.orchestrator', 'plans', 'processing');
             ensureDir(wsProcessingDir);
             const dest = path.join(wsProcessingDir, nextFile);
 
-            const runtimeProcessingDir = path.join(this.config.runtimeRoot, 'workspaces', ws.id, 'plans', 'processing');
-            ensureDir(runtimeProcessingDir);
-            const runtimeDest = path.join(runtimeProcessingDir, nextFile);
-
-            // Copy to runtime, move original to workspace processing
-            copyFile(src, runtimeDest);
             moveFile(src, dest);
 
             foundAny = true;

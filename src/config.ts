@@ -1,7 +1,7 @@
 import { resolve, join } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { DIR_NAMES, POLL_DEFAULTS, RECOVERY_DEFAULTS, WORKSPACE_DIR_NAME, SERVER_PROFILES } from './constants.js';
+import { DIR_NAMES, POLL_DEFAULTS, RECOVERY_DEFAULTS, RUNTIME_DIR_NAME, SERVER_PROFILES } from './constants.js';
 import { generateWorkspaceId } from './utils/workspace-registry.js';
 import type { AppConfig, ConfigOverrides } from './models/config.js';
 
@@ -28,17 +28,15 @@ export function loadConfig(overrides: ConfigOverrides = {}): AppConfig {
   const workspaceId = generateWorkspaceId(workspaceRoot);
 
   const runtimeRoot = overrides.runtimeRoot || root;
+  const workspaceOrchestratorRoot = join(workspaceRoot, RUNTIME_DIR_NAME);
+  const workspaceRegistryBase = join(workspaceOrchestratorRoot, DIR_NAMES.REGISTRY);
+  const exchangeBase = join(workspaceOrchestratorRoot, DIR_NAMES.EXCHANGE);
+  const plansBase = join(workspaceOrchestratorRoot, DIR_NAMES.PLANS);
+  const resultsBase = join(workspaceOrchestratorRoot, DIR_NAMES.RESULTS);
 
-  let exchangeBase: string;
-  if (overrides.runtimeRoot) {
-    exchangeBase = join(runtimeRoot, WORKSPACE_DIR_NAME, workspaceId, DIR_NAMES.EXCHANGE);
-  } else {
-    exchangeBase = join(root, DIR_NAMES.EXCHANGE);
-  }
-
-  // Workspace-local memory paths (scoped under ~/.orchestrator/workspaces/<id>/memory/)
-  const workspaceRuntimeDir = join(runtimeRoot, WORKSPACE_DIR_NAME, workspaceId);
-  const memoryBase = join(workspaceRuntimeDir, 'memory');
+  // Workspace-local knowledge/context paths. Server treats these as paths only;
+  // harness/workers decide which files to load for an assigned task.
+  const memoryBase = join(workspaceOrchestratorRoot, DIR_NAMES.CONTEXT);
   const memoryCaseBank = join(memoryBase, 'case-bank');
 
   // Global shared memory paths (explicitly separated from workspace-local)
@@ -74,6 +72,13 @@ export function loadConfig(overrides: ConfigOverrides = {}): AppConfig {
     workspace: {
       workspaceId,
       workspaceRoot,
+      orchestratorRoot: workspaceOrchestratorRoot,
+      registry: {
+        base: workspaceRegistryBase,
+        workspace: join(workspaceRegistryBase, 'workspace.json'),
+        workers: join(workspaceRegistryBase, 'workers.json'),
+        tasks: join(workspaceRegistryBase, 'tasks.json'),
+      },
       exchange: {
         base: exchangeBase,
         inbox: join(exchangeBase, DIR_NAMES.INBOX),
@@ -84,10 +89,10 @@ export function loadConfig(overrides: ConfigOverrides = {}): AppConfig {
         signals: join(exchangeBase, DIR_NAMES.SIGNALS),
       },
       plans: {
-        base: join(root, DIR_NAMES.PLAN),
-        pending: join(root, DIR_NAMES.PLAN, DIR_NAMES.PENDING),
-        processing: join(root, DIR_NAMES.PLAN, DIR_NAMES.PROCESSING),
-        done: join(root, DIR_NAMES.PLAN, DIR_NAMES.DONE),
+        base: plansBase,
+        pending: join(plansBase, DIR_NAMES.PENDING),
+        processing: join(plansBase, DIR_NAMES.PROCESSING),
+        done: join(plansBase, DIR_NAMES.DONE),
       },
       tasks: {
         base: join(root, DIR_NAMES.TASKS),
@@ -97,6 +102,9 @@ export function loadConfig(overrides: ConfigOverrides = {}): AppConfig {
       },
       planWatcher: {
         intervalMs: overrides.planWatcherIntervalMs || 30_000,
+      },
+      results: {
+        base: resultsBase,
       },
       memory: {
         base: memoryBase,

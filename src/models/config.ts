@@ -15,6 +15,17 @@ export interface DirConfig {
   done: string;
 }
 
+export interface WorkspaceRegistryConfig {
+  base: string;
+  workspace: string;
+  workers: string;
+  tasks: string;
+}
+
+export interface WorkspaceResultsConfig {
+  base: string;
+}
+
 export interface ServerConfig {
   port: number;
   host: string;
@@ -69,10 +80,14 @@ export interface WorkspaceConfig {
   workspaceId: string;
   /** Absolute path to the workspace root. Required — no implicit workspace discovery. */
   workspaceRoot: string;
+  /** Workspace-local orchestration root: <workspace>/.orchestrator */
+  orchestratorRoot: string;
+  registry: WorkspaceRegistryConfig;
   exchange: ExchangeConfig;
   plans: DirConfig;
   tasks: DirConfig;
   planWatcher: PlanWatcherConfig;
+  results: WorkspaceResultsConfig;
   /** Workspace-local memory paths */
   memory: WorkspaceMemoryConfig;
 }

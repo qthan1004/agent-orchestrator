@@ -93,7 +93,7 @@ export class TaskDispatchLoop {
         const profile = await this.modelSelector.selectProfile(task, queueStatus);
 
         // 4. processManager.spawn(...)
-        const worker = this.workerRegistry.register();
+        const worker = this.workerRegistry.register(this.workspaceId);
         const workerId = worker.id;
         const assignmentPayload: AssignmentPayload = {
           task_id: task.id,
@@ -126,7 +126,7 @@ export class TaskDispatchLoop {
           },
           assigned_at: new Date().toISOString(),
         };
-        this.workerRegistry.assignTask(workerId, task.id);
+        this.workerRegistry.assignTask(workerId, task.id, this.stateManager.taskRegistry);
         let taskDetails = JSON.stringify({
           assignment,
           description: (task as any).description || task.action,
@@ -184,13 +184,13 @@ export class TaskDispatchLoop {
 
         if (exitResult === 'timeout') {
           console.warn(SYSTEM_MESSAGE.DISPATCH_WORKER_TIMEOUT(workerId, task.id));
-          this.workerRegistry.clearAssignment(workerId);
+          this.workerRegistry.clearAssignment(workerId, this.stateManager.taskRegistry);
           if (this.stateManager.isTaskInActive(task.id)) {
             this.stateManager.requeueWithRetry(task.id, this.workspaceRoot);
           }
         } else if (exitResult.code !== 0) {
           console.warn(SYSTEM_MESSAGE.DISPATCH_WORKER_EXITED(workerId, exitResult.code, task.id));
-          this.workerRegistry.clearAssignment(workerId);
+          this.workerRegistry.clearAssignment(workerId, this.stateManager.taskRegistry);
           if (this.stateManager.isTaskInActive(task.id)) {
             this.stateManager.requeueWithRetry(task.id, this.workspaceRoot);
           }

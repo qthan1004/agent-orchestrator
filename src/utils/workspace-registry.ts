@@ -1,6 +1,7 @@
 import fs from 'fs';
 import { join, basename } from 'path';
 import { createHash } from 'crypto';
+import { bootstrapWorkspace } from './bootstrap.js';
 
 /** Workspace lifecycle status */
 export type WorkspaceStatus = 'active' | 'closed';
@@ -72,13 +73,18 @@ export class WorkspaceRegistry {
 
     if (!workspaces[id]) {
       // Fresh import — new workspace
-      workspaces[id] = {
+      const workspace: WorkspaceMetadata = {
         id,
         path: workspacePath,
         name: basename(workspacePath),
         status: 'active',
         registered_at: new Date().toISOString()
       };
+      const boot = bootstrapWorkspace(workspacePath, workspace);
+      if (boot.failed.length > 0) {
+        throw new Error(`Failed to bootstrap workspace "${id}": ${boot.failed.join(', ')}`);
+      }
+      workspaces[id] = workspace;
       this.saveAll(workspaces);
     } else if (workspaces[id].status === 'closed') {
       // Previously closed workspace — use explicit reopen()
@@ -86,6 +92,11 @@ export class WorkspaceRegistry {
         `Workspace "${id}" (${workspaces[id].name}) was previously closed. ` +
         `Use reopen() to explicitly reconnect it.`
       );
+    } else {
+      const boot = bootstrapWorkspace(workspacePath, workspaces[id]);
+      if (boot.failed.length > 0) {
+        throw new Error(`Failed to bootstrap workspace "${id}": ${boot.failed.join(', ')}`);
+      }
     }
     // else: already active — return existing metadata
 

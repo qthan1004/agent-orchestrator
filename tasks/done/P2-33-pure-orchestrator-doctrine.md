@@ -29,13 +29,13 @@ Write the canonical doctrine for Phase 2:
 ## Files
 | Action | Path |
 |--------|------|
-| NEW or MODIFY | `dev-docs/architecture_pure-orchestrator-doctrine.md` |
+| NEW or MODIFY | `dev-docs/documents/architecture_pure-orchestrator-doctrine.md` |
 | MODIFY | relevant architecture docs if needed |
 
 ## Done Criteria
-- [ ] Doctrine states exactly one brain: Planner
-- [ ] Server forbidden actions are explicit
-- [ ] Harness forbidden actions are explicit
-- [ ] Worker lifetime/memory boundary is explicit
-- [ ] Workspace file knowledge is defined as static, curated, and non-autonomous
-- [ ] No code changes
+- [x] Doctrine states exactly one brain: Planner
+- [x] Server forbidden actions are explicit
+- [x] Harness forbidden actions are explicit
+- [x] Worker lifetime/memory boundary is explicit
+- [x] Workspace file knowledge is defined as static, curated, and non-autonomous
+- [x] No code changes

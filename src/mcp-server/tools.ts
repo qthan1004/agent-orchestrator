@@ -15,6 +15,7 @@ import type { SessionCheckpointInput } from './tools/session-checkpoint.js';
 import { WorkspaceRegistry } from '../utils/workspace-registry.js';
 import { bootstrapWorkspace } from '../utils/bootstrap.js';
 import { ensureDir, writeJSON } from '../utils/file-backend.js';
+import { assertActiveWorkspace, getWorkerCurrentTaskId } from '../utils/identity-invariants.js';
 
 const STRIP_FIELDS = ['status', 'assigned_to', 'priority', 'metadata', 'dependencies', 'done_criteria'];
 
@@ -103,13 +104,17 @@ export function registerTools(server: McpServer, context: ServerContext): void {
           return formatError(new Error(`workspace_path must be an absolute path. Received: "${trimmed}"`));
         }
 
-        const worker = workerRegistry.register();
         const status = stateManager.getStatus();
         
         const registry = new WorkspaceRegistry(context.config.runtimeRoot);
         const ws = registry.register(trimmed);
         const workspaceId = ws.id;
-        bootstrapWorkspace(context.config.runtimeRoot, workspaceId);
+        assertActiveWorkspace(ws, workspaceId);
+        if (workspaceId !== context.config.workspace.workspaceId) {
+          return formatError(new Error(`Workspace mismatch: expected ${context.config.workspace.workspaceId}, received ${workspaceId}`));
+        }
+        bootstrapWorkspace(ws.path, ws);
+        const worker = workerRegistry.register(workspaceId);
 
         return {
           content: [{
@@ -176,9 +181,7 @@ export function registerTools(server: McpServer, context: ServerContext): void {
         if (!workspace) {
           throw new Error(`Workspace "${workspace_id}" not found in registry.`);
         }
-        if (workspace.status !== 'active') {
-          throw new Error(`Workspace "${workspace_id}" is not active.`);
-        }
+        assertActiveWorkspace(workspace, workspace_id);
 
         if (path.isAbsolute(task_content_path)) {
           throw new Error('task_content_path must be relative to the workspace root.');
@@ -186,8 +189,18 @@ export function registerTools(server: McpServer, context: ServerContext): void {
 
         const resolvedTaskPath = path.resolve(workspace.path, task_content_path);
         const normalizedWorkspaceRoot = path.resolve(workspace.path);
-        if (!resolvedTaskPath.startsWith(normalizedWorkspaceRoot)) {
+        const isInsideWorkspace =
+          resolvedTaskPath === normalizedWorkspaceRoot ||
+          resolvedTaskPath.startsWith(`${normalizedWorkspaceRoot}${path.sep}`);
+        if (!isInsideWorkspace) {
           throw new Error(`Task path escapes workspace root: ${task_content_path}`);
+        }
+        const normalizedOrchestratorRoot = path.resolve(workspace.path, '.orchestrator');
+        const isInsideOrchestrator =
+          resolvedTaskPath === normalizedOrchestratorRoot ||
+          resolvedTaskPath.startsWith(`${normalizedOrchestratorRoot}${path.sep}`);
+        if (!isInsideOrchestrator) {
+          throw new Error(`Task path must be under .orchestrator/: ${task_content_path}`);
         }
         if (!fs.existsSync(resolvedTaskPath)) {
           throw new Error(`Task file not found: ${task_content_path}`);
@@ -201,6 +214,14 @@ export function registerTools(server: McpServer, context: ServerContext): void {
           submitted_task_id: task_id,
         });
 
+        context.stateManager.taskRegistry.registerTask({
+          task_id: metadata.task_id,
+          workspace_id: metadata.workspace_id,
+          task_content_path: metadata.task_content_path,
+          status: TASK_STATUS.PENDING,
+          created_at: metadata.created_at,
+          retry_count: metadata.retry_count,
+        });
         context.stateManager.queue.registerTaskMetadata(metadata);
 
         const taskFilePath = path.join(context.config.workspace.exchange.inbox, `${FILE_PREFIXES.TASK}${metadata.task_id}.json`);
@@ -265,7 +286,7 @@ export function registerTools(server: McpServer, context: ServerContext): void {
                 message: `Late result from reconnected worker discarded — task ${task_id} no longer in active/`
               });
             }
-            worker.current_task = null;
+            workerRegistry.clearAssignment(worker_id, stateManager.taskRegistry);
             return {
               content: [{ type: "text", text: JSON.stringify({
                 accepted: false,
@@ -278,10 +299,10 @@ export function registerTools(server: McpServer, context: ServerContext): void {
           }
 
           // Task still in active — this worker's result is valid, re-assign ownership
-          worker.current_task = task_id;
+          workerRegistry.assignTask(worker_id, task_id, stateManager.taskRegistry);
         }
 
-        if (worker.current_task !== task_id) {
+        if (getWorkerCurrentTaskId(worker) !== task_id) {
           throw new Error("Worker does not own this task");
         }
 
@@ -290,7 +311,7 @@ export function registerTools(server: McpServer, context: ServerContext): void {
         // ─── DONE: move to outbox normally ───
         if (status === TASK_STATUS.DONE) {
           stateManager.moveToOutbox(task_id, result);
-          worker.current_task = null;
+          workerRegistry.clearAssignment(worker_id, stateManager.taskRegistry);
           worker.tasks_completed++;
           
           if (logger) logger.log(STATE_EVENTS.TASK_COMPLETED, { task_id, status, worker_id });
@@ -300,7 +321,7 @@ export function registerTools(server: McpServer, context: ServerContext): void {
           try {
             const wsRoot = context.config.workspace.workspaceRoot;
             if (wsRoot) {
-              const wsResultDir = path.join(wsRoot, '.agent', 'results');
+              const wsResultDir = context.config.workspace.results.base;
               ensureDir(wsResultDir);
               const wsResultPath = path.join(wsResultDir, `result-${task_id}.json`);
               const syncResult = {
@@ -333,7 +354,7 @@ export function registerTools(server: McpServer, context: ServerContext): void {
           result.permanently_failed = true;
           result.retry_count = retryCount;
           stateManager.moveToOutbox(task_id, result);
-          worker.current_task = null;
+          workerRegistry.clearAssignment(worker_id, stateManager.taskRegistry);
           
           if (logger) {
             logger.log(STATE_EVENTS.TASK_PERMANENTLY_FAILED, {
@@ -355,7 +376,7 @@ export function registerTools(server: McpServer, context: ServerContext): void {
 
         const workspaceRoot = context.config.workspace.workspaceRoot;
         const newRetryCount = stateManager.requeueWithRetry(task_id, workspaceRoot);
-        worker.current_task = null;
+        workerRegistry.clearAssignment(worker_id, stateManager.taskRegistry);
         
         if (logger) {
           logger.log(STATE_EVENTS.TASK_REQUEUED, { task_id, status, worker_id, retry_count: newRetryCount });
@@ -392,6 +413,9 @@ export function registerTools(server: McpServer, context: ServerContext): void {
       try {
         const worker = workerRegistry.getWorker(worker_id);
         if (!worker) throw new Error("Invalid worker_id");
+        if (getWorkerCurrentTaskId(worker) !== task_id) {
+          throw new Error("Worker does not own this task");
+        }
         
         if (logger) {
             logger.log(STATE_EVENTS.PROGRESS, { task_id, step, percentage, worker_id });
@@ -471,6 +495,12 @@ export function registerTools(server: McpServer, context: ServerContext): void {
     withHeartbeat(async ({ tasks, graph, reasoning, source_plan, worker_id }) => {
       try {
          // Auto-prefix task IDs with Plan name to prevent collision across multiple plans
+         const registry = new WorkspaceRegistry(context.config.runtimeRoot);
+         assertActiveWorkspace(
+           registry.getById(context.config.workspace.workspaceId),
+           context.config.workspace.workspaceId
+         );
+
          const planPrefix = source_plan.replace(/\.md$/, '') + '-';
          const mutableTasks = tasks as TaskDef[];
          const mutableGraph = graph as unknown as TaskGraph;
@@ -566,8 +596,8 @@ export function registerTools(server: McpServer, context: ServerContext): void {
         
         // Clear worker assignment if any worker owns this task
         for (const worker of workerRegistry.getAllWorkers()) {
-          if (worker.current_task === task_id) {
-            worker.current_task = null;
+          if (getWorkerCurrentTaskId(worker) === task_id) {
+            workerRegistry.clearAssignment(worker.id, stateManager.taskRegistry);
             break;
           }
         }
@@ -812,7 +842,7 @@ export function registerTools(server: McpServer, context: ServerContext): void {
         const reopened = registry.reopen(workspace_id);
 
         // Ensure runtime directories exist
-        bootstrapWorkspace(context.config.runtimeRoot, reopened.id);
+        bootstrapWorkspace(reopened.path, reopened);
 
         return {
           content: [{

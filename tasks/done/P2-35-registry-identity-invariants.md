@@ -49,10 +49,10 @@ server stores task path/status/lock only, not task body
 | NEW/MODIFY | focused tests or verification script if current test infra is absent |
 
 ## Done Criteria
-- [ ] Registry records workspace/task/worker identity separately
-- [ ] Invalid workspace/task/worker relation is rejected
-- [ ] Worker cannot own more than one active task
-- [ ] Task cannot be assigned to more than one worker
-- [ ] Closed workspace rejects new task/worker registration
-- [ ] Task body is not stored in server registry
-- [ ] `npm run build` passes
+- [x] Registry records workspace/task/worker identity separately
+- [x] Invalid workspace/task/worker relation is rejected
+- [x] Worker cannot own more than one active task
+- [x] Task cannot be assigned to more than one worker
+- [x] Closed workspace rejects new task/worker registration
+- [x] Task body is not stored in server registry
+- [x] `npm run build` passes

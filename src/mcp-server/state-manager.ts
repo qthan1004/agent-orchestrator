@@ -3,8 +3,9 @@ import fs from 'fs';
 import { readJSON, writeJSON, moveFile, listFiles, ensureDir, readFile } from '../utils/file-backend.js';
 import { TaskQueue, type TaskQueueStatus } from './task-queue.js';
 import { TASK_STATUS, FILE_PREFIXES, STATE_EVENTS, RECOVERY_EVENTS, RECOVERY_DEFAULTS, type TaskStatusValue } from '../constants.js';
-import type { WorkspaceConfig, TaskDef, TaskGraph, TaskResult } from '../models/index.js';
+import type { WorkspaceConfig, TaskDef, TaskGraph, TaskIdentityRecord, TaskResult } from '../models/index.js';
 import type { Logger } from '../utils/logger.js';
+import { TaskIdentityRegistry } from '../utils/task-identity-registry.js';
 
 const MAX_CHECKPOINTS = 10;
 
@@ -49,6 +50,7 @@ export type CheckPlansResult =
 export class StateManager {
   config: WorkspaceConfig;
   queue: TaskQueue;
+  taskRegistry: TaskIdentityRegistry;
   logger: Logger | null;
   plan: PlanMeta | null;
 
@@ -59,6 +61,7 @@ export class StateManager {
   constructor(logger: Logger | null, config: WorkspaceConfig) {
     this.config = config;
     this.queue = new TaskQueue();
+    this.taskRegistry = new TaskIdentityRegistry(config.registry.tasks, config.workspaceId);
     this.logger = logger;
     this.plan = null;
 
@@ -103,7 +106,7 @@ export class StateManager {
     const filename = files[0];
     return {
       current: filename,
-      plan_path: `plan/processing/${filename}`,
+      plan_path: `.orchestrator/plans/processing/${filename}`,
       content: readFile(path.join(this.config.plans.processing, filename))
     };
   }
@@ -119,7 +122,7 @@ export class StateManager {
       return {
         status: 'busy',
         current: processingFiles[0],
-        plan_path: `plan/processing/${processingFiles[0]}`,
+        plan_path: `.orchestrator/plans/processing/${processingFiles[0]}`,
         content: readFile(path.join(this.config.plans.processing, processingFiles[0])),
         pending_count: listFiles(this.config.plans.pending, '.md').length
       };
@@ -144,7 +147,7 @@ export class StateManager {
     return {
       status: 'ready',
       current: nextFile,
-      plan_path: `plan/processing/${nextFile}`,
+      plan_path: `.orchestrator/plans/processing/${nextFile}`,
       content: readFile(dest),
       pending_count: pendingFiles.length - 1
     };
@@ -167,6 +170,13 @@ export class StateManager {
 
     // Write internal tasks to inbox/
     for (const task of tasks) {
+      this.taskRegistry.registerTask({
+        task_id: task.id,
+        workspace_id: this.config.workspaceId,
+        task_content_path: typeof task.task_content_path === 'string' ? task.task_content_path : '',
+        status: TASK_STATUS.PENDING,
+        retry_count: task.retry_count,
+      });
       const filePath = path.join(this.config.exchange.inbox, `${FILE_PREFIXES.TASK}${task.id}.json`);
       writeJSON(filePath, { ...task, status: TASK_STATUS.PENDING });
     }
@@ -197,6 +207,7 @@ export class StateManager {
     }
 
     this.queue.updateTaskStatus(taskId, TASK_STATUS.ACTIVE);
+    this.taskRegistry.setStatus(taskId, TASK_STATUS.ACTIVE);
 
     if (this.logger) {
         this.logger.log(STATE_EVENTS.TASK_ACTIVATED, { message: `Moved task ${taskId} to active` });
@@ -223,6 +234,7 @@ export class StateManager {
     writeJSON(resultPath, result);
 
     this.queue.updateTaskStatus(taskId, result.status);
+    this.taskRegistry.setStatus(taskId, result.status);
     
     // Garbage collection on the DAG queue
     const prunedCount = this.queue.pruneCompletedGroups();
@@ -262,6 +274,7 @@ export class StateManager {
         taskData.status = TASK_STATUS.PENDING;
         writeJSON(dest, taskData);
         }
+        this.taskRegistry.setStatus(taskId, TASK_STATUS.PENDING);
     }
 
     this.queue.requeueTask(taskId);
@@ -320,6 +333,7 @@ export class StateManager {
         }
 
         writeJSON(filePath, data);
+        this.taskRegistry.setStatus(taskId, data.status || TASK_STATUS.PENDING, { retry_count: newRetryCount });
         break;
       }
     }
@@ -444,6 +458,9 @@ export class StateManager {
     const graphData = readJSON<TaskGraph>(queuePath) || { groups: [] };
 
     this.queue.loadFromState(rebuiltMap, graphData);
+    for (const task of rebuiltMap.values()) {
+      this.taskRegistry.upsertFromQueueTask(task, this.config.workspaceId, task.status || TASK_STATUS.PENDING);
+    }
     
     // GC on startup: prune old DONE tasks loaded from outbox
     const prunedCount = this.queue.pruneCompletedGroups();
@@ -461,6 +478,10 @@ export class StateManager {
   // State query
   getStatus(): TaskQueueStatus {
     return this.queue.getStatus();
+  }
+
+  getActiveTasksForWorkspace(workspaceId: string): TaskIdentityRecord[] {
+    return this.taskRegistry.getActiveTasksForWorkspace(workspaceId);
   }
 
   // Checkpointing

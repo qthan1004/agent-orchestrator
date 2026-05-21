@@ -58,8 +58,8 @@ Canonical workspace layout:
 | MODIFY | bootstrap/register workspace code |
 
 ## Done Criteria
-- [ ] Registering a new empty workspace creates `.orchestrator/` structure
-- [ ] Existing `.orchestrator/` files are not overwritten
-- [ ] Server does not read user content outside `.orchestrator/`
-- [ ] Root-level `plan/` and `exchange/` documented as legacy/demo/dev only
-- [ ] `npm run build` passes
+- [x] Registering a new empty workspace creates `.orchestrator/` structure
+- [x] Existing `.orchestrator/` files are not overwritten
+- [x] Server does not read user content outside `.orchestrator/`
+- [x] Root-level `plan/` and `exchange/` documented as legacy/demo/dev only
+- [x] `npm run build` passes

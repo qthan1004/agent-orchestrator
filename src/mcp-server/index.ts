@@ -1,4 +1,3 @@
-import path from 'path';
 import express from 'express';
 import type { ErrorRequestHandler, NextFunction, Request, Response } from 'express';
 import { setupMcpRoutes } from './transport.js';
@@ -12,6 +11,7 @@ import { bootstrapDirectories, bootstrapWorkspace } from '../utils/bootstrap.js'
 import type { AppConfig, ServerContext } from '../models/index.js';
 import { WorkspaceRegistry } from '../utils/workspace-registry.js';
 import { ensureOllamaRunning } from '../utils/ollama-launcher.js';
+import { getWorkerCurrentTaskId } from '../utils/identity-invariants.js';
 
 import { TaskDispatchLoop } from '../worker/dispatch-loop.js';
 import { VramManager } from '../worker/vram-manager.js';
@@ -37,7 +37,7 @@ export async function startServer(config: AppConfig): Promise<void> {
   // Register and bootstrap the primary workspace BEFORE any services start
   const primaryRegistry = new WorkspaceRegistry(config.runtimeRoot);
   const primaryWorkspace = primaryRegistry.register(config.workspace.workspaceRoot);
-  const wsBoot = bootstrapWorkspace(config.runtimeRoot, primaryWorkspace.id);
+  const wsBoot = bootstrapWorkspace(primaryWorkspace.path, primaryWorkspace);
   if (wsBoot.failed.length > 0) {
     console.error(SYSTEM_MESSAGE.BOOTSTRAP_FAILED, wsBoot.failed);
     process.exit(1);
@@ -51,8 +51,7 @@ export async function startServer(config: AppConfig): Promise<void> {
   const logger = new Logger(config.workspace.exchange.logs);
 
   // Initialize worker registry with config-derived path
-  const registryFilePath = path.join(config.workspace.exchange.base, 'workers.json');
-  workerRegistry.setRegistryPath(registryFilePath);
+  workerRegistry.setRegistryPath(config.workspace.registry.workers);
 
   // Cleanup disconnected workers from previous runs
   const cleanedWorkers = workerRegistry.cleanupDisconnected();
@@ -183,7 +182,7 @@ export async function startServer(config: AppConfig): Promise<void> {
       return;
     }
 
-    if (worker.current_task !== task_id) {
+    if (getWorkerCurrentTaskId(worker) !== task_id) {
       res.status(409).json({ accepted: false, error: `Worker ${worker_id} is not assigned to task ${task_id}` });
       return;
     }
@@ -191,7 +190,7 @@ export async function startServer(config: AppConfig): Promise<void> {
     try {
       if (!success && error_context?.error === 'context_exceeded' && typeof error_context?.handover === 'string') {
         const respawnCount = stateManager.requeueWithHandover(task_id, error_context.handover, config.workspace.workspaceRoot);
-        workerRegistry.clearAssignment(worker_id);
+        workerRegistry.clearAssignment(worker_id, stateManager.taskRegistry);
         stateManager.saveCheckpoint();
         console.log(`[WorkerComplete] Task ${task_id} requeued with handover (respawn ${respawnCount}).`);
         res.json({ accepted: true, action: 'requeued_with_handover', respawn_count: respawnCount });
@@ -221,11 +220,11 @@ export async function startServer(config: AppConfig): Promise<void> {
         stateManager.requeueWithRetry(task_id, config.workspace.workspaceRoot);
       }
 
-      workerRegistry.clearAssignment(worker_id);
+      workerRegistry.clearAssignment(worker_id, stateManager.taskRegistry);
       stateManager.saveCheckpoint();
       res.json({ accepted: true });
     } catch (err: any) {
-      workerRegistry.clearAssignment(worker_id);
+      workerRegistry.clearAssignment(worker_id, stateManager.taskRegistry);
       res.status(500).json({ accepted: false, error: err.message });
     }
   });
