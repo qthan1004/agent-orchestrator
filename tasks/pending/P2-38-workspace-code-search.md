@@ -1,11 +1,11 @@
-# Task P2-34: Workspace Code Search Engine (Standalone Lib)
+# Task P2-38: Workspace Code Search Engine (Standalone Lib)
 
 ## Info
-- **ID:** P2-34-workspace-code-search
+- **ID:** P2-38-workspace-code-search
 - **Repo:** `~/workspace/code-search-engine` (NEW — standalone package)
 - **Group:** Post-Core Intelligence
 - **Dependencies:** None (standalone — orchestrator integrates later)
-- **Priority:** 19
+- **Priority:** 23
 - **Ref:** `dev-docs/2026-05-08_research_cocoindex-analysis.md`
 - **Inspired by:** [cocoindex-code](https://github.com/cocoindex-io/cocoindex-code) — rewritten in TypeScript, zero Python dependency
 

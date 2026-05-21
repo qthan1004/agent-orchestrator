@@ -1,11 +1,11 @@
-# Task P2-29: E2E Integration Test
+# Task P2-33: E2E Integration Test
 
 ## Info
-- **ID:** P2-29-e2e-integration
+- **ID:** P2-33-e2e-integration
 - **Module:** `tests/`
 - **Group:** Core Verification
-- **Dependencies:** P2-16, P2-25, P2-20, P2-28, P2-22
-- **Priority:** 14
+- **Dependencies:** P2-16, P2-25, P2-20, P2-28, P2-22, P2-32
+- **Priority:** 18
 - **Ref:** Phase 2 assignment architecture
 
 ## Constraints (Always-on Skills)

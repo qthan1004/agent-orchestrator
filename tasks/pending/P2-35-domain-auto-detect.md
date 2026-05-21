@@ -1,11 +1,11 @@
-# Task P2-31: Domain Auto-Detect
+# Task P2-35: Domain Auto-Detect
 
 ## Info
-- **ID:** P2-31-domain-auto-detect
+- **ID:** P2-35-domain-auto-detect
 - **Module:** `src/worker/domain-detector.ts` (NEW)
 - **Group:** Post-Core Intelligence
 - **Dependencies:** P2-01, P2-20, P2-22
-- **Priority:** 16
+- **Priority:** 20
 - **Ref:** Bootstrap Protocol Phase A
 
 ## Constraints (Always-on Skills)

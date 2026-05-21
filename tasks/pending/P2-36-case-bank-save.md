@@ -1,11 +1,11 @@
-# Task P2-32: Case Bank Save
+# Task P2-36: Case Bank Save
 
 ## Info
-- **ID:** P2-32-case-bank-save
+- **ID:** P2-36-case-bank-save
 - **Module:** `src/worker/case-bank.ts` (NEW)
 - **Group:** Post-Core Intelligence
-- **Dependencies:** P2-13, P2-01, P2-31, P2-20
-- **Priority:** 17
+- **Dependencies:** P2-13, P2-01, P2-35, P2-20
+- **Priority:** 21
 - **Ref:** Phase 2 memory boundary rules
 - **Updated:** 2026-05-21 (entity tags + confidence scoring from Mem0 research)
 
