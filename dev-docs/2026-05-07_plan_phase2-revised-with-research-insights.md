@@ -18,12 +18,35 @@
 | 4 | **Skills storage** | `reference/skills/` (product folder) — KHÔNG phải `.agent/skills/` |
 | 5 | **Reflections format** | Markdown (thân thiện, dễ đọc) |
 | 6 | **Case Bank scope** | Global (cross-project) — hướng tới agent wiki |
-| 7 | **GPU** | RTX 5060 Ti 16GB — đã có |
-| 8 | **LLM Harness** | Cần harness tích hợp cả cloud (Gemini CLI, Codex) và local (Ollama) |
+| 7 | **Infra capacity** | Hardware/runtime capacity do infra verifier cung cấp; không hardcode VRAM/GPU |
+| 8 | **Runtime harness adapters** | Cần adapter cho local (Ollama) và CLI runtime (Codex CLI, AG CLI) |
+| 9 | **Runtime lease isolation** | 1 active task = 1 runtime lease = 1 backend runtime/session = 1 point reservation |
 
 ---
 
 ## Thay đổi so với plan gốc
+
+### 0. Runtime Lease Isolation — SỬA MINDSET
+
+Worker không còn được hiểu là "một request tới backend chung". Worker trong Phase 2 phải được hiểu là runtime lease có identity riêng.
+
+```
+1 active task -> 1 runtime lease -> 1 backend runtime/session -> 1 point reservation
+```
+
+Hệ quả:
+
+- Shared Ollama chỉ là dev-only fallback, tối đa 1 worker.
+- Local parallel workers cần nhiều Ollama runtime/endpoint riêng.
+- Codex CLI và AG CLI cần adapter riêng, mỗi lease là một process/session riêng.
+- Callback phải kèm `task_id`, `worker_id`, `runtime_id`, `lease_generation`.
+- Recovery chỉ reclaim khi heartbeat expired, runtime process/session dead, và task vẫn giữ đúng `runtime_id + lease_generation`.
+- Stale threshold là một nguồn truth trong runtime heartbeat store, health check phải chạy trước expiry.
+- Terminal/log visibility phải báo spawn, backend start, model/tool progress, callback send/accept, health check, retry, reclaim.
+- Local scheduling dùng verified capacity profile từ infra verifier, không dùng fixed VRAM assumption hay fixed worker count.
+- Resource monitor hiển thị bằng terminal table; UI để sau.
+
+**Impact lên tasks**: Trước khi thêm Codex/AG adapter, cần refactor runtime lease boundary theo `dev-docs/2026-05-22_plan_runtime-lease-refactor.md`.
 
 ### 1. Agent Runner Harness — Cloud + Local (MỚI)
 

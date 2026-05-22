@@ -22,6 +22,7 @@ export interface DispatchLoopConfig {
   workspaceId: string;
   maxConcurrentWorkers?: number;
   maxTaskRetries?: number;
+  staleWorkerThresholdMs?: number;
 }
 
 interface ActiveHarness {
@@ -65,7 +66,12 @@ export class TaskDispatchLoop {
     this.maxTaskRetries = config.maxTaskRetries ?? RECOVERY_DEFAULTS.MAX_TASK_RETRIES;
 
     this.modelSelector = new ModelSelector();
-    this.processManager = new WorkerProcessManager();
+    this.processManager = new WorkerProcessManager({
+      staleWorkerThresholdMs: config.staleWorkerThresholdMs ?? RECOVERY_DEFAULTS.STALE_WORKER_THRESHOLD_MS
+    });
+    this.processManager.on('worker:heartbeat', ({ worker_id }) => {
+      this.workerRegistry.updateHeartbeat(worker_id);
+    });
     this.ollamaAdapter = new OllamaAdapter(process.env.OLLAMA_BASE_URL);
   }
 
@@ -84,6 +90,10 @@ export class TaskDispatchLoop {
 
   public getActiveWorkers(): ReturnType<WorkerProcessManager['getActive']> {
     return this.processManager.getActive();
+  }
+
+  public isWorkerProcessActive(workerId: string): boolean {
+    return this.getActiveWorkers().some(worker => worker.worker_id === workerId);
   }
 
   public killWorker(pid: number): void {
@@ -139,6 +149,7 @@ export class TaskDispatchLoop {
     let workerId = 'dispatch-loop';
 
     try {
+      console.log(`[DispatchLoop] Dispatching task ${task.id}: moving inbox -> active.`);
       this.stateManager.moveToActive(task.id);
       movedToActive = true;
 
@@ -163,6 +174,7 @@ export class TaskDispatchLoop {
       }
 
       const profile = await this.modelSelector.selectProfile(task, queueStatus);
+      console.log(`[DispatchLoop] Selected model ${profile.model} (${profile.mode}) for task ${task.id}.`);
       const worker = this.workerRegistry.register(this.workspaceId);
       workerId = worker.id;
 
@@ -203,6 +215,7 @@ export class TaskDispatchLoop {
       this.activeHarnesses.set(workerId, activeHarness);
 
       const spawned = this.processManager.spawn(payload);
+      console.log(`[DispatchLoop] Monitoring harness ${workerId} for task ${task.id}.`);
       void this.monitorHarness(activeHarness, spawned.completion);
     } catch (err: any) {
       this.activeHarnesses.delete(workerId);

@@ -9,6 +9,7 @@ import {
   SYSTEM_MESSAGE
 } from '../constants.js';
 import { listFiles, readJSON } from '../utils/file-backend.js';
+import { deriveHealthCheckIntervalMs } from '../utils/lifecycle-timing.js';
 import type { AppConfig, TaskDef, WorkerInfo } from '../models/index.js';
 import type { Logger } from '../utils/logger.js';
 import type { WorkerRegistry } from '../utils/worker-registry.js';
@@ -27,6 +28,8 @@ export interface RecoveryManagerParams {
   config: AppConfig;
   recoveryConfig?: RecoveryConfigOverrides;
 }
+
+export type WorkerProcessProbe = (workerId: string) => boolean;
 
 export interface StartupRecoveryResult {
   wasClean: boolean;
@@ -47,6 +50,7 @@ export class RecoveryManager {
   maxRetries: number;
   maxTaskRetries: number;
   private _monitorTimer: NodeJS.Timeout | null;
+  private workerProcessProbe: WorkerProcessProbe | null;
 
   /**
    * @param {object} params
@@ -62,12 +66,17 @@ export class RecoveryManager {
     this.logger = logger;
     this.config = config;
 
-    this.monitorIntervalMs = recoveryConfig.monitorIntervalMs ?? RECOVERY_DEFAULTS.MONITOR_INTERVAL_MS;
     this.staleWorkerThresholdMs = recoveryConfig.staleWorkerThresholdMs ?? config.global.recovery?.staleWorkerThresholdMs ?? RECOVERY_DEFAULTS.STALE_WORKER_THRESHOLD_MS;
+    this.monitorIntervalMs = recoveryConfig.monitorIntervalMs ?? deriveHealthCheckIntervalMs(this.staleWorkerThresholdMs);
     this.maxRetries = recoveryConfig.maxRetries ?? RECOVERY_DEFAULTS.MAX_RETRIES;
     this.maxTaskRetries = config.global.recovery?.maxTaskRetries ?? RECOVERY_DEFAULTS.MAX_TASK_RETRIES;
 
     this._monitorTimer = null;
+    this.workerProcessProbe = null;
+  }
+
+  setWorkerProcessProbe(probe: WorkerProcessProbe): void {
+    this.workerProcessProbe = probe;
   }
 
   // ─── Shutdown Marker ────────────────────────────────────────
@@ -176,6 +185,19 @@ export class RecoveryManager {
       const elapsed = now - lastBeat;
 
       if (elapsed > this.staleWorkerThresholdMs) {
+        const processAlive = this.workerProcessProbe?.(worker.id) ?? false;
+        if (processAlive) {
+          this.workerRegistry.updateHeartbeat(worker.id);
+          this.logger.log('STALE_WORKER_PROCESS_ALIVE', {
+            worker_id: worker.id,
+            task_id: worker.current_task,
+            elapsed_ms: elapsed,
+            threshold_ms: this.staleWorkerThresholdMs,
+            message: `Worker ${worker.id} missed registry heartbeat but process is still alive; refreshed heartbeat and skipped recovery`
+          });
+          continue;
+        }
+
         staleWorkers.push(worker);
 
         this.logger.log(RECOVERY_EVENTS.STALE_WORKER_DETECTED, {

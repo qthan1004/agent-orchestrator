@@ -1,5 +1,5 @@
 {
-  "task": "dev-start-guide-workspace-register-harness",
-  "status": "completed; submit_task now accepts task_payload and server materializes task files",
-  "updatedAt": "2026-05-21"
+  "task": "module-boundary-skill-and-runtime-refactor-plan",
+  "status": "added terminal infra resource table wiring and documented terminal-first visibility",
+  "updatedAt": "2026-05-22"
 }

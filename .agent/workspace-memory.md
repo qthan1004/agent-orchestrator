@@ -1,6 +1,6 @@
 # Workspace Memory — agent-orchestrator
 
-> Last updated: 2026-05-07
+> Last updated: 2026-05-22
 > Phase: **Phase 2 — Hybrid Agentic Architecture** (Phase 1 archived)
 
 ## Project Overview
@@ -57,7 +57,7 @@ See `.agent/knowledge/architecture-philosophy.md` for design principles.
 | Skills storage | `reference/skills/` (product), `.agent/skills/` (dev) |
 | Reflections | Markdown format, global case-bank |
 | Case Bank | Global cross-project (`~/.orchestrator/case-bank/`) |
-| GPU | RTX 5060 Ti 16GB (Ollama for local models) |
+| Local capacity | Dynamic infra verification; no hardcoded VRAM or GPU baseline |
 
 ## Build & Dev
 

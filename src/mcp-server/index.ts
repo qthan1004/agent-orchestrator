@@ -12,6 +12,12 @@ import type { AppConfig, ServerContext } from '../models/index.js';
 import { WorkspaceRegistry } from '../utils/workspace-registry.js';
 import { ensureOllamaRunning } from '../utils/ollama-launcher.js';
 import { getWorkerCurrentTaskId } from '../utils/identity-invariants.js';
+import {
+  INFRA_RESOURCE_MONITOR_ENV,
+  InfraResourceMonitor,
+  resolveInfraResourceMonitorIntervalMs,
+} from '../infra/index.js';
+import { renderInfraResourceTable } from '../visibility/index.js';
 
 import { TaskDispatchLoop } from '../worker/dispatch-loop.js';
 import { VramManager } from '../worker/vram-manager.js';
@@ -111,14 +117,47 @@ export async function startServer(config: AppConfig): Promise<void> {
     workspaceRoot: config.workspace.workspaceRoot,
     allowedTools: ['*'],
     workspaceId: config.workspace.workspaceId,
-    maxTaskRetries: config.global.recovery.maxTaskRetries
+    maxTaskRetries: config.global.recovery.maxTaskRetries,
+    staleWorkerThresholdMs: config.global.recovery.staleWorkerThresholdMs
+  });
+  recoveryManager.setWorkerProcessProbe(workerId => dispatchLoop.isWorkerProcessActive(workerId));
+
+  const resourceMonitor = new InfraResourceMonitor({
+    getUptimeSeconds: () => process.uptime(),
+    getDispatchLoopStatus: () => ((dispatchLoop as any).running ? 'running' : 'stopped'),
+    getQueueStatus: () => stateManager.getStatus(),
+    getActiveWorkers: () => dispatchLoop.getActiveWorkers().map(worker => ({
+      worker_id: worker.worker_id,
+      task_id: worker.task_id,
+      pid: worker.pid,
+      started_at: worker.started_at,
+    })),
+    getVramStatus: () => {
+      const status = vramManager.checkVram();
+      return status
+        ? { available: true, ...status }
+        : { available: false };
+    },
+    checkOllamaHealth: () => ollamaAdapter.health(),
+    listOllamaModels: async () => {
+      const psData = await ollamaAdapter.ps();
+      return Array.isArray(psData?.models)
+        ? psData.models
+            .map((model: any) => typeof model?.name === 'string' ? model.name : '')
+            .filter(Boolean)
+        : [];
+    },
   });
 
   // Start dispatch loop
   dispatchLoop.start();
 
-  // Start VRAM monitoring
+  // Start resource monitoring
   vramManager.startMonitoring();
+  resourceMonitor.start(
+    resolveInfraResourceMonitorIntervalMs(process.env[INFRA_RESOURCE_MONITOR_ENV.TABLE_INTERVAL_MS]),
+    snapshot => console.log(renderInfraResourceTable(snapshot))
+  );
   console.log(SYSTEM_MESSAGE.HYBRID_ACTIVATED);
 
   const app = express();
@@ -164,6 +203,7 @@ export async function startServer(config: AppConfig): Promise<void> {
       healthData.ollama_status = false;
     }
     healthData.vram = vramManager.checkVram();
+    healthData.infra_resources = resourceMonitor.getLatest() ?? await resourceMonitor.collect();
     healthData.dispatch_loop = (dispatchLoop as any).running ? 'running' : 'stopped';
     healthData.active_workers = dispatchLoop.getActiveWorkers().length;
 
@@ -188,6 +228,8 @@ export async function startServer(config: AppConfig): Promise<void> {
       res.status(409).json({ accepted: false, error: `Worker ${worker_id} is not assigned to task ${task_id}` });
       return;
     }
+
+    console.log(`[WorkerComplete] Received ${success ? 'success' : 'failure'} from ${worker_id}/${task_id}: ${summary}`);
 
     try {
       if (!success && error_context?.error === 'context_exceeded' && typeof error_context?.handover === 'string') {
@@ -313,6 +355,7 @@ export async function startServer(config: AppConfig): Promise<void> {
     }
 
     vramManager.stopMonitoring();
+    resourceMonitor.stop();
 
     // Run graceful shutdown (stop monitoring, checkpoint, marker)
     recoveryManager.runGracefulShutdown();

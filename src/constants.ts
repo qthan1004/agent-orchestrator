@@ -211,7 +211,7 @@ export const SYSTEM_MESSAGE = {
   BOOTSTRAP_CREATED: (created: number, skipped: number) => `Created ${created} missing directories (${skipped} already existed).`,
   BOOTSTRAP_CLEAN: 'All directories present.',
   WORKERS_CLEANED: (count: number) => `Cleaned ${count} disconnected worker(s) from previous session.`,
-  HYBRID_ACTIVATED: 'Hybrid runtime activated: Dispatch loop and VRAM monitoring started.',
+  HYBRID_ACTIVATED: 'Hybrid runtime activated: Dispatch loop and resource monitoring started.',
   JSON_PARSE_ERROR: (method: string, url: string) => `JSON parse error from ${method} ${url}:`,
   RECOVERY_CLEAN: 'clean',
   RECOVERY_ORPHANS: (count: number) => `recovered ${count} orphans`,

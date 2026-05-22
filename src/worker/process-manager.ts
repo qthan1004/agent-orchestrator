@@ -2,9 +2,11 @@ import { spawn as spawnProcess } from 'child_process';
 import type { ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
 import path from 'path';
-import { SYSTEM_MESSAGE } from '../constants.js';
+import { RECOVERY_DEFAULTS, SYSTEM_MESSAGE } from '../constants.js';
+import { deriveNextHealthCheckDelayMs } from '../utils/lifecycle-timing.js';
 
-const DEFAULT_WORKER_TIMEOUT_MS = 5 * 60 * 1000;
+const DEFAULT_WORKER_MAX_RUNTIME_MS = 5 * 60 * 1000;
+const FORCE_KILL_GRACE_MS = 3_000;
 
 function getDefaultHarnessEntrypoint(): string {
   return path.join(process.cwd(), 'dist', 'harness', 'index.js');
@@ -23,12 +25,17 @@ export interface WorkerProcessInfo {
   started_at: string;
   process: ChildProcess;
   timeoutTimer?: NodeJS.Timeout;
+  healthCheckTimer?: NodeJS.Timeout;
   completion: Promise<WorkerProcessOutcome>;
 }
 
 export interface SpawnOptions {
   timeoutMs?: number;
   scriptPath?: string;
+}
+
+export interface WorkerProcessManagerOptions {
+  staleWorkerThresholdMs?: number;
 }
 
 export type WorkerProcessExit = {
@@ -51,10 +58,12 @@ export interface SpawnedWorker {
 
 export class WorkerProcessManager extends EventEmitter {
   private activeWorkers: Map<number, WorkerProcessInfo>;
+  private staleWorkerThresholdMs: number;
 
-  constructor() {
+  constructor(options: WorkerProcessManagerOptions = {}) {
     super();
     this.activeWorkers = new Map();
+    this.staleWorkerThresholdMs = options.staleWorkerThresholdMs ?? RECOVERY_DEFAULTS.STALE_WORKER_THRESHOLD_MS;
   }
 
   /**
@@ -65,7 +74,7 @@ export class WorkerProcessManager extends EventEmitter {
    */
   spawn(payload: WorkerPayload, options: SpawnOptions = {}): SpawnedWorker {
     const scriptPath = options.scriptPath || getDefaultHarnessEntrypoint();
-    const timeoutMs = options.timeoutMs || DEFAULT_WORKER_TIMEOUT_MS;
+    const timeoutMs = options.timeoutMs || DEFAULT_WORKER_MAX_RUNTIME_MS;
 
     const child = spawnProcess(process.execPath, [scriptPath], {
       stdio: ['pipe', 'pipe', 'pipe']
@@ -78,6 +87,7 @@ export class WorkerProcessManager extends EventEmitter {
     const pid = child.pid;
     const worker_id = payload.worker_id;
     const task_id = payload.task_id;
+    const startedAt = new Date().toISOString();
 
     let completionSettled = false;
     let settleCompletion: (result: WorkerProcessOutcome) => void = () => {};
@@ -108,6 +118,28 @@ export class WorkerProcessManager extends EventEmitter {
       }
     });
 
+    let healthCheckTimer: NodeJS.Timeout | undefined;
+    let lastHealthCheckAt = Date.now();
+
+    const runHealthCheck = () => {
+      lastHealthCheckAt = Date.now();
+      const elapsedMs = lastHealthCheckAt - Date.parse(startedAt);
+      const elapsedSeconds = Math.round(elapsedMs / 1000);
+      this.emit('worker:heartbeat', { pid, worker_id, task_id, elapsed_ms: elapsedMs });
+      console.log(`  │ \x1b[90m[${worker_id}] still running ${elapsedSeconds}s — task: ${task_id || 'none'}\x1b[0m`);
+      scheduleHealthCheck();
+    };
+
+    const scheduleHealthCheck = () => {
+      const delayMs = deriveNextHealthCheckDelayMs(this.staleWorkerThresholdMs, lastHealthCheckAt);
+      healthCheckTimer = setTimeout(runHealthCheck, delayMs);
+      healthCheckTimer.unref();
+      const activeInfo = this.activeWorkers.get(pid);
+      if (activeInfo) activeInfo.healthCheckTimer = healthCheckTimer;
+    };
+
+    scheduleHealthCheck();
+
     // Setup timeout auto-kill
     const timeoutTimer = setTimeout(() => {
       this.emit('worker:timeout', { pid, worker_id, task_id });
@@ -119,9 +151,10 @@ export class WorkerProcessManager extends EventEmitter {
       pid,
       worker_id,
       task_id,
-      started_at: new Date().toISOString(),
+      started_at: startedAt,
       process: child,
       timeoutTimer,
+      healthCheckTimer,
       completion
     };
 
@@ -129,6 +162,7 @@ export class WorkerProcessManager extends EventEmitter {
 
     child.on('exit', (code, signal) => {
       clearTimeout(timeoutTimer);
+      if (healthCheckTimer) clearTimeout(healthCheckTimer);
       this.activeWorkers.delete(pid);
       const exitInfo = signal ? `signal=${signal}` : `code=${code}`;
       console.log(`  └─ \x1b[90m[${worker_id}] Worker exited (${exitInfo}) — PID ${pid}\x1b[0m`);
@@ -173,6 +207,9 @@ export class WorkerProcessManager extends EventEmitter {
     if (info.timeoutTimer) {
       clearTimeout(info.timeoutTimer);
     }
+    if (info.healthCheckTimer) {
+      clearTimeout(info.healthCheckTimer);
+    }
 
     const child = info.process;
 
@@ -199,14 +236,14 @@ export class WorkerProcessManager extends EventEmitter {
         } catch (err) {
           // Ignore
         }
-      }, 3000);
+      }, FORCE_KILL_GRACE_MS);
       nuclearKillTimer.unref();
 
       child.once('exit', () => {
         clearTimeout(nuclearKillTimer);
       });
       
-    }, 3000);
+    }, FORCE_KILL_GRACE_MS);
 
     // Ensure we don't hold the event loop open for the fallback kill
     forceKillTimer.unref();

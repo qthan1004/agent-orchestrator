@@ -72,11 +72,16 @@ export async function executeHarness(payload: HarnessPayload): Promise<number> {
   const callbackClient = new CallbackClient(payload.callback_url);
 
   try {
+    console.log(`[Harness] Starting task ${payload.task_id} in workspace ${payload.workspace_id}.`);
+    console.log(`[Harness] Model=${payload.model}, tool_bundle=${payload.tool_bundle}.`);
+
     const loader = new WorkspaceLoader(payload.workspace_root);
     const loaded = await loader.load(payload);
     const toolNames = resolveToolNames(payload.tool_bundle, payload.allowed_tools);
     const toolExecutor = new ToolExecutor(payload.workspace_root, toolNames, payload.target_files);
     const promptBuilder = new PromptBuilder();
+    console.log(`[Harness] Loaded task body (${loaded.taskBody.length} chars), skills=${loaded.skillFiles.length}, context=${loaded.contextFiles.length}.`);
+    console.log(`[Harness] Tools enabled: ${toolNames.join(', ') || 'none'}.`);
 
     const promptTask: PromptTask = {
       id: payload.task_id,
@@ -103,8 +108,12 @@ export async function executeHarness(payload: HarnessPayload): Promise<number> {
       }
     });
 
+    console.log(`[Harness] Prompt ready. Entering model loop for task ${payload.task_id}.`);
     const result = await harness.run(messages);
+    console.log(`[Harness] Model loop ended with status=${result.status}, summary=${result.summary}.`);
+
     if (result.status === HarnessStatus.COMPLETE) {
+      console.log(`[Harness] Notifying server: success for ${payload.task_id}.`);
       await callbackClient.complete({
         workerId: payload.worker_id,
         taskId: payload.task_id,
@@ -112,10 +121,12 @@ export async function executeHarness(payload: HarnessPayload): Promise<number> {
         success: true,
         changelog: result.changelog
       });
+      console.log(`[Harness] Server accepted completion for ${payload.task_id}.`);
       return 0;
     }
 
     if (result.status === HarnessStatus.CONTEXT_EXCEEDED) {
+      console.log(`[Harness] Notifying server: handover for ${payload.task_id}.`);
       await callbackClient.complete({
         workerId: payload.worker_id,
         taskId: payload.task_id,
@@ -128,9 +139,11 @@ export async function executeHarness(payload: HarnessPayload): Promise<number> {
           handover: result.handover
         }
       });
+      console.log(`[Harness] Server accepted handover for ${payload.task_id}.`);
       return 1;
     }
 
+    console.log(`[Harness] Notifying server: failure for ${payload.task_id}.`);
     await callbackClient.complete({
       workerId: payload.worker_id,
       taskId: payload.task_id,
@@ -138,10 +151,12 @@ export async function executeHarness(payload: HarnessPayload): Promise<number> {
       success: false,
       errorContext: result.errorContext
     });
+    console.log(`[Harness] Server accepted failure for ${payload.task_id}.`);
     return 1;
   } catch (err: any) {
     console.error(SYSTEM_MESSAGE.AGENT_ERROR, err.message);
     try {
+      console.log(`[Harness] Notifying server: fatal failure for ${payload.task_id}.`);
       await callbackClient.complete({
         workerId: payload.worker_id,
         taskId: payload.task_id,
@@ -153,6 +168,7 @@ export async function executeHarness(payload: HarnessPayload): Promise<number> {
           attempted_fix: RUNNER_TEXT.ATTEMPTED_FIX_NONE
         }
       });
+      console.log(`[Harness] Server accepted fatal failure for ${payload.task_id}.`);
     } catch {
       // The dispatch loop will treat process exit without accepted callback as failure.
     }

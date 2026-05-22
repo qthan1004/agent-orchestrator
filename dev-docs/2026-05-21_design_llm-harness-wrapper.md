@@ -58,7 +58,7 @@ Mỗi task = clean slate. Không giữ model trong VRAM giữa các tasks.
 
 ### Tại sao?
 
-- RTX 5060 Ti 16GB — VRAM quý, không nên chiếm khi idle
+- Local capacity is verified dynamically — do not keep scarce runtime capacity occupied while idle
 - Model nhỏ (4B/7B) — hallucination cao, fresh load = clean state
 - Load/unload overhead: ~1-2s trên NVMe SSD cho 7B model
 - 10 load/unload per hour = ~20s overhead — chấp nhận được
@@ -112,11 +112,11 @@ if contextUsagePercent >= 85%:
 
 Mở rộng ModelSelector hiện tại từ 2 tiers → 3 tiers:
 
-| Tier | Difficulty | Model | Context | VRAM | Khi nào |
+| Tier | Difficulty | Model | Context | Capacity | Khi nào |
 |------|-----------|-------|---------|------|---------|
-| **Lite** | Simple tasks | 4B (Q4) | 16K | ~4GB | create file, rename, small edit, formatting |
-| **Standard** | Normal tasks | 7B-9B (Q4) | 32K | ~8-10GB | implement feature, refactor, fix bug |
-| **Cloud** | Complex tasks | Gemini/Cloud CLI | Unlimited | 0 | architecture, multi-file debug, complex reasoning |
+| **Lite** | Simple tasks | 4B (Q4) | From verified capacity profile | Estimated local capacity | create file, rename, small edit, formatting |
+| **Standard** | Normal tasks | 7B-9B (Q4) | From verified capacity profile | Estimated local capacity | implement feature, refactor, fix bug |
+| **Cloud/CLI** | Complex tasks | Codex CLI / AG CLI / cloud | Adapter-owned | No local VRAM reservation | architecture, multi-file debug, complex reasoning |
 
 ### Difficulty signals
 

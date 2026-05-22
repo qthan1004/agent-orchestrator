@@ -27,6 +27,7 @@ These apply to **every task**, no exceptions:
 | Safe Deletion | `.agent/skills/safe-deletion/SKILL.md` | Never delete without permission |
 | Strict Scope | `.agent/skills/strict-scope/SKILL.md` | Do exactly what was asked |
 | Folder Convention | `.agent/skills/folder-convention/SKILL.md` | Product vs dev folders |
+| Module Boundary Discipline | `.agent/skills/module-boundary-discipline/SKILL.md` | Keep domains, types, constants, lifecycle, runtime, scheduler, and recovery separated |
 
 ### 4. Check Project Rules
 

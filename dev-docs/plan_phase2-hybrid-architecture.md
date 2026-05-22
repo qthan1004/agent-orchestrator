@@ -2,12 +2,48 @@
 
 > **Tags:** `features`, `architecture`, `phase-2`, `local-llm`
 > **Date:** 2026-04-07
-> **Updated:** 2026-05-02 (Addendum — 2026 industry review)
+> **Updated:** 2026-05-22 (Runtime lease correction)
 > **Status:** Design Finalized — Validated by 2026 benchmark (7/7 patterns confirmed)
-> **Hardware:** Nvidia RTX 5060 Ti 16GB VRAM
-> **Inference Engine:** Ollama (headless, OpenAI-compatible API)
+> **Capacity:** Dynamic infra verification; no fixed VRAM or GPU baseline
+> **Runtime Backends:** Ollama (local), Codex CLI, AG CLI
 > **Review:** See `phase2_review.md` + `phase2_technical_supplement.md` for detailed analysis
 > **2026 Review:** See `2026-05-02_review_phase2-vs-2026-industry.md`
+> **2026-05-22 Correction:** See `2026-05-22_plan_runtime-lease-refactor.md`
+
+---
+
+## 0. Runtime Lease Correction (2026-05-22)
+
+Phase 2 workers must be interpreted as isolated runtime leases, not requests to a shared backend daemon.
+
+Correct invariant:
+
+```text
+1 active task -> 1 runtime lease -> 1 backend runtime/session -> 1 point reservation
+```
+
+Definitions:
+
+| Concept | Meaning |
+|---|---|
+| `task_id` | Work item |
+| `worker_id` | Logical owner assigned by server |
+| `runtime_id` | Isolated execution lease |
+| `lease_generation` | Callback/recovery guard against stale signals |
+| backend runtime/session | Ollama endpoint, Codex CLI session, or AG CLI session owned by one lease |
+
+Implications:
+
+- Shared Ollama is a dev-only single-worker fallback, not production isolation.
+- Parallel local workers require separate Ollama runtime endpoints.
+- Parallel CLI workers require separate CLI process/session leases.
+- Scheduler points are reserved and released by runtime lease.
+- Local capacity comes from infra verification, not hardcoded VRAM/GPU assumptions.
+- Recovery may reclaim only after heartbeat expiry, runtime death, and matching `runtime_id + lease_generation`.
+- User-facing lifecycle visibility must show runtime spawn, backend start, model/tool progress, callback send/accept, health checks, retry, reclaim, and infra resource snapshots.
+- Resource monitoring visibility is terminal table first. UI is deferred.
+
+Adapter expansion must wait until these runtime lease boundaries exist.
 
 ---
 
@@ -95,15 +131,15 @@ The system leverages File-based IPC (reading/writing `.md` and `.json` files) ra
 
 ### 3.3. Context Window Checkpointing (3-Layer, Mandatory)
 
-To accommodate limited model context lengths on varying hardware (8GB–16GB+ VRAM):
+To accommodate limited model context lengths across different local hardware:
 
-> **This mechanism is MANDATORY** — not optional. While 16GB VRAM with 32K context may rarely exhaust, portability to lower VRAM GPUs (8GB, 12GB) or larger models requires robust checkpointing.
+> **This mechanism is MANDATORY** — not optional. Context and worker limits must be derived from the verified infra capacity profile.
 
 **3-Layer Checkpoint Mechanism:**
 
 ```
 Layer 1 — Ollama Hard Limit (Inference Guard):
-  num_ctx: set per VRAM capacity (32K for 16GB, 8K for 8GB)
+  num_ctx: set from verified capacity profile
   → Ollama auto-truncates if exceeded
   → keep_alive: 0 → free VRAM immediately after response
 
@@ -241,57 +277,74 @@ Local LLMs fail differently from IDE agents. The architecture mitigates many ris
 
 ---
 
-## 4. Hardware Considerations & Dynamic Model Selection
+## 4. Capacity Considerations & Dynamic Model Selection
 
-### 4.1 Hardware Constraint
+### 4.1 Capacity Source Of Truth
 
-Target: **Nvidia RTX 5060 Ti 16GB VRAM**
+No fixed local hardware target exists in the architecture.
+
+The infra verifier is the source of truth for local runtime capacity. Scheduler and allocator code consume its verified capacity profile instead of assuming a GPU name, VRAM size, context window, or worker count.
+
+```typescript
+interface VerifiedInfraCapacity {
+  provider: 'local-gpu' | 'local-cpu' | 'cli' | 'cloud';
+  total_vram_mb?: number;
+  available_vram_mb?: number;
+  total_ram_mb?: number;
+  available_ram_mb?: number;
+  max_local_runtimes: number;
+  supported_backends: RuntimeBackend[];
+  checked_at: string;
+}
+```
+
+Runtime/model profiles declare estimates. They do not decide capacity.
+
+```typescript
+interface RuntimeCapacityEstimate {
+  backend: RuntimeBackend;
+  model?: string;
+  estimated_vram_mb?: number;
+  requested_context_tokens?: number;
+  points_required: number;
+}
+```
 
 ### 4.2 Dynamic Model Selection Strategy
 
-The Server automatically selects the optimal model configuration based on task characteristics:
+The Server selects a runtime plan from:
 
-```
-Mode A — Quality (1 × Large model):
-  Qwen 3.5 9B Q4_K_M:
-    Model weights:      ~6.5 – 7 GB
-    KV Cache (32K ctx): ~2 GB
-    Framework overhead: ~0.5 GB
-    ────────────────────
-    Total:              ~9 GB (leaves ~7 GB headroom)
+- task difficulty and priority
+- dependency/target-file constraints
+- active runtime leases
+- point reservations
+- backend health
+- verified infra capacity
+- runtime/model capacity estimates
 
-Mode B — Throughput (2 × Small model):
-  Qwen 3.5 4B Q4_K_M (×2):
-    Model weights:      ~3 GB × 2 = 6 GB
-    KV Cache (16K ctx): ~0.8 GB × 2 = 1.6 GB
-    Framework overhead: ~0.5 GB × 2 = 1 GB
-    ────────────────────
-    Total:              ~8.6 GB (leaves ~7 GB headroom)
+Example local estimates:
 
-  ⚠️ 2 × Qwen 9B Q4_K_M = 16 GB+ → ❌ OOM — never do this
-```
-
-| Mode | When | Workers | Model | VRAM/worker | Total | Context |
-|---|---|---|---|---|---|---|
-| **Quality** ⭐ | Short tasks, dependent, high accuracy needed | 1 | Qwen 3.5 **9B** Q4_K_M | ~9 GB | 9 GB | 32K |
-| **Throughput** | Long tasks, standalone, parallelizable | 2 | Qwen 3.5 **4B** Q4_K_M | ~4 GB | 8 GB | 16K |
+| Tier | When | Backend | Example model | Capacity rule | Context |
+|---|---|---|---|---|---|
+| **Lite** | Small standalone tasks | Ollama isolated runtime | 4B Q4 | Allocator must fit verified capacity | Derived from capacity profile |
+| **Standard** | Normal implementation/debug tasks | Ollama isolated runtime | 7B-9B Q4 | Allocator must fit verified capacity | Derived from capacity profile |
+| **CLI** | High-point or capacity-exceeding tasks | Codex CLI / AG CLI | Adapter-owned | Local VRAM not required | Adapter-owned |
 
 **Server auto-decision logic:**
 
 ```typescript
-function selectModelProfile(task: TaskDef, queue: QueueState): ModelProfile {
-  const isStandalone = task.dependencies?.length === 0;
-  const pendingCount = queue.getStatus().pending;
-
-  // Multiple standalone tasks waiting → 2 small workers for throughput
-  if (isStandalone && pendingCount >= 3) {
-    return MODEL_PROFILES.THROUGHPUT;  // 2 × Qwen 4B
-  }
-
-  // Complex task or has dependencies → 1 strong worker
-  return MODEL_PROFILES.QUALITY;       // 1 × Qwen 9B
+function selectRuntimePlan(input: RuntimePlanInput): RuntimePlan {
+  return capacityAllocator.choose({
+    task: input.task,
+    queue: input.queue,
+    candidates: input.runtimeProfiles,
+    capacity: input.verifiedCapacity,
+    reservations: input.activeReservations,
+  });
 }
 ```
+
+Allocator rejects any plan whose summed active estimates exceed verified available capacity.
 
 ### 4.3 Recommended "Limb" Models (2026 Standards)
 
@@ -470,9 +523,10 @@ Layer 2 — Ollama Status (every 30s):
   GET http://localhost:11434/api/tags → Ollama alive?
   ollama ps (via execSync) → which models loaded? VRAM?
 
-Layer 3 — GPU Monitor (every 30s):
-  nvidia-smi --query-gpu=memory.used,memory.total
-  Alert if VRAM > 90% capacity
+Layer 3 — Infra Capacity Monitor (every 30s):
+  infra verifier refreshes available runtime capacity
+  alert if active reservations exceed configured utilization policy
+  terminal table shows queue, workers, backend health, loaded models, VRAM, RAM, and CPU load
 
 Layer 4 — Task Timeout (per-task):
   Hard timeout: 5 minutes

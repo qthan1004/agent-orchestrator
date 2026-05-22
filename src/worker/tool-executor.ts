@@ -4,6 +4,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 
 const execAsync = promisify(exec);
+const COMMAND_TIMEOUT_MS = 60_000;
 
 export interface ToolResult {
   output?: string;
@@ -178,7 +179,7 @@ export class ToolExecutor {
     }
     
     try {
-      const { stdout, stderr } = await execAsync(args.command, { cwd });
+      const { stdout, stderr } = await execAsync(args.command, { cwd, timeout: COMMAND_TIMEOUT_MS });
       return { output: stdout + (stderr ? '\nSTDERR:\n' + stderr : '') };
     } catch (err: any) {
       return { error: `Command failed: ${err.message}\n${err.stdout || ''}\n${err.stderr || ''}` };
