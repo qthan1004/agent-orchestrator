@@ -1,5 +1,5 @@
 {
-  "task": "evaluate-dependency-tools",
-  "status": "completed-comparison-recommending-madge",
+  "task": "resolve-circular-dependencies",
+  "status": "clean-architecture-resolved-all-circular-dependencies",
   "updatedAt": "2026-05-22"
 }
