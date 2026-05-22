@@ -67,39 +67,76 @@ if (!entrypoint) {
   }
 }
 
-// 3. Resolve target outputs
-const WORKSPACE_MEMORY_PATH = outputParam || '.agent/workspace-memory.md';
-const htmlPath = htmlParam || '.agent/codebase-map.html';
+// 3. Resolve target outputs and ensure folders exist
+let WORKSPACE_MEMORY_PATH = outputParam || '.agent/workspace-memory.md';
+let htmlPath = htmlParam || '.agent/codebase-map.html';
 
-// Ensure the parent directory of target outputs exists
-const memoryDir = path.dirname(WORKSPACE_MEMORY_PATH);
-if (!fs.existsSync(memoryDir)) {
-  fs.mkdirSync(memoryDir, { recursive: true });
+try {
+  const memoryDir = path.dirname(WORKSPACE_MEMORY_PATH);
+  if (!fs.existsSync(memoryDir)) {
+    fs.mkdirSync(memoryDir, { recursive: true });
+  }
+} catch (e) {
+  console.warn(`⚠️ Warning: Could not create folder for output. Saving memory map to local folder.`);
+  WORKSPACE_MEMORY_PATH = 'workspace-memory.md';
 }
-const htmlDir = path.dirname(htmlPath);
-if (!fs.existsSync(htmlDir)) {
-  fs.mkdirSync(htmlDir, { recursive: true });
+
+try {
+  const htmlDir = path.dirname(htmlPath);
+  if (!fs.existsSync(htmlDir)) {
+    fs.mkdirSync(htmlDir, { recursive: true });
+  }
+} catch (e) {
+  console.warn(`⚠️ Warning: Could not create folder for output. Saving HTML map to local folder.`);
+  htmlPath = 'codebase-map.html';
 }
 
 console.log(`🔄 Starting codebase dependency scan for "${projectName}" using Madge...`);
 console.log(`🎯 Targeted entrypoint: ${entrypoint}`);
 
 try {
+  // Check if madge is available in local node_modules
+  let madgeCmd = 'npx madge';
+  try {
+    const localMadge = path.join('node_modules', '.bin', 'madge');
+    if (fs.existsSync(localMadge)) {
+      madgeCmd = `"${localMadge}"`;
+    }
+  } catch (e) {}
+
   // Run Madge to get JSON dependencies
-  console.log('🔍 Scanning file relations (npx madge)...');
-  const madgeJsonRaw = execSync(
-    `npx --registry=https://registry.npmjs.org madge --json "${entrypoint}"`,
-    { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] }
-  );
-  const dependencies = JSON.parse(madgeJsonRaw);
+  console.log('🔍 Scanning file relations (madge)...');
+  let madgeJsonRaw = '';
+  try {
+    madgeJsonRaw = execSync(
+      `${madgeCmd} --json "${entrypoint}"`,
+      { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] }
+    );
+  } catch (err) {
+    // If standard local command failed, try global madge command
+    try {
+      madgeJsonRaw = execSync(
+        `madge --json "${entrypoint}"`,
+        { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] }
+      );
+    } catch (err2) {
+      console.error('\n❌ ERROR: "madge" utility could not be executed.');
+      console.error('This tool requires madge. Please install it globally or locally in the project:');
+      console.error('   👉 npm install --save-dev madge');
+      console.error('   👉 npm install -g madge\n');
+      process.exit(1);
+    }
+  }
+
+  const dependencies = JSON.parse(madgeJsonRaw || '{}');
 
   // Run Madge to get circular dependencies
-  console.log('🔄 Checking for circular dependencies (npx madge --circular)...');
+  console.log('🔄 Checking for circular dependencies...');
   let circularOutput = '';
   let circularError = '';
   try {
     circularOutput = execSync(
-      `npx --registry=https://registry.npmjs.org madge --circular "${entrypoint}"`,
+      `${madgeCmd} --circular "${entrypoint}"`,
       { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] }
     );
   } catch (err) {
@@ -125,7 +162,7 @@ try {
   let coreKeywords = [];
   if (coreParam) {
     coreKeywords = coreParam.split(',').map(s => s.trim());
-  } else {
+  } else if (Object.keys(dependencies).length > 0) {
     // Auto-discover the top connected files in the codebase as the "core flow" nodes
     const fileWeights = {};
     Object.entries(dependencies).forEach(([file, deps]) => {
@@ -149,7 +186,12 @@ try {
       coreKeywords.push(entryBase);
     }
   }
-  console.log(`⚙️ Identified core architectural modules: ${coreKeywords.join(', ')}`);
+  
+  if (coreKeywords.length > 0) {
+    console.log(`⚙️ Identified core architectural modules: ${coreKeywords.join(', ')}`);
+  } else {
+    console.log('⚙️ No modules found to identify core architecture.');
+  }
 
   // Process data for folder-level graph
   const folderConnections = new Set();
@@ -172,12 +214,16 @@ try {
 
   // Generate Folder-Level Mermaid Graph
   let folderMermaid = '```mermaid\nflowchart TD\n';
-  Object.keys(folderModules).forEach(folder => {
-    folderMermaid += `  ${folder}["📁 ${folder}"]\n`;
-  });
-  folderConnections.forEach(conn => {
-    folderMermaid += `  ${conn}\n`;
-  });
+  if (Object.keys(folderModules).length > 0) {
+    Object.keys(folderModules).forEach(folder => {
+      folderMermaid += `  ${folder}["📁 ${folder}"]\n`;
+    });
+    folderConnections.forEach(conn => {
+      folderMermaid += `  ${conn}\n`;
+    });
+  } else {
+    folderMermaid += '  empty["📁 (Empty Folder)"]\n';
+  }
   folderMermaid += '```';
 
   // Filter for Core Modules Relationship Graph
