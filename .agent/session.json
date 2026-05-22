@@ -1,5 +1,5 @@
 {
-  "task": "P2-36-harness-module-boundary.md",
-  "status": "completed; task moved to done; session retained by safe-deletion protocol",
+  "task": "dev-start-guide-workspace-register-harness",
+  "status": "completed; submit_task now accepts task_payload and server materializes task files",
   "updatedAt": "2026-05-21"
 }
