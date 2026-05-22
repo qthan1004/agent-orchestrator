@@ -13,3 +13,4 @@ dist/
 /plan/**
 !/plan/**/
 !/plan/**/.gitkeep
+.aider*

@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import type { Express, Request, Response } from 'express';
 import { createServer } from './server.js';
 import { API_ROUTES } from '../constants.js';
-import type { ServerContext } from '../models/index.js';
+import type { ServerContext } from './context.js';
 
 export type McpTransports = Record<string, StreamableHTTPServerTransport>;
 

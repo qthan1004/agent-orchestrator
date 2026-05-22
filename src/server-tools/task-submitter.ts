@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { FILE_PREFIXES, TASK_STATUS } from '../constants.js';
-import type { ServerContext } from '../models/index.js';
+import type { ServerContext } from '../mcp-server/context.js';
 import type { TaskMetadata } from '../models/task-metadata.js';
 import { parseTaskMetadata } from '../models/task-metadata.js';
 import { assertActiveWorkspace } from '../utils/identity-invariants.js';

@@ -1,4 +1,4 @@
-import { RUNTIME_TIMING_DEFAULTS } from '../runtime/index.js';
+import { RUNTIME_TIMING_DEFAULTS } from '../runtime/constants.js';
 
 export function deriveHealthCheckLeadMs(staleThresholdMs: number): number {
   if (!Number.isFinite(staleThresholdMs) || staleThresholdMs <= 0) {

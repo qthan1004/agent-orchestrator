@@ -1,3 +1,5 @@
+import type { RuntimeIdentity } from '../runtime/models.js';
+
 export const ASSIGNMENT_CONTRACT_MODE = "assignment-first" as const;
 
 export const ASSIGNMENT_OPERATIONS = {
@@ -83,12 +85,41 @@ export interface RegisterWorkerResponse {
   contract_mode: typeof ASSIGNMENT_CONTRACT_MODE;
 }
 
-export type {
-  AssignmentEnvelope,
-  AssignmentPayload,
-  AssignTaskRequest,
-  DispatchRoutingMetadata,
-} from '../scheduler/models.js';
+export interface AssignmentPayload {
+  task_id: string;
+  module?: string;
+  action: string;
+  verification?: string;
+  workspace: WorkspaceScopedContext;
+  done_criteria?: string[];
+  metadata?: Record<string, unknown>;
+}
+
+export interface DispatchRoutingMetadata {
+  mode: 'lite' | 'standard' | 'cloud';
+  model: string;
+  max_workers: number;
+  estimated_vram_gb: number;
+  backend?: 'ollama' | 'codex-cli' | 'ag-cli';
+  points_required?: number;
+}
+
+export interface AssignmentEnvelope {
+  operation: 'assign_task';
+  worker_id: string;
+  task_id: string;
+  runtime_identity: RuntimeIdentity;
+  workspace: WorkspaceScopedContext;
+  payload: AssignmentPayload;
+  routing: DispatchRoutingMetadata;
+  assigned_at: string;
+}
+
+export interface AssignTaskRequest {
+  worker_id: string;
+  task_id: string;
+  payload: AssignmentPayload;
+}
 
 export interface AckAssignmentRequest {
   worker_id: string;

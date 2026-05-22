@@ -9,8 +9,8 @@ import type {
   RuntimeProcessPayload,
   RuntimeSpawnOptions,
   SpawnedRuntimeProcess,
-} from '../runtime/index.js';
-import { RUNTIME_PROCESS_TEXT, RUNTIME_TIMING_DEFAULTS } from '../runtime/index.js';
+} from '../runtime/models.js';
+import { RUNTIME_PROCESS_TEXT, RUNTIME_TIMING_DEFAULTS } from '../runtime/constants.js';
 import { deriveNextHealthCheckDelayMs } from '../utils/lifecycle-timing.js';
 
 function getDefaultHarnessEntrypoint(): string {
