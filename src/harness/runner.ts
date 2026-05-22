@@ -91,7 +91,7 @@ export async function executeHarness(payload: HarnessPayload): Promise<number> {
     ];
 
     const harness = new LLMHarness({
-      adapter: createAdapter({ adapter: 'ollama' }),
+      adapter: createAdapter({ adapter: 'ollama', baseUrl: process.env.OLLAMA_BASE_URL }),
       model: payload.model,
       contextLimit: DEFAULT_CONTEXT_LIMIT,
       contextThreshold: 0.85,
@@ -141,17 +141,21 @@ export async function executeHarness(payload: HarnessPayload): Promise<number> {
     return 1;
   } catch (err: any) {
     console.error(SYSTEM_MESSAGE.AGENT_ERROR, err.message);
-    await callbackClient.complete({
-      workerId: payload.worker_id,
-      taskId: payload.task_id,
-      summary: `Failed: ${err.message}`,
-      success: false,
-      errorContext: {
-        error: err.message,
-        hypothesis: RUNNER_TEXT.FATAL_HYPOTHESIS,
-        attempted_fix: RUNNER_TEXT.ATTEMPTED_FIX_NONE
-      }
-    });
+    try {
+      await callbackClient.complete({
+        workerId: payload.worker_id,
+        taskId: payload.task_id,
+        summary: `Failed: ${err.message}`,
+        success: false,
+        errorContext: {
+          error: err.message,
+          hypothesis: RUNNER_TEXT.FATAL_HYPOTHESIS,
+          attempted_fix: RUNNER_TEXT.ATTEMPTED_FIX_NONE
+        }
+      });
+    } catch {
+      // The dispatch loop will treat process exit without accepted callback as failure.
+    }
     return 1;
   }
 }

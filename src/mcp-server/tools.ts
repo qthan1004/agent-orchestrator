@@ -7,11 +7,12 @@ import {
 } from '../constants.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { parseTaskMetadata } from '../models/task-metadata.js';
 import type { ServerContext, TaskDef, TaskGraph, TaskResult } from '../models/index.js';
 import { executeScanWorkspace } from './tools/scan-workspace.js';
 import { executeSessionCheckpoint } from './tools/session-checkpoint.js';
 import type { SessionCheckpointInput } from './tools/session-checkpoint.js';
+import { connectWorkspace } from '../server-tools/workspace-connector.js';
+import { submitWorkspaceTask } from '../server-tools/task-submitter.js';
 import { WorkspaceRegistry } from '../utils/workspace-registry.js';
 import { bootstrapWorkspace } from '../utils/bootstrap.js';
 import { ensureDir, writeJSON } from '../utils/file-backend.js';
@@ -21,6 +22,18 @@ const STRIP_FIELDS = ['status', 'assigned_to', 'priority', 'metadata', 'dependen
 
 type ToolResponse = CallToolResult;
 type ToolHandler<TParams extends Record<string, any> = Record<string, any>> = (params: TParams) => Promise<ToolResponse>;
+
+const TaskPayloadSchema = z.object({
+  action: z.string().min(1).describe('Task action/module for the worker.'),
+  body: z.string().min(1).describe('Markdown task body. The server materializes this into the workspace task file.'),
+  priority: z.number().int().optional().describe('Lower number dispatches earlier.'),
+  tool_bundle: z.string().optional().describe('Tool bundle name for the Harness. Defaults to generic-file.'),
+  depends_on: z.array(z.string()).optional().describe('Task IDs this task depends on.'),
+  target_files: z.array(z.string()).optional().describe('Files the worker may edit.'),
+  read_files: z.array(z.string()).optional().describe('Files the worker should inspect.'),
+  skill_paths: z.array(z.string()).optional().describe('Workspace-local skill paths under .orchestrator/skills/.'),
+  context_paths: z.array(z.string()).optional().describe('Workspace-local context paths under .orchestrator/context/.'),
+});
 
 function compactTask(task: TaskDef | null): Partial<TaskDef> | null {
   if (!task) return task;
@@ -82,6 +95,39 @@ export function registerTools(server: McpServer, context: ServerContext): void {
     }
   );
 
+  server.registerTool(
+    TOOL_NAMES.REGISTER_WORKSPACE,
+    {
+      description: "Connect/register the configured workspace and bootstrap its .orchestrator runtime structure.",
+      inputSchema: {
+        workspace_path: z.string().min(1, "workspace_path must not be empty")
+          .describe("Absolute path to the target workspace. Must match the workspace this server was started with.")
+      }
+    },
+    async ({ workspace_path }) => {
+      try {
+        const workspace = connectWorkspace({
+          workspacePath: workspace_path,
+          runtimeRoot: context.config.runtimeRoot,
+          configuredWorkspaceId: context.config.workspace.workspaceId
+        });
+
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              ...workspace,
+              server_root: context.config.root,
+              contract_mode: "workspace-first"
+            })
+          }]
+        };
+      } catch (err) {
+        return formatError(err);
+      }
+    }
+  );
+
   // Canonical contract is assignment-first: the orchestrator assigns work,
   // and workers only acknowledge, report progress, and complete owned tasks.
   server.registerTool(
@@ -95,26 +141,13 @@ export function registerTools(server: McpServer, context: ServerContext): void {
     },
     async ({ workspace_path }) => {
       try {
-        // Validate: reject whitespace-only or non-absolute paths
-        const trimmed = workspace_path.trim();
-        if (!trimmed) {
-          return formatError(new Error('workspace_path must not be empty or whitespace-only.'));
-        }
-        if (!path.isAbsolute(trimmed)) {
-          return formatError(new Error(`workspace_path must be an absolute path. Received: "${trimmed}"`));
-        }
-
         const status = stateManager.getStatus();
-        
-        const registry = new WorkspaceRegistry(context.config.runtimeRoot);
-        const ws = registry.register(trimmed);
-        const workspaceId = ws.id;
-        assertActiveWorkspace(ws, workspaceId);
-        if (workspaceId !== context.config.workspace.workspaceId) {
-          return formatError(new Error(`Workspace mismatch: expected ${context.config.workspace.workspaceId}, received ${workspaceId}`));
-        }
-        bootstrapWorkspace(ws.path, ws);
-        const worker = workerRegistry.register(workspaceId);
+        const workspace = connectWorkspace({
+          workspacePath: workspace_path,
+          runtimeRoot: context.config.runtimeRoot,
+          configuredWorkspaceId: context.config.workspace.workspaceId
+        });
+        const worker = workerRegistry.register(workspace.workspace_id);
 
         return {
           content: [{
@@ -122,8 +155,8 @@ export function registerTools(server: McpServer, context: ServerContext): void {
             text: JSON.stringify({
               worker_id: worker.id,
               server_root: context.config.root,
-              workspace_root: trimmed,
-              workspace_id: workspaceId,
+              workspace_root: workspace.workspace_root,
+              workspace_id: workspace.workspace_id,
               queue_summary: status,
               contract_mode: "assignment-first"
             })
@@ -161,84 +194,29 @@ export function registerTools(server: McpServer, context: ServerContext): void {
   );
 
   server.registerTool(
-    'submit_task',
+    TOOL_NAMES.SUBMIT_TASK,
     {
-      description: "Register a planner-created workspace task file for assignment-first dispatch.",
+      description: "Submit a planner task payload. The server materializes the task file and registers it for assignment-first dispatch.",
       inputSchema: {
         task_id: z.string().min(1).describe("Task ID declared by the planner."),
         workspace_id: z.string().min(1).describe("Workspace ID that owns the task."),
-        task_content_path: z.string().min(1).describe('Path to the markdown task file, relative to the workspace root.')
+        task_payload: TaskPayloadSchema.optional().describe("Canonical task payload. Preferred over task_content_path."),
+        task_content_path: z.string().min(1).optional().describe("Legacy path to an existing markdown task file, relative to the workspace root.")
       }
     },
-    async ({ task_id, workspace_id, task_content_path }) => {
+    async ({ task_id, workspace_id, task_payload, task_content_path }) => {
       try {
-        if (workspace_id !== context.config.workspace.workspaceId) {
-          throw new Error(`Workspace mismatch: expected ${context.config.workspace.workspaceId}, received ${workspace_id}`);
-        }
-
-        const registry = new WorkspaceRegistry(context.config.runtimeRoot);
-        const workspace = registry.getById(workspace_id);
-        if (!workspace) {
-          throw new Error(`Workspace "${workspace_id}" not found in registry.`);
-        }
-        assertActiveWorkspace(workspace, workspace_id);
-
-        if (path.isAbsolute(task_content_path)) {
-          throw new Error('task_content_path must be relative to the workspace root.');
-        }
-
-        const resolvedTaskPath = path.resolve(workspace.path, task_content_path);
-        const normalizedWorkspaceRoot = path.resolve(workspace.path);
-        const isInsideWorkspace =
-          resolvedTaskPath === normalizedWorkspaceRoot ||
-          resolvedTaskPath.startsWith(`${normalizedWorkspaceRoot}${path.sep}`);
-        if (!isInsideWorkspace) {
-          throw new Error(`Task path escapes workspace root: ${task_content_path}`);
-        }
-        const normalizedOrchestratorRoot = path.resolve(workspace.path, '.orchestrator');
-        const isInsideOrchestrator =
-          resolvedTaskPath === normalizedOrchestratorRoot ||
-          resolvedTaskPath.startsWith(`${normalizedOrchestratorRoot}${path.sep}`);
-        if (!isInsideOrchestrator) {
-          throw new Error(`Task path must be under .orchestrator/: ${task_content_path}`);
-        }
-        if (!fs.existsSync(resolvedTaskPath)) {
-          throw new Error(`Task file not found: ${task_content_path}`);
-        }
-
-        const content = fs.readFileSync(resolvedTaskPath, 'utf8');
-        const metadata = parseTaskMetadata({
-          content,
+        const result = submitWorkspaceTask(context, {
+          task_id,
           workspace_id,
+          task_payload,
           task_content_path,
-          submitted_task_id: task_id,
         });
-
-        context.stateManager.taskRegistry.registerTask({
-          task_id: metadata.task_id,
-          workspace_id: metadata.workspace_id,
-          task_content_path: metadata.task_content_path,
-          status: TASK_STATUS.PENDING,
-          created_at: metadata.created_at,
-          retry_count: metadata.retry_count,
-        });
-        context.stateManager.queue.registerTaskMetadata(metadata);
-
-        const taskFilePath = path.join(context.config.workspace.exchange.inbox, `${FILE_PREFIXES.TASK}${metadata.task_id}.json`);
-        writeJSON(taskFilePath, metadata);
-
-        const queuePath = path.join(context.config.workspace.exchange.base, FILE_PREFIXES.QUEUE);
-        writeJSON(queuePath, { groups: context.stateManager.queue.groups });
 
         return {
           content: [{
             type: "text",
-            text: JSON.stringify({
-              status: 'registered',
-              task_id: metadata.task_id,
-              target_files_count: metadata.target_files.length,
-              depends_on_count: metadata.depends_on.length
-            })
+            text: JSON.stringify(result)
           }]
         };
       } catch (err) {

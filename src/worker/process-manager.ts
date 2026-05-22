@@ -23,11 +23,30 @@ export interface WorkerProcessInfo {
   started_at: string;
   process: ChildProcess;
   timeoutTimer?: NodeJS.Timeout;
+  completion: Promise<WorkerProcessOutcome>;
 }
 
 export interface SpawnOptions {
   timeoutMs?: number;
   scriptPath?: string;
+}
+
+export type WorkerProcessExit = {
+  type: 'exit';
+  code: number | null;
+  signal: NodeJS.Signals | null;
+};
+
+export type WorkerProcessTimeout = {
+  type: 'timeout';
+};
+
+export type WorkerProcessOutcome = WorkerProcessExit | WorkerProcessTimeout;
+
+export interface SpawnedWorker {
+  pid: number;
+  worker_id: string;
+  completion: Promise<WorkerProcessOutcome>;
 }
 
 export class WorkerProcessManager extends EventEmitter {
@@ -42,9 +61,9 @@ export class WorkerProcessManager extends EventEmitter {
    * Spawn a new worker process.
    * @param payload JSON payload to send to stdin.
    * @param options Spawn options (timeoutMs, scriptPath).
-   * @returns { pid, worker_id }
+   * @returns spawned worker metadata and a completion promise.
    */
-  spawn(payload: WorkerPayload, options: SpawnOptions = {}): { pid: number; worker_id: string } {
+  spawn(payload: WorkerPayload, options: SpawnOptions = {}): SpawnedWorker {
     const scriptPath = options.scriptPath || getDefaultHarnessEntrypoint();
     const timeoutMs = options.timeoutMs || DEFAULT_WORKER_TIMEOUT_MS;
 
@@ -60,11 +79,15 @@ export class WorkerProcessManager extends EventEmitter {
     const worker_id = payload.worker_id;
     const task_id = payload.task_id;
 
-    // Send payload to stdin
-    if (child.stdin) {
-      child.stdin.write(JSON.stringify(payload) + '\n');
-      child.stdin.end();
-    }
+    let completionSettled = false;
+    let settleCompletion: (result: WorkerProcessOutcome) => void = () => {};
+    const completion = new Promise<WorkerProcessOutcome>((resolve) => {
+      settleCompletion = (result) => {
+        if (completionSettled) return;
+        completionSettled = true;
+        resolve(result);
+      };
+    });
 
     // ─── Forward worker output to server console (transparent execution) ───
     child.stdout?.on('data', (data) => {
@@ -88,6 +111,7 @@ export class WorkerProcessManager extends EventEmitter {
     // Setup timeout auto-kill
     const timeoutTimer = setTimeout(() => {
       this.emit('worker:timeout', { pid, worker_id, task_id });
+      settleCompletion({ type: 'timeout' });
       this.kill(pid);
     }, timeoutMs);
 
@@ -97,7 +121,8 @@ export class WorkerProcessManager extends EventEmitter {
       task_id,
       started_at: new Date().toISOString(),
       process: child,
-      timeoutTimer
+      timeoutTimer,
+      completion
     };
 
     this.activeWorkers.set(pid, info);
@@ -108,6 +133,7 @@ export class WorkerProcessManager extends EventEmitter {
       const exitInfo = signal ? `signal=${signal}` : `code=${code}`;
       console.log(`  └─ \x1b[90m[${worker_id}] Worker exited (${exitInfo}) — PID ${pid}\x1b[0m`);
       this.emit('worker:exit', { pid, worker_id, task_id, code, signal });
+      settleCompletion({ type: 'exit', code, signal });
     });
 
     child.on('error', (err) => {
@@ -115,13 +141,19 @@ export class WorkerProcessManager extends EventEmitter {
     });
 
     console.log(`  ┌─ \x1b[32m[${worker_id}] Worker spawned\x1b[0m — PID ${pid} — task: ${task_id || 'none'}`);
-    return { pid, worker_id };
+    // Send payload after lifecycle listeners are attached.
+    if (child.stdin) {
+      child.stdin.write(JSON.stringify(payload) + '\n');
+      child.stdin.end();
+    }
+
+    return { pid, worker_id, completion };
   }
 
   /**
    * List active worker processes.
    */
-  getActive(): Omit<WorkerProcessInfo, 'process' | 'timeoutTimer'>[] {
+  getActive(): Omit<WorkerProcessInfo, 'process' | 'timeoutTimer' | 'completion'>[] {
     return Array.from(this.activeWorkers.values()).map(info => ({
       pid: info.pid,
       worker_id: info.worker_id,

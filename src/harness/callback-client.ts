@@ -9,6 +9,12 @@ export interface CompletionCallbackInput {
   changelog?: unknown;
 }
 
+interface CompletionCallbackResponse {
+  accepted?: boolean;
+  error?: string;
+  [key: string]: unknown;
+}
+
 export class CallbackClient {
   constructor(private readonly callbackUrl: string) {}
 
@@ -27,11 +33,29 @@ export class CallbackClient {
         })
       });
 
+      const responseText = await response.text();
+      const responseBody = this.parseResponse(responseText);
+
       if (!response.ok) {
-        console.error(SYSTEM_MESSAGE.AGENT_NOTIFY_FAILED, `${response.status} ${response.statusText}`);
+        throw new Error(`${response.status} ${response.statusText}: ${responseText || 'empty response'}`);
+      }
+
+      if (responseBody.accepted === false) {
+        throw new Error(responseBody.error || responseText || 'completion callback rejected');
       }
     } catch (err) {
       console.error(SYSTEM_MESSAGE.AGENT_NOTIFY_FAILED, err);
+      throw err;
+    }
+  }
+
+  private parseResponse(responseText: string): CompletionCallbackResponse {
+    if (!responseText.trim()) return {};
+
+    try {
+      return JSON.parse(responseText) as CompletionCallbackResponse;
+    } catch {
+      return {};
     }
   }
 }

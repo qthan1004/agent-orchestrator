@@ -13,6 +13,9 @@ export interface TaskMetadata extends TaskDef {
   dependencies: string[];
   target_files: string[];
   read_files: string[];
+  skill_paths: string[];
+  context_paths: string[];
+  tool_bundle: string;
   description: string;
   created_at: string;
   started_at?: string;
@@ -26,6 +29,9 @@ interface ParsedFrontmatter {
   depends_on?: string[];
   target_files?: string[];
   read_files?: string[];
+  skill_paths?: string[];
+  context_paths?: string[];
+  tool_bundle?: string;
   priority?: number;
 }
 
@@ -121,6 +127,11 @@ export function parseTaskMetadata(input: ParseTaskMetadataInput): TaskMetadata {
   const dependsOn = Array.isArray(frontmatter.depends_on) ? frontmatter.depends_on : [];
   const targetFiles = Array.isArray(frontmatter.target_files) ? frontmatter.target_files : [];
   const readFiles = Array.isArray(frontmatter.read_files) ? frontmatter.read_files : [];
+  const skillPaths = Array.isArray(frontmatter.skill_paths) ? frontmatter.skill_paths : [];
+  const contextPaths = Array.isArray(frontmatter.context_paths) ? frontmatter.context_paths : [];
+  const toolBundle = typeof frontmatter.tool_bundle === 'string' && frontmatter.tool_bundle.trim()
+    ? frontmatter.tool_bundle.trim()
+    : 'generic-file';
 
   return {
     id: taskId,
@@ -136,6 +147,9 @@ export function parseTaskMetadata(input: ParseTaskMetadataInput): TaskMetadata {
     dependencies: dependsOn,
     target_files: targetFiles,
     read_files: readFiles,
+    skill_paths: skillPaths,
+    context_paths: contextPaths,
+    tool_bundle: toolBundle,
     description: body.trim(),
     created_at: input.created_at || new Date().toISOString(),
   };

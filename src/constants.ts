@@ -10,11 +10,13 @@ export const DEFAULT_RUNTIME_PATH = join(os.homedir(), RUNTIME_DIR_NAME);
 
 export const TOOL_NAMES = {
   HELLO_WORLD: "hello_world",
+  REGISTER_WORKSPACE: "register_workspace",
   REGISTER_WORKER: "register_worker",
   GET_STATUS: "get_status",
   COMPLETE_TASK: "complete_task",
   REPORT_PROGRESS: "report_progress",
   GET_QUEUE_STATUS: "get_queue_status",
+  SUBMIT_TASK: "submit_task",
   GET_CHECKPOINT: "get_checkpoint",
   SUBMIT_DECOMPOSITION: "submit_decomposition",
   REQUEST_RETRY: "request_retry",

@@ -1,7 +1,7 @@
 import express from 'express';
 import type { ErrorRequestHandler, NextFunction, Request, Response } from 'express';
 import { setupMcpRoutes } from './transport.js';
-import { SHUTDOWN_SIGNALS, API_ROUTES, VERSION, SYSTEM_MESSAGE, type ShutdownSignalValue } from '../constants.js';
+import { SHUTDOWN_SIGNALS, API_ROUTES, VERSION, SYSTEM_MESSAGE, TASK_STATUS, type ShutdownSignalValue } from '../constants.js';
 import { StateManager } from './state-manager.js';
 import { RecoveryManager } from './recovery.js';
 import { PlanWatcher } from './plan-watcher.js';
@@ -16,8 +16,9 @@ import { getWorkerCurrentTaskId } from '../utils/identity-invariants.js';
 import { TaskDispatchLoop } from '../worker/dispatch-loop.js';
 import { VramManager } from '../worker/vram-manager.js';
 import { ModelSelector } from '../worker/model-selector.js';
-import { WorkerProcessManager } from '../worker/process-manager.js';
 import { OllamaAdapter } from '../worker/adapters/ollama-adapter.js';
+
+const ONE_SHOT_IDLE_MS = Number(process.env.ORCHESTRATOR_ONESHOT_IDLE_MS || 2_000);
 
 export async function startServer(config: AppConfig): Promise<void> {
   const { port, host } = config.global.server;
@@ -73,6 +74,7 @@ export async function startServer(config: AppConfig): Promise<void> {
 
   // Run startup recovery (replaces raw restoreFromFiles)
   const { wasClean, orphanCount } = recoveryManager.runStartupRecovery();
+  const oneShotInitialTaskCount = stateManager.taskRegistry.getAll().length;
 
   // Plan watcher — auto-polls plan/pending/ directory
   const planWatcherIntervalMs = config.workspace.planWatcher?.intervalMs || 30_000;
@@ -99,7 +101,6 @@ export async function startServer(config: AppConfig): Promise<void> {
   // Initialize Hybrid components (always-on — IDE/default mode archived)
   const ollamaAdapter = new OllamaAdapter(ollamaBaseUrl);
   const modelSelector = new ModelSelector();
-  const processManager = new WorkerProcessManager();
   const vramManager = new VramManager(ollamaBaseUrl);
   
   const dispatchLoop = new TaskDispatchLoop({
@@ -109,7 +110,8 @@ export async function startServer(config: AppConfig): Promise<void> {
     serverUrl: `http://127.0.0.1:${port}`,
     workspaceRoot: config.workspace.workspaceRoot,
     allowedTools: ['*'],
-    workspaceId: config.workspace.workspaceId
+    workspaceId: config.workspace.workspaceId,
+    maxTaskRetries: config.global.recovery.maxTaskRetries
   });
 
   // Start dispatch loop
@@ -163,7 +165,7 @@ export async function startServer(config: AppConfig): Promise<void> {
     }
     healthData.vram = vramManager.checkVram();
     healthData.dispatch_loop = (dispatchLoop as any).running ? 'running' : 'stopped';
-    healthData.active_workers = processManager.getActive().length;
+    healthData.active_workers = dispatchLoop.getActiveWorkers().length;
 
     res.json(healthData);
   });
@@ -190,6 +192,9 @@ export async function startServer(config: AppConfig): Promise<void> {
     try {
       if (!success && error_context?.error === 'context_exceeded' && typeof error_context?.handover === 'string') {
         const respawnCount = stateManager.requeueWithHandover(task_id, error_context.handover, config.workspace.workspaceRoot);
+        if (!dispatchLoop.acknowledgeHarnessCompletion(worker_id, task_id)) {
+          console.warn(`[WorkerComplete] Completion accepted for ${worker_id}/${task_id}, but no active harness monitor was found.`);
+        }
         workerRegistry.clearAssignment(worker_id, stateManager.taskRegistry);
         stateManager.saveCheckpoint();
         console.log(`[WorkerComplete] Task ${task_id} requeued with handover (respawn ${respawnCount}).`);
@@ -217,9 +222,27 @@ export async function startServer(config: AppConfig): Promise<void> {
           blocked_reason: error_context?.error || 'Worker attempted to write outside declared target_files.'
         } as any);
       } else {
-        stateManager.requeueWithRetry(task_id, config.workspace.workspaceRoot);
+        const retryCount = stateManager.getTaskRetryCount(task_id);
+        const maxTaskRetries = config.global.recovery.maxTaskRetries;
+        if (retryCount >= maxTaskRetries) {
+          stateManager.moveToOutbox(task_id, {
+            task_id,
+            status: TASK_STATUS.FAILED,
+            summary,
+            worker_id,
+            completed_at: new Date().toISOString(),
+            permanently_failed: true,
+            retry_count: retryCount,
+            error_context
+          } as any);
+        } else {
+          stateManager.requeueWithRetry(task_id, config.workspace.workspaceRoot);
+        }
       }
 
+      if (!dispatchLoop.acknowledgeHarnessCompletion(worker_id, task_id)) {
+        console.warn(`[WorkerComplete] Completion accepted for ${worker_id}/${task_id}, but no active harness monitor was found.`);
+      }
       workerRegistry.clearAssignment(worker_id, stateManager.taskRegistry);
       stateManager.saveCheckpoint();
       res.json({ accepted: true });
@@ -271,10 +294,10 @@ export async function startServer(config: AppConfig): Promise<void> {
     // Graceful Shutdown: stop dispatch, kill workers, unload models
     dispatchLoop.stop();
 
-    const activeWorkers = processManager.getActive();
+    const activeWorkers = dispatchLoop.getActiveWorkers();
     for (const worker of activeWorkers) {
       console.log(`[Shutdown] Killing active worker ${worker.worker_id} (PID ${worker.pid})...`);
-      processManager.kill(worker.pid);
+      dispatchLoop.killWorker(worker.pid);
     }
 
     try {
@@ -301,6 +324,38 @@ export async function startServer(config: AppConfig): Promise<void> {
     httpServer.close();
     process.exit(0);
   };
+
+  if (process.env.ORCHESTRATOR_ONESHOT === '1') {
+    let sawTask = stateManager.getStatus().total > 0;
+    let idleSince: number | null = null;
+
+    console.log(`[OneShot] Enabled. Server will exit after observed work drains for ${ONE_SHOT_IDLE_MS}ms.`);
+
+    const oneShotTimer = setInterval(() => {
+      const queueStatus = stateManager.getStatus();
+      const registryCount = stateManager.taskRegistry.getAll().length;
+      const activeWorkerCount = dispatchLoop.getActiveWorkers().length;
+
+      if (!sawTask && (queueStatus.total > 0 || registryCount > oneShotInitialTaskCount)) {
+        sawTask = true;
+      }
+
+      const hasActiveQueueWork = queueStatus.pending > 0 || queueStatus.active > 0;
+      const isDrained = sawTask && !hasActiveQueueWork && activeWorkerCount === 0;
+
+      if (!isDrained) {
+        idleSince = null;
+        return;
+      }
+
+      idleSince ??= Date.now();
+      if (Date.now() - idleSince >= ONE_SHOT_IDLE_MS) {
+        clearInterval(oneShotTimer);
+        void shutdown('SIGTERM');
+      }
+    }, 500);
+    oneShotTimer.unref();
+  }
 
   SHUTDOWN_SIGNALS.forEach(signal => process.on(signal, () => shutdown(signal)));
 }

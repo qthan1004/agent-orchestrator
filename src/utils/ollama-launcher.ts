@@ -13,6 +13,7 @@ const OLLAMA_HEALTH_POLL_MS = 500;
 export async function ensureOllamaRunning(baseUrl: string = 'http://localhost:11434'): Promise<boolean> {
   // 1. Quick health check — maybe already running
   if (await ollamaHealthCheck(baseUrl)) {
+    console.log(`  │ \x1b[32m[Ollama] Already running at ${baseUrl}\x1b[0m`);
     return true;
   }
 
