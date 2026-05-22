@@ -93,12 +93,36 @@ export class ModelSelector {
     const tier = (difficulty === 'cloud' && !process.env.ORCHESTRATOR_MODEL_CLOUD)
       ? 'standard'
       : difficulty;
-    const profile: ModelProfile = { ...PROFILES[tier] };
+    const profile = await this.resolveAvailableProfile({ ...PROFILES[tier] });
 
     await this.checkVRAM(profile);
 
     console.log(`  [ModelSelector] Task ${task.id}: difficulty=${difficulty} -> ${profile.mode} (${profile.model})`);
     return profile;
+  }
+
+  private async resolveAvailableProfile(profile: ModelProfile): Promise<ModelProfile> {
+    if (profile.mode === 'cloud') return profile;
+
+    try {
+      const models = await this.ollamaAdapter.listModels();
+      const installed = models
+        .map(model => typeof model?.name === 'string' ? model.name : '')
+        .filter(Boolean);
+      if (installed.length === 0 || installed.includes(profile.model)) {
+        return profile;
+      }
+
+      const fallbackModel = process.env.ORCHESTRATOR_MODEL_FALLBACK;
+      const resolvedModel = fallbackModel && installed.includes(fallbackModel)
+        ? fallbackModel
+        : installed[0];
+      console.warn(`[ModelSelector] Model ${profile.model} is not installed. Falling back to ${resolvedModel}.`);
+      return { ...profile, model: resolvedModel };
+    } catch (err: any) {
+      console.warn(`[ModelSelector] Failed to list Ollama models: ${err.message}`);
+      return profile;
+    }
   }
 
   private detectMultiModule(task: TaskDef): boolean {

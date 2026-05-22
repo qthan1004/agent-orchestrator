@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { join, basename } from 'path';
+import { join, basename, resolve } from 'path';
 import { createHash } from 'crypto';
 import { bootstrapWorkspace } from './bootstrap.js';
 
@@ -15,6 +15,18 @@ export interface WorkspaceMetadata {
   closed_at?: string;
 }
 
+export function normalizeWorkspacePath(workspacePath: string): string {
+  const normalized = resolve(workspacePath.trim());
+  if (!normalized) {
+    throw new Error('workspace_path must not be empty or whitespace-only.');
+  }
+  return normalized;
+}
+
+function normalizeWorkspacePathForId(workspacePath: string): string {
+  return normalizeWorkspacePath(workspacePath);
+}
+
 /**
  * Derive a deterministic workspace ID from an absolute workspace path.
  * Uses SHA-256, truncated to 8 hex characters.
@@ -24,7 +36,7 @@ export interface WorkspaceMetadata {
  * @returns 8-character hex string
  */
 export function generateWorkspaceId(workspacePath: string): string {
-  return createHash('sha256').update(workspacePath).digest('hex').substring(0, 8);
+  return createHash('sha256').update(normalizeWorkspacePathForId(workspacePath)).digest('hex').substring(0, 8);
 }
 
 export class WorkspaceRegistry {
@@ -60,13 +72,14 @@ export class WorkspaceRegistry {
    * @throws Error if path doesn't exist or workspace is closed
    */
   public register(workspacePath: string): WorkspaceMetadata {
-    const id = generateWorkspaceId(workspacePath);
+    const normalizedPath = normalizeWorkspacePath(workspacePath);
+    const id = generateWorkspaceId(normalizedPath);
     const workspaces = this.loadAll();
 
     // Validate path exists on disk
-    if (!fs.existsSync(workspacePath)) {
+    if (!fs.existsSync(normalizedPath)) {
       throw new Error(
-        `Workspace path does not exist: "${workspacePath}". ` +
+        `Workspace path does not exist: "${normalizedPath}". ` +
         `Cannot register a workspace with a missing or moved directory.`
       );
     }
@@ -75,12 +88,12 @@ export class WorkspaceRegistry {
       // Fresh import — new workspace
       const workspace: WorkspaceMetadata = {
         id,
-        path: workspacePath,
-        name: basename(workspacePath),
+        path: normalizedPath,
+        name: basename(normalizedPath),
         status: 'active',
         registered_at: new Date().toISOString()
       };
-      const boot = bootstrapWorkspace(workspacePath, workspace);
+      const boot = bootstrapWorkspace(normalizedPath, workspace);
       if (boot.failed.length > 0) {
         throw new Error(`Failed to bootstrap workspace "${id}": ${boot.failed.join(', ')}`);
       }
@@ -93,7 +106,10 @@ export class WorkspaceRegistry {
         `Use reopen() to explicitly reconnect it.`
       );
     } else {
-      const boot = bootstrapWorkspace(workspacePath, workspaces[id]);
+      workspaces[id].path = normalizedPath;
+      workspaces[id].name = basename(normalizedPath);
+      this.saveAll(workspaces);
+      const boot = bootstrapWorkspace(normalizedPath, workspaces[id]);
       if (boot.failed.length > 0) {
         throw new Error(`Failed to bootstrap workspace "${id}": ${boot.failed.join(', ')}`);
       }

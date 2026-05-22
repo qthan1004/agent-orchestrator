@@ -2,7 +2,7 @@ import { resolve, join } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { DIR_NAMES, POLL_DEFAULTS, RECOVERY_DEFAULTS, RUNTIME_DIR_NAME, SERVER_PROFILES } from './constants.js';
-import { generateWorkspaceId } from './utils/workspace-registry.js';
+import { generateWorkspaceId, normalizeWorkspacePath } from './utils/workspace-registry.js';
 import type { AppConfig, ConfigOverrides } from './models/config.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -24,7 +24,7 @@ export function loadConfig(overrides: ConfigOverrides = {}): AppConfig {
     );
   }
 
-  const workspaceRoot = overrides.workspaceRoot;
+  const workspaceRoot = normalizeWorkspacePath(overrides.workspaceRoot);
   const workspaceId = generateWorkspaceId(workspaceRoot);
 
   const runtimeRoot = overrides.runtimeRoot || root;

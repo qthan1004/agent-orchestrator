@@ -140,30 +140,20 @@ export class RecoveryManager {
   }
 
   /**
-   * Requeue all orphan tasks from active/ back to inbox/.
-   * Uses disk-based retry counting (unified with stateManager).
+   * Release orphan tasks from active/ back to inbox/.
+   * A missing worker after restart/shutdown is lifecycle recovery, not proof
+   * that the task failed, so this does not increment retry_count.
    */
   requeueOrphans(): string[] {
     const orphans = this.detectOrphans();
 
     for (const taskId of orphans) {
-      const retryCount = this.stateManager.getTaskRetryCount(taskId);
-
-      if (retryCount >= this.maxRetries) {
-        this.logger.log(RECOVERY_EVENTS.MAX_RETRIES_EXCEEDED, {
-          task_id: taskId,
-          retries: retryCount,
-          message: `Orphan task reached max retries (${this.maxRetries}), still requeuing (orphan != broken)`
-        });
-      }
-
-      // ALWAYS requeue orphans — use requeueWithRetry to track count on disk
-      const newRetryCount = this.stateManager.requeueWithRetry(taskId);
+      // Release only; dispatch failure handling owns retry accounting.
+      this.stateManager.moveToInbox(taskId);
 
       this.logger.log(RECOVERY_EVENTS.ORPHAN_REQUEUED, {
         task_id: taskId,
-        retry: newRetryCount,
-        message: `Orphan task requeued to inbox (attempt ${newRetryCount})`
+        message: 'Orphan task released from active/ to inbox without retry increment'
       });
     }
 
@@ -294,6 +284,7 @@ export class RecoveryManager {
 
     this._monitorTimer = setInterval(() => {
       this.checkStaleWorkers();
+      this.requeueOrphans();
       this._requeueFailedFromOutbox();
     }, this.monitorIntervalMs);
 
@@ -337,21 +328,17 @@ export class RecoveryManager {
     const wasClean = this.wasCleanShutdown();
     let orphanCount = 0;
 
+    this.stateManager.restoreFromFiles();
+
     if (!wasClean) {
       this.logger.log(RECOVERY_EVENTS.UNCLEAN_SHUTDOWN_DETECTED, {
         message: 'Previous shutdown was NOT clean — scanning for orphans'
       });
 
-      // Restore state first so queue knows about tasks
-      this.stateManager.restoreFromFiles();
-
-      // Then detect and requeue orphans
-      const orphans = this.requeueOrphans();
-      orphanCount = orphans.length;
-    } else {
-      // Clean shutdown — just restore normally
-      this.stateManager.restoreFromFiles();
+      // Active orphan detection still runs after restore, even for clean shutdown.
     }
+    const orphans = this.requeueOrphans();
+    orphanCount = orphans.length;
 
     // Start monitoring
     this.startMonitoring();

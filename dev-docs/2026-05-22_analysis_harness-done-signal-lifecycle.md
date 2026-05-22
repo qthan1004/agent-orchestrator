@@ -53,3 +53,22 @@ Rules:
 - Requeue or permanently fail a task when a harness exits without an accepted
   callback.
 - Apply the same retry ceiling in the HTTP completion failure path.
+
+## Follow-Up: Active Orphan Startup Gap
+
+Observed on 2026-05-22:
+
+- `harness-smoke-01` existed in `.orchestrator/exchange/active/`.
+- `tasks.json` still had an `assigned_worker_id`.
+- `workers.json` was empty.
+- `/health` reported `dispatch_loop = running` and `active_workers = 0`.
+
+The server restored a clean shutdown and kept the task as `active`, so the
+dispatch loop never selected it. Recovery must release active tasks with no
+owning worker on every startup, not only after an unclean shutdown. Runtime
+monitoring should do the same check so an orphaned active task cannot sit
+forever while no harness process exists.
+
+Also observed: `D:\workspace\Oschestrator test` and
+`D:\workspace\Oschestrator test\` produced different workspace IDs. Workspace
+paths must be normalized before `workspace_id` generation.
