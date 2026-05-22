@@ -1,5 +1,5 @@
 {
-  "task": "resolve-circular-dependencies",
-  "status": "clean-architecture-resolved-all-circular-dependencies",
+  "task": "consolidate-worker-harness-runtime-service-analysis",
+  "status": "added context succession, VRAM warm-cache, and non-silent harness visibility rules",
   "updatedAt": "2026-05-22"
 }
