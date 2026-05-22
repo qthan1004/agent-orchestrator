@@ -2,26 +2,141 @@ import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
 
-const WORKSPACE_MEMORY_PATH = '.agent/workspace-memory.md';
+// Parse command line arguments
+const args = process.argv.slice(2);
+let entryParam = '';
+let outputParam = '';
+let htmlParam = '';
+let coreParam = '';
+let nameParam = '';
 
-console.log('🔄 Starting codebase dependency scan using Madge...');
+args.forEach(arg => {
+  if (arg.startsWith('--entry=')) entryParam = arg.substring('--entry='.length);
+  if (arg.startsWith('--output=')) outputParam = arg.substring('--output='.length);
+  if (arg.startsWith('--html=')) htmlParam = arg.substring('--html='.length);
+  if (arg.startsWith('--core=')) coreParam = arg.substring('--core='.length);
+  if (arg.startsWith('--name=')) nameParam = arg.substring('--name='.length);
+});
+
+// 1. Resolve Project Name
+let projectName = nameParam;
+if (!projectName) {
+  if (fs.existsSync('package.json')) {
+    try {
+      const pkg = JSON.parse(fs.readFileSync('package.json', 'utf-8'));
+      if (pkg.name) projectName = pkg.name;
+    } catch (e) {
+      // Ignore parse errors
+    }
+  }
+  if (!projectName) {
+    projectName = path.basename(process.cwd());
+  }
+}
+
+// 2. Resolve entrypoint dynamically
+let entrypoint = entryParam;
+if (!entrypoint) {
+  const potentialEntries = [
+    'src/index.ts',
+    'src/main.ts',
+    'src/index.js',
+    'src/main.js',
+    'src/app.ts',
+    'src/app.js',
+    'index.ts',
+    'index.js',
+    'main.ts',
+    'main.js'
+  ];
+  for (const p of potentialEntries) {
+    if (fs.existsSync(p)) {
+      entrypoint = p;
+      break;
+    }
+  }
+  // If still not found, check standard folders
+  if (!entrypoint) {
+    if (fs.existsSync('src') && fs.statSync('src').isDirectory()) {
+      entrypoint = 'src';
+    } else if (fs.existsSync('lib') && fs.statSync('lib').isDirectory()) {
+      entrypoint = 'lib';
+    } else {
+      entrypoint = '.';
+    }
+  }
+}
+
+// 3. Resolve target outputs and ensure folders exist
+let WORKSPACE_MEMORY_PATH = outputParam || '.agent/workspace-memory.md';
+let htmlPath = htmlParam || '.agent/codebase-map.html';
 
 try {
-  // 1. Run Madge to get JSON dependencies
-  console.log('🔍 Scanning file relations (npx madge)...');
-  const madgeJsonRaw = execSync(
-    'npx --registry=https://registry.npmjs.org madge --json src/index.ts',
-    { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] }
-  );
-  const dependencies = JSON.parse(madgeJsonRaw);
+  const memoryDir = path.dirname(WORKSPACE_MEMORY_PATH);
+  if (!fs.existsSync(memoryDir)) {
+    fs.mkdirSync(memoryDir, { recursive: true });
+  }
+} catch (e) {
+  console.warn(`⚠️ Warning: Could not create folder for output. Saving memory map to local folder.`);
+  WORKSPACE_MEMORY_PATH = 'workspace-memory.md';
+}
 
-  // 2. Run Madge to get circular dependencies
-  console.log('🔄 Checking for circular dependencies (npx madge --circular)...');
+try {
+  const htmlDir = path.dirname(htmlPath);
+  if (!fs.existsSync(htmlDir)) {
+    fs.mkdirSync(htmlDir, { recursive: true });
+  }
+} catch (e) {
+  console.warn(`⚠️ Warning: Could not create folder for output. Saving HTML map to local folder.`);
+  htmlPath = 'codebase-map.html';
+}
+
+console.log(`🔄 Starting codebase dependency scan for "${projectName}" using Madge...`);
+console.log(`🎯 Targeted entrypoint: ${entrypoint}`);
+
+try {
+  // Check if madge is available in local node_modules
+  let madgeCmd = 'npx madge';
+  try {
+    const localMadge = path.join('node_modules', '.bin', 'madge');
+    if (fs.existsSync(localMadge)) {
+      madgeCmd = `"${localMadge}"`;
+    }
+  } catch (e) {}
+
+  // Run Madge to get JSON dependencies
+  console.log('🔍 Scanning file relations (madge)...');
+  let madgeJsonRaw = '';
+  try {
+    madgeJsonRaw = execSync(
+      `${madgeCmd} --json "${entrypoint}"`,
+      { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] }
+    );
+  } catch (err) {
+    // If standard local command failed, try global madge command
+    try {
+      madgeJsonRaw = execSync(
+        `madge --json "${entrypoint}"`,
+        { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] }
+      );
+    } catch (err2) {
+      console.error('\n❌ ERROR: "madge" utility could not be executed.');
+      console.error('This tool requires madge. Please install it globally or locally in the project:');
+      console.error('   👉 npm install --save-dev madge');
+      console.error('   👉 npm install -g madge\n');
+      process.exit(1);
+    }
+  }
+
+  const dependencies = JSON.parse(madgeJsonRaw || '{}');
+
+  // Run Madge to get circular dependencies
+  console.log('🔄 Checking for circular dependencies...');
   let circularOutput = '';
   let circularError = '';
   try {
     circularOutput = execSync(
-      'npx --registry=https://registry.npmjs.org madge --circular src/index.ts',
+      `${madgeCmd} --circular "${entrypoint}"`,
       { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] }
     );
   } catch (err) {
@@ -43,7 +158,42 @@ try {
     }
   }
 
-  // 3. Process data for folder-level graph
+  // Resolve core module keywords dynamically
+  let coreKeywords = [];
+  if (coreParam) {
+    coreKeywords = coreParam.split(',').map(s => s.trim());
+  } else if (Object.keys(dependencies).length > 0) {
+    // Auto-discover the top connected files in the codebase as the "core flow" nodes
+    const fileWeights = {};
+    Object.entries(dependencies).forEach(([file, deps]) => {
+      fileWeights[file] = (fileWeights[file] || 0) + deps.length;
+      deps.forEach(dep => {
+        fileWeights[dep] = (fileWeights[dep] || 0) + 1;
+      });
+    });
+    // Sort by connection count descending
+    const sortedFiles = Object.entries(fileWeights)
+      .sort((a, b) => b[1] - a[1])
+      .map(entry => entry[0]);
+    
+    // Take the top 8 most connected files
+    const topFiles = sortedFiles.slice(0, Math.min(8, sortedFiles.length));
+    coreKeywords = topFiles.map(file => path.basename(file));
+    
+    // Always ensure the base name of the entrypoint file is included
+    const entryBase = path.basename(entrypoint);
+    if (!coreKeywords.includes(entryBase)) {
+      coreKeywords.push(entryBase);
+    }
+  }
+  
+  if (coreKeywords.length > 0) {
+    console.log(`⚙️ Identified core architectural modules: ${coreKeywords.join(', ')}`);
+  } else {
+    console.log('⚙️ No modules found to identify core architecture.');
+  }
+
+  // Process data for folder-level graph
   const folderConnections = new Set();
   const folderModules = {};
 
@@ -62,31 +212,33 @@ try {
     });
   });
 
-  // 4. Generate Folder-Level Mermaid Graph
+  // Generate Folder-Level Mermaid Graph
   let folderMermaid = '```mermaid\nflowchart TD\n';
-  Object.keys(folderModules).forEach(folder => {
-    folderMermaid += `  ${folder}["📁 ${folder}"]\n`;
-  });
-  folderConnections.forEach(conn => {
-    folderMermaid += `  ${conn}\n`;
-  });
+  if (Object.keys(folderModules).length > 0) {
+    Object.keys(folderModules).forEach(folder => {
+      folderMermaid += `  ${folder}["📁 ${folder}"]\n`;
+    });
+    folderConnections.forEach(conn => {
+      folderMermaid += `  ${conn}\n`;
+    });
+  } else {
+    folderMermaid += '  empty["📁 (Empty Folder)"]\n';
+  }
   folderMermaid += '```';
 
-  // 5. Filter for Core Modules Relationship Graph
-  // Keep key orchestrator and manager files to show a clear core architecture flow
-  const coreKeywords = ['index.ts', 'server', 'state-manager', 'dispatch-loop', 'runtime-manager', 'recovery'];
+  // Filter for Core Modules Relationship Graph
   const coreConnections = [];
   const coreNodes = new Set();
 
   Object.entries(dependencies).forEach(([file, deps]) => {
     const isFileCore = coreKeywords.some(kw => file.includes(kw));
     if (isFileCore) {
-      const cleanFile = file.replace(/\.ts$/, '');
+      const cleanFile = file.replace(/\.(ts|js)$/, '');
       coreNodes.add(cleanFile);
       deps.forEach(dep => {
         const isDepCore = coreKeywords.some(kw => dep.includes(kw));
         if (isDepCore) {
-          const cleanDep = dep.replace(/\.ts$/, '');
+          const cleanDep = dep.replace(/\.(ts|js)$/, '');
           coreNodes.add(cleanDep);
           coreConnections.push(`  ${cleanFile.replace(/[\/-]/g, '_')} --> ${cleanDep.replace(/[\/-]/g, '_')}`);
         }
@@ -104,7 +256,7 @@ try {
   });
   coreMermaid += '```';
 
-  // 6. Format Circular Dependencies section
+  // Format Circular Dependencies section
   let circularDepsSection = '';
   if (circularDeps.length > 0) {
     circularDepsSection += `> [!WARNING]\n> **Found ${circularDeps.length} Circular Dependencies!** These should be resolved to maintain strict domain boundaries.\n\n`;
@@ -115,7 +267,7 @@ try {
     circularDepsSection += `> [!NOTE]\n> **Clean architecture!** No circular dependencies found.\n`;
   }
 
-  // 7. Format Complete File Directory (collapsible details block)
+  // Format Complete File Directory (collapsible details block)
   let fileListMarkdown = '<details>\n<summary>🔍 Click to view full module relations directory</summary>\n\n';
   fileListMarkdown += '| Source File | Depends On |\n| :--- | :--- |\n';
   Object.entries(dependencies).forEach(([file, deps]) => {
@@ -124,12 +276,12 @@ try {
   });
   fileListMarkdown += '\n</details>';
 
-  // 8. Build the complete Dependency Map section
+  // Build the complete Dependency Map section
   const dependencySection = `
 <!-- START_DEPENDENCY_MAP -->
 ## Codebase Relation Map (Auto-generated)
 
-*This section is dynamically generated by \`/scan-repo\` workflow.*
+*This section is dynamically generated by codebase scanner.*
 
 ### 📂 High-level Domain Dependencies
 ${folderMermaid}
@@ -145,12 +297,12 @@ ${fileListMarkdown}
 <!-- END_DEPENDENCY_MAP -->
 `;
 
-  // 9. Inject or append to workspace-memory.md
+  // Inject or append to target memory file
   let memoryContent = '';
   if (fs.existsSync(WORKSPACE_MEMORY_PATH)) {
     memoryContent = fs.readFileSync(WORKSPACE_MEMORY_PATH, 'utf-8');
   } else {
-    memoryContent = `# Workspace Memory — agent-orchestrator\n\n`;
+    memoryContent = `# Workspace Memory — ${projectName}\n\n`;
   }
 
   const startMarker = '<!-- START_DEPENDENCY_MAP -->';
@@ -160,20 +312,18 @@ ${fileListMarkdown}
   const endIndex = memoryContent.indexOf(endMarker);
 
   if (startIndex !== -1 && endIndex !== -1) {
-    console.log('📝 Updating existing dependency map in workspace-memory.md...');
+    console.log(`📝 Updating existing dependency map in ${WORKSPACE_MEMORY_PATH}...`);
     memoryContent =
       memoryContent.substring(0, startIndex) +
       dependencySection.trim() +
       memoryContent.substring(endIndex + endMarker.length);
   } else {
-    console.log('➕ Appending dependency map to workspace-memory.md...');
+    console.log(`➕ Appending dependency map to ${WORKSPACE_MEMORY_PATH}...`);
     memoryContent = memoryContent.trim() + '\n\n' + dependencySection.trim() + '\n';
   }
 
-  // 10. Generate HTML Map
-  console.log('🌐 Generating interactive HTML map (.agent/codebase-map.html)...');
-  const htmlPath = '.agent/codebase-map.html';
-
+  // Generate HTML Map
+  console.log(`🌐 Generating interactive HTML map (${htmlPath})...`);
   const folderMermaidCode = folderMermaid.replace('```mermaid\n', '').replace('```', '');
   const coreMermaidCode = coreMermaid.replace('```mermaid\n', '').replace('```', '');
 
@@ -214,7 +364,7 @@ ${fileListMarkdown}
     `;
   }
 
-  // Format directory rows as HTML for fast dynamic searching
+  // Format directory rows as HTML
   let directoryRowsHtml = '';
   for (const [file, deps] of Object.entries(dependencies)) {
     const depBadges = deps.length > 0 
@@ -232,7 +382,7 @@ ${fileListMarkdown}
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Agent Orchestrator — Codebase Relation Map</title>
+  <title>${projectName} — Codebase Relation Map</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
   <script>
@@ -628,7 +778,7 @@ ${fileListMarkdown}
 <body>
   <div class="container">
     <header>
-      <h1>Agent Orchestrator</h1>
+      <h1>${projectName}</h1>
       <p>Interactive Codebase Dependency Map & Relations</p>
     </header>
 
@@ -738,7 +888,7 @@ ${fileListMarkdown}
       canvas.style.transition = 'transform 0.05s ease-out';
 
       function updateTransform() {
-        canvas.style.transform = \`translate(\${translateX}px, \${translateY}px) scale(\${scale})\`;
+        canvas.style.transform = 'translate(' + translateX + 'px, ' + translateY + 'px) scale(' + scale + ')';
       }
 
       // Drag to Pan
@@ -817,7 +967,7 @@ ${fileListMarkdown}
     }
 
     window.addEventListener('load', () => {
-      // Mermaid initializes on load, let's wait a brief moment for rendering to complete
+      // Mermaid initializes on load, wait a brief moment for rendering
       setTimeout(() => {
         setupZoomPan('folder-wrapper', '#folder-canvas');
         setupZoomPan('core-wrapper', '#core-canvas');
