@@ -355,6 +355,10 @@
     }
 
     .dependencies-cell {
+      vertical-align: top;
+    }
+
+    .badge-container {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
@@ -616,394 +620,706 @@
           </thead>
           <tbody id="directory-body">
             <tr class="searchable-row" data-file="config.ts" data-deps="constants.ts models/config.ts utils/workspace-registry.ts ">
-        <td class="file-name">📄 config.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">constants.ts</span><span class="dep-badge">models/config.ts</span><span class="dep-badge">utils/workspace-registry.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 config.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">constants.ts</span><span class="dep-badge">models/config.ts</span><span class="dep-badge">utils/workspace-registry.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="constants.ts" data-deps=" ">
-        <td class="file-name">📄 constants.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge none">None</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 constants.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge none">None</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="index.ts" data-deps="config.ts constants.ts mcp-server/index.ts models/index.ts utils/startup-prompt.ts ">
-        <td class="file-name">📄 index.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">config.ts</span><span class="dep-badge">constants.ts</span><span class="dep-badge">mcp-server/index.ts</span><span class="dep-badge">models/index.ts</span><span class="dep-badge">utils/startup-prompt.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 index.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">config.ts</span><span class="dep-badge">constants.ts</span><span class="dep-badge">mcp-server/index.ts</span><span class="dep-badge">models/index.ts</span><span class="dep-badge">utils/startup-prompt.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="infra/capacity-store.ts" data-deps="infra/models.ts ">
-        <td class="file-name">📄 infra/capacity-store.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">infra/models.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 infra/capacity-store.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">infra/models.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="infra/constants.ts" data-deps=" ">
-        <td class="file-name">📄 infra/constants.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge none">None</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 infra/constants.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge none">None</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="infra/index.ts" data-deps="infra/capacity-store.ts infra/constants.ts infra/infra-verifier.ts infra/models.ts infra/resource-monitor.ts ">
-        <td class="file-name">📄 infra/index.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">infra/capacity-store.ts</span><span class="dep-badge">infra/constants.ts</span><span class="dep-badge">infra/infra-verifier.ts</span><span class="dep-badge">infra/models.ts</span><span class="dep-badge">infra/resource-monitor.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 infra/index.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">infra/capacity-store.ts</span><span class="dep-badge">infra/constants.ts</span><span class="dep-badge">infra/infra-verifier.ts</span><span class="dep-badge">infra/models.ts</span><span class="dep-badge">infra/resource-monitor.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="infra/infra-verifier.ts" data-deps="infra/models.ts ">
-        <td class="file-name">📄 infra/infra-verifier.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">infra/models.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 infra/infra-verifier.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">infra/models.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="infra/models.ts" data-deps=" ">
-        <td class="file-name">📄 infra/models.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge none">None</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 infra/models.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge none">None</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="infra/resource-monitor.ts" data-deps="infra/constants.ts infra/models.ts ">
-        <td class="file-name">📄 infra/resource-monitor.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">infra/constants.ts</span><span class="dep-badge">infra/models.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 infra/resource-monitor.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">infra/constants.ts</span><span class="dep-badge">infra/models.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="mcp-server/context.ts" data-deps="mcp-server/plan-watcher.ts mcp-server/recovery.ts mcp-server/state-manager.ts models/config.ts utils/logger.ts utils/worker-registry.ts ">
-        <td class="file-name">📄 mcp-server/context.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">mcp-server/plan-watcher.ts</span><span class="dep-badge">mcp-server/recovery.ts</span><span class="dep-badge">mcp-server/state-manager.ts</span><span class="dep-badge">models/config.ts</span><span class="dep-badge">utils/logger.ts</span><span class="dep-badge">utils/worker-registry.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 mcp-server/context.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">mcp-server/plan-watcher.ts</span><span class="dep-badge">mcp-server/recovery.ts</span><span class="dep-badge">mcp-server/state-manager.ts</span><span class="dep-badge">models/config.ts</span><span class="dep-badge">utils/logger.ts</span><span class="dep-badge">utils/worker-registry.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="mcp-server/index.ts" data-deps="constants.ts infra/index.ts mcp-server/context.ts mcp-server/plan-watcher.ts mcp-server/recovery.ts mcp-server/state-manager.ts mcp-server/transport.ts models/index.ts utils/bootstrap.ts utils/identity-invariants.ts utils/logger.ts utils/ollama-launcher.ts utils/worker-registry.ts utils/workspace-registry.ts visibility/index.ts worker/adapters/ollama-adapter.ts worker/dispatch-loop.ts worker/model-selector.ts worker/vram-manager.ts @types/express">
-        <td class="file-name">📄 mcp-server/index.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">constants.ts</span><span class="dep-badge">infra/index.ts</span><span class="dep-badge">mcp-server/context.ts</span><span class="dep-badge">mcp-server/plan-watcher.ts</span><span class="dep-badge">mcp-server/recovery.ts</span><span class="dep-badge">mcp-server/state-manager.ts</span><span class="dep-badge">mcp-server/transport.ts</span><span class="dep-badge">models/index.ts</span><span class="dep-badge">utils/bootstrap.ts</span><span class="dep-badge">utils/identity-invariants.ts</span><span class="dep-badge">utils/logger.ts</span><span class="dep-badge">utils/ollama-launcher.ts</span><span class="dep-badge">utils/worker-registry.ts</span><span class="dep-badge">utils/workspace-registry.ts</span><span class="dep-badge">visibility/index.ts</span><span class="dep-badge">worker/adapters/ollama-adapter.ts</span><span class="dep-badge">worker/dispatch-loop.ts</span><span class="dep-badge">worker/model-selector.ts</span><span class="dep-badge">worker/vram-manager.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge">@types/express</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 mcp-server/index.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">constants.ts</span><span class="dep-badge">infra/index.ts</span><span class="dep-badge">mcp-server/context.ts</span><span class="dep-badge">mcp-server/plan-watcher.ts</span><span class="dep-badge">mcp-server/recovery.ts</span><span class="dep-badge">mcp-server/state-manager.ts</span><span class="dep-badge">mcp-server/transport.ts</span><span class="dep-badge">models/index.ts</span><span class="dep-badge">utils/bootstrap.ts</span><span class="dep-badge">utils/identity-invariants.ts</span><span class="dep-badge">utils/logger.ts</span><span class="dep-badge">utils/ollama-launcher.ts</span><span class="dep-badge">utils/worker-registry.ts</span><span class="dep-badge">utils/workspace-registry.ts</span><span class="dep-badge">visibility/index.ts</span><span class="dep-badge">worker/adapters/ollama-adapter.ts</span><span class="dep-badge">worker/dispatch-loop.ts</span><span class="dep-badge">worker/model-selector.ts</span><span class="dep-badge">worker/vram-manager.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge">@types/express</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="mcp-server/plan-watcher.ts" data-deps="constants.ts mcp-server/state-manager.ts models/index.ts utils/file-backend.ts utils/logger.ts utils/workspace-registry.ts ">
-        <td class="file-name">📄 mcp-server/plan-watcher.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">constants.ts</span><span class="dep-badge">mcp-server/state-manager.ts</span><span class="dep-badge">models/index.ts</span><span class="dep-badge">utils/file-backend.ts</span><span class="dep-badge">utils/logger.ts</span><span class="dep-badge">utils/workspace-registry.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 mcp-server/plan-watcher.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">constants.ts</span><span class="dep-badge">mcp-server/state-manager.ts</span><span class="dep-badge">models/index.ts</span><span class="dep-badge">utils/file-backend.ts</span><span class="dep-badge">utils/logger.ts</span><span class="dep-badge">utils/workspace-registry.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="mcp-server/recovery.ts" data-deps="constants.ts mcp-server/state-manager.ts models/index.ts task/index.ts utils/file-backend.ts utils/lifecycle-timing.ts utils/logger.ts utils/worker-registry.ts ">
-        <td class="file-name">📄 mcp-server/recovery.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">constants.ts</span><span class="dep-badge">mcp-server/state-manager.ts</span><span class="dep-badge">models/index.ts</span><span class="dep-badge">task/index.ts</span><span class="dep-badge">utils/file-backend.ts</span><span class="dep-badge">utils/lifecycle-timing.ts</span><span class="dep-badge">utils/logger.ts</span><span class="dep-badge">utils/worker-registry.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 mcp-server/recovery.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">constants.ts</span><span class="dep-badge">mcp-server/state-manager.ts</span><span class="dep-badge">models/index.ts</span><span class="dep-badge">task/index.ts</span><span class="dep-badge">utils/file-backend.ts</span><span class="dep-badge">utils/lifecycle-timing.ts</span><span class="dep-badge">utils/logger.ts</span><span class="dep-badge">utils/worker-registry.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="mcp-server/server.ts" data-deps="constants.ts mcp-server/context.ts mcp-server/tools.ts @modelcontextprotocol/sdk">
-        <td class="file-name">📄 mcp-server/server.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">constants.ts</span><span class="dep-badge">mcp-server/context.ts</span><span class="dep-badge">mcp-server/tools.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge">@modelcontextprotocol/sdk</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 mcp-server/server.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">constants.ts</span><span class="dep-badge">mcp-server/context.ts</span><span class="dep-badge">mcp-server/tools.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge">@modelcontextprotocol/sdk</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="mcp-server/state-manager.ts" data-deps="constants.ts mcp-server/task-queue.ts models/index.ts task/index.ts utils/file-backend.ts utils/logger.ts utils/task-identity-registry.ts ">
-        <td class="file-name">📄 mcp-server/state-manager.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">constants.ts</span><span class="dep-badge">mcp-server/task-queue.ts</span><span class="dep-badge">models/index.ts</span><span class="dep-badge">task/index.ts</span><span class="dep-badge">utils/file-backend.ts</span><span class="dep-badge">utils/logger.ts</span><span class="dep-badge">utils/task-identity-registry.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 mcp-server/state-manager.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">constants.ts</span><span class="dep-badge">mcp-server/task-queue.ts</span><span class="dep-badge">models/index.ts</span><span class="dep-badge">task/index.ts</span><span class="dep-badge">utils/file-backend.ts</span><span class="dep-badge">utils/logger.ts</span><span class="dep-badge">utils/task-identity-registry.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="mcp-server/task-queue.ts" data-deps="constants.ts models/index.ts scheduler/index.ts task/index.ts ">
-        <td class="file-name">📄 mcp-server/task-queue.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">constants.ts</span><span class="dep-badge">models/index.ts</span><span class="dep-badge">scheduler/index.ts</span><span class="dep-badge">task/index.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 mcp-server/task-queue.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">constants.ts</span><span class="dep-badge">models/index.ts</span><span class="dep-badge">scheduler/index.ts</span><span class="dep-badge">task/index.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="mcp-server/tools.ts" data-deps="constants.ts mcp-server/context.ts mcp-server/tools/scan-workspace.ts mcp-server/tools/session-checkpoint.ts server-tools/task-submitter.ts server-tools/workspace-connector.ts task/index.ts utils/bootstrap.ts utils/file-backend.ts utils/identity-invariants.ts utils/workspace-registry.ts @modelcontextprotocol/sdk zod">
-        <td class="file-name">📄 mcp-server/tools.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">constants.ts</span><span class="dep-badge">mcp-server/context.ts</span><span class="dep-badge">mcp-server/tools/scan-workspace.ts</span><span class="dep-badge">mcp-server/tools/session-checkpoint.ts</span><span class="dep-badge">server-tools/task-submitter.ts</span><span class="dep-badge">server-tools/workspace-connector.ts</span><span class="dep-badge">task/index.ts</span><span class="dep-badge">utils/bootstrap.ts</span><span class="dep-badge">utils/file-backend.ts</span><span class="dep-badge">utils/identity-invariants.ts</span><span class="dep-badge">utils/workspace-registry.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge">@modelcontextprotocol/sdk</span><span class="npm-badge">zod</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 mcp-server/tools.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">constants.ts</span><span class="dep-badge">mcp-server/context.ts</span><span class="dep-badge">mcp-server/tools/scan-workspace.ts</span><span class="dep-badge">mcp-server/tools/session-checkpoint.ts</span><span class="dep-badge">server-tools/task-submitter.ts</span><span class="dep-badge">server-tools/workspace-connector.ts</span><span class="dep-badge">task/index.ts</span><span class="dep-badge">utils/bootstrap.ts</span><span class="dep-badge">utils/file-backend.ts</span><span class="dep-badge">utils/identity-invariants.ts</span><span class="dep-badge">utils/workspace-registry.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge">@modelcontextprotocol/sdk</span><span class="npm-badge">zod</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="mcp-server/tools/scan-workspace.ts" data-deps=" ">
-        <td class="file-name">📄 mcp-server/tools/scan-workspace.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge none">None</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 mcp-server/tools/scan-workspace.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge none">None</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="mcp-server/tools/session-checkpoint.ts" data-deps="constants.ts zod">
-        <td class="file-name">📄 mcp-server/tools/session-checkpoint.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">constants.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge">zod</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 mcp-server/tools/session-checkpoint.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">constants.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge">zod</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="mcp-server/transport.ts" data-deps="constants.ts mcp-server/context.ts mcp-server/server.ts @modelcontextprotocol/sdk @types/express">
-        <td class="file-name">📄 mcp-server/transport.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">constants.ts</span><span class="dep-badge">mcp-server/context.ts</span><span class="dep-badge">mcp-server/server.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge">@modelcontextprotocol/sdk</span><span class="npm-badge">@types/express</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 mcp-server/transport.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">constants.ts</span><span class="dep-badge">mcp-server/context.ts</span><span class="dep-badge">mcp-server/server.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge">@modelcontextprotocol/sdk</span><span class="npm-badge">@types/express</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="models/assignment.ts" data-deps="runtime/models.ts ">
-        <td class="file-name">📄 models/assignment.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">runtime/models.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 models/assignment.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">runtime/models.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="models/bootstrap.ts" data-deps=" ">
-        <td class="file-name">📄 models/bootstrap.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge none">None</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 models/bootstrap.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge none">None</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="models/checkpoint.ts" data-deps=" ">
-        <td class="file-name">📄 models/checkpoint.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge none">None</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 models/checkpoint.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge none">None</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="models/config.ts" data-deps=" ">
-        <td class="file-name">📄 models/config.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge none">None</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 models/config.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge none">None</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="models/index.ts" data-deps="models/assignment.ts models/bootstrap.ts models/checkpoint.ts models/config.ts models/mcp.ts models/plan.ts models/task-metadata.ts models/task.ts models/worker.ts ">
-        <td class="file-name">📄 models/index.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">models/assignment.ts</span><span class="dep-badge">models/bootstrap.ts</span><span class="dep-badge">models/checkpoint.ts</span><span class="dep-badge">models/config.ts</span><span class="dep-badge">models/mcp.ts</span><span class="dep-badge">models/plan.ts</span><span class="dep-badge">models/task-metadata.ts</span><span class="dep-badge">models/task.ts</span><span class="dep-badge">models/worker.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 models/index.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">models/assignment.ts</span><span class="dep-badge">models/bootstrap.ts</span><span class="dep-badge">models/checkpoint.ts</span><span class="dep-badge">models/config.ts</span><span class="dep-badge">models/mcp.ts</span><span class="dep-badge">models/plan.ts</span><span class="dep-badge">models/task-metadata.ts</span><span class="dep-badge">models/task.ts</span><span class="dep-badge">models/worker.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="models/mcp.ts" data-deps=" ">
-        <td class="file-name">📄 models/mcp.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge none">None</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 models/mcp.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge none">None</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="models/plan.ts" data-deps=" ">
-        <td class="file-name">📄 models/plan.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge none">None</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 models/plan.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge none">None</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="models/task-metadata.ts" data-deps="constants.ts models/task.ts ">
-        <td class="file-name">📄 models/task-metadata.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">constants.ts</span><span class="dep-badge">models/task.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 models/task-metadata.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">constants.ts</span><span class="dep-badge">models/task.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="models/task.ts" data-deps="task/models.ts ">
-        <td class="file-name">📄 models/task.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">task/models.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 models/task.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">task/models.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="models/worker.ts" data-deps=" ">
-        <td class="file-name">📄 models/worker.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge none">None</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 models/worker.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge none">None</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="runtime-adapters/ag-cli/ag-runtime.ts" data-deps="runtime-adapters/ag-cli/constants.ts runtime-adapters/ag-cli/models.ts runtime/constants.ts ">
-        <td class="file-name">📄 runtime-adapters/ag-cli/ag-runtime.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">runtime-adapters/ag-cli/constants.ts</span><span class="dep-badge">runtime-adapters/ag-cli/models.ts</span><span class="dep-badge">runtime/constants.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 runtime-adapters/ag-cli/ag-runtime.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">runtime-adapters/ag-cli/constants.ts</span><span class="dep-badge">runtime-adapters/ag-cli/models.ts</span><span class="dep-badge">runtime/constants.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="runtime-adapters/ag-cli/constants.ts" data-deps=" ">
-        <td class="file-name">📄 runtime-adapters/ag-cli/constants.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge none">None</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 runtime-adapters/ag-cli/constants.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge none">None</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="runtime-adapters/ag-cli/index.ts" data-deps="runtime-adapters/ag-cli/ag-runtime.ts runtime-adapters/ag-cli/constants.ts runtime-adapters/ag-cli/models.ts ">
-        <td class="file-name">📄 runtime-adapters/ag-cli/index.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">runtime-adapters/ag-cli/ag-runtime.ts</span><span class="dep-badge">runtime-adapters/ag-cli/constants.ts</span><span class="dep-badge">runtime-adapters/ag-cli/models.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 runtime-adapters/ag-cli/index.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">runtime-adapters/ag-cli/ag-runtime.ts</span><span class="dep-badge">runtime-adapters/ag-cli/constants.ts</span><span class="dep-badge">runtime-adapters/ag-cli/models.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="runtime-adapters/ag-cli/models.ts" data-deps="runtime/models.ts ">
-        <td class="file-name">📄 runtime-adapters/ag-cli/models.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">runtime/models.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 runtime-adapters/ag-cli/models.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">runtime/models.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="runtime-adapters/codex-cli/codex-runtime.ts" data-deps="runtime-adapters/codex-cli/constants.ts runtime-adapters/codex-cli/models.ts runtime/constants.ts ">
-        <td class="file-name">📄 runtime-adapters/codex-cli/codex-runtime.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">runtime-adapters/codex-cli/constants.ts</span><span class="dep-badge">runtime-adapters/codex-cli/models.ts</span><span class="dep-badge">runtime/constants.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 runtime-adapters/codex-cli/codex-runtime.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">runtime-adapters/codex-cli/constants.ts</span><span class="dep-badge">runtime-adapters/codex-cli/models.ts</span><span class="dep-badge">runtime/constants.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="runtime-adapters/codex-cli/constants.ts" data-deps=" ">
-        <td class="file-name">📄 runtime-adapters/codex-cli/constants.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge none">None</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 runtime-adapters/codex-cli/constants.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge none">None</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="runtime-adapters/codex-cli/index.ts" data-deps="runtime-adapters/codex-cli/codex-runtime.ts runtime-adapters/codex-cli/constants.ts runtime-adapters/codex-cli/models.ts ">
-        <td class="file-name">📄 runtime-adapters/codex-cli/index.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">runtime-adapters/codex-cli/codex-runtime.ts</span><span class="dep-badge">runtime-adapters/codex-cli/constants.ts</span><span class="dep-badge">runtime-adapters/codex-cli/models.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 runtime-adapters/codex-cli/index.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">runtime-adapters/codex-cli/codex-runtime.ts</span><span class="dep-badge">runtime-adapters/codex-cli/constants.ts</span><span class="dep-badge">runtime-adapters/codex-cli/models.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="runtime-adapters/codex-cli/models.ts" data-deps="runtime/models.ts ">
-        <td class="file-name">📄 runtime-adapters/codex-cli/models.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">runtime/models.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 runtime-adapters/codex-cli/models.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">runtime/models.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="runtime-adapters/ollama/constants.ts" data-deps=" ">
-        <td class="file-name">📄 runtime-adapters/ollama/constants.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge none">None</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 runtime-adapters/ollama/constants.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge none">None</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="runtime-adapters/ollama/index.ts" data-deps="runtime-adapters/ollama/constants.ts runtime-adapters/ollama/models.ts runtime-adapters/ollama/ollama-runtime.ts ">
-        <td class="file-name">📄 runtime-adapters/ollama/index.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">runtime-adapters/ollama/constants.ts</span><span class="dep-badge">runtime-adapters/ollama/models.ts</span><span class="dep-badge">runtime-adapters/ollama/ollama-runtime.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 runtime-adapters/ollama/index.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">runtime-adapters/ollama/constants.ts</span><span class="dep-badge">runtime-adapters/ollama/models.ts</span><span class="dep-badge">runtime-adapters/ollama/ollama-runtime.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="runtime-adapters/ollama/models.ts" data-deps="runtime-adapters/ollama/constants.ts runtime/models.ts ">
-        <td class="file-name">📄 runtime-adapters/ollama/models.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">runtime-adapters/ollama/constants.ts</span><span class="dep-badge">runtime/models.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 runtime-adapters/ollama/models.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">runtime-adapters/ollama/constants.ts</span><span class="dep-badge">runtime/models.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="runtime-adapters/ollama/ollama-runtime.ts" data-deps="runtime-adapters/ollama/constants.ts runtime-adapters/ollama/models.ts runtime/constants.ts runtime/models.ts ">
-        <td class="file-name">📄 runtime-adapters/ollama/ollama-runtime.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">runtime-adapters/ollama/constants.ts</span><span class="dep-badge">runtime-adapters/ollama/models.ts</span><span class="dep-badge">runtime/constants.ts</span><span class="dep-badge">runtime/models.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 runtime-adapters/ollama/ollama-runtime.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">runtime-adapters/ollama/constants.ts</span><span class="dep-badge">runtime-adapters/ollama/models.ts</span><span class="dep-badge">runtime/constants.ts</span><span class="dep-badge">runtime/models.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="runtime/constants.ts" data-deps=" ">
-        <td class="file-name">📄 runtime/constants.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge none">None</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 runtime/constants.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge none">None</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="runtime/heartbeat-store.ts" data-deps="runtime/constants.ts runtime/models.ts utils/lifecycle-timing.ts ">
-        <td class="file-name">📄 runtime/heartbeat-store.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">runtime/constants.ts</span><span class="dep-badge">runtime/models.ts</span><span class="dep-badge">utils/lifecycle-timing.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 runtime/heartbeat-store.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">runtime/constants.ts</span><span class="dep-badge">runtime/models.ts</span><span class="dep-badge">utils/lifecycle-timing.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="runtime/index.ts" data-deps="runtime/constants.ts runtime/heartbeat-store.ts runtime/lease-validator.ts runtime/models.ts runtime/point-allocator.ts runtime/runtime-manager.ts runtime/runtime-registry.ts ">
-        <td class="file-name">📄 runtime/index.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">runtime/constants.ts</span><span class="dep-badge">runtime/heartbeat-store.ts</span><span class="dep-badge">runtime/lease-validator.ts</span><span class="dep-badge">runtime/models.ts</span><span class="dep-badge">runtime/point-allocator.ts</span><span class="dep-badge">runtime/runtime-manager.ts</span><span class="dep-badge">runtime/runtime-registry.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 runtime/index.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">runtime/constants.ts</span><span class="dep-badge">runtime/heartbeat-store.ts</span><span class="dep-badge">runtime/lease-validator.ts</span><span class="dep-badge">runtime/models.ts</span><span class="dep-badge">runtime/point-allocator.ts</span><span class="dep-badge">runtime/runtime-manager.ts</span><span class="dep-badge">runtime/runtime-registry.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="runtime/lease-validator.ts" data-deps="runtime/models.ts ">
-        <td class="file-name">📄 runtime/lease-validator.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">runtime/models.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 runtime/lease-validator.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">runtime/models.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="runtime/models.ts" data-deps="runtime/constants.ts ">
-        <td class="file-name">📄 runtime/models.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">runtime/constants.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 runtime/models.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">runtime/constants.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="runtime/point-allocator.ts" data-deps="infra/index.ts runtime/models.ts ">
-        <td class="file-name">📄 runtime/point-allocator.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">infra/index.ts</span><span class="dep-badge">runtime/models.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 runtime/point-allocator.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">infra/index.ts</span><span class="dep-badge">runtime/models.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="runtime/runtime-manager.ts" data-deps="infra/index.ts runtime-adapters/ag-cli/index.ts runtime-adapters/codex-cli/index.ts runtime-adapters/ollama/index.ts runtime/constants.ts runtime/heartbeat-store.ts runtime/models.ts runtime/point-allocator.ts runtime/runtime-registry.ts worker/adapters/ollama-adapter.ts worker/process-manager.ts ">
-        <td class="file-name">📄 runtime/runtime-manager.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">infra/index.ts</span><span class="dep-badge">runtime-adapters/ag-cli/index.ts</span><span class="dep-badge">runtime-adapters/codex-cli/index.ts</span><span class="dep-badge">runtime-adapters/ollama/index.ts</span><span class="dep-badge">runtime/constants.ts</span><span class="dep-badge">runtime/heartbeat-store.ts</span><span class="dep-badge">runtime/models.ts</span><span class="dep-badge">runtime/point-allocator.ts</span><span class="dep-badge">runtime/runtime-registry.ts</span><span class="dep-badge">worker/adapters/ollama-adapter.ts</span><span class="dep-badge">worker/process-manager.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 runtime/runtime-manager.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">infra/index.ts</span><span class="dep-badge">runtime-adapters/ag-cli/index.ts</span><span class="dep-badge">runtime-adapters/codex-cli/index.ts</span><span class="dep-badge">runtime-adapters/ollama/index.ts</span><span class="dep-badge">runtime/constants.ts</span><span class="dep-badge">runtime/heartbeat-store.ts</span><span class="dep-badge">runtime/models.ts</span><span class="dep-badge">runtime/point-allocator.ts</span><span class="dep-badge">runtime/runtime-registry.ts</span><span class="dep-badge">worker/adapters/ollama-adapter.ts</span><span class="dep-badge">worker/process-manager.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="runtime/runtime-registry.ts" data-deps="runtime/constants.ts runtime/models.ts ">
-        <td class="file-name">📄 runtime/runtime-registry.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">runtime/constants.ts</span><span class="dep-badge">runtime/models.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 runtime/runtime-registry.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">runtime/constants.ts</span><span class="dep-badge">runtime/models.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="scheduler/constants.ts" data-deps=" ">
-        <td class="file-name">📄 scheduler/constants.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge none">None</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 scheduler/constants.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge none">None</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="scheduler/index.ts" data-deps="scheduler/constants.ts scheduler/models.ts ">
-        <td class="file-name">📄 scheduler/index.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">scheduler/constants.ts</span><span class="dep-badge">scheduler/models.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 scheduler/index.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">scheduler/constants.ts</span><span class="dep-badge">scheduler/models.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="scheduler/models.ts" data-deps="models/assignment.ts runtime/index.ts scheduler/constants.ts task/index.ts ">
-        <td class="file-name">📄 scheduler/models.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">models/assignment.ts</span><span class="dep-badge">runtime/index.ts</span><span class="dep-badge">scheduler/constants.ts</span><span class="dep-badge">task/index.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 scheduler/models.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">models/assignment.ts</span><span class="dep-badge">runtime/index.ts</span><span class="dep-badge">scheduler/constants.ts</span><span class="dep-badge">task/index.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="server-tools/task-submitter.ts" data-deps="constants.ts mcp-server/context.ts models/task-metadata.ts utils/file-backend.ts utils/identity-invariants.ts utils/workspace-registry.ts ">
-        <td class="file-name">📄 server-tools/task-submitter.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">constants.ts</span><span class="dep-badge">mcp-server/context.ts</span><span class="dep-badge">models/task-metadata.ts</span><span class="dep-badge">utils/file-backend.ts</span><span class="dep-badge">utils/identity-invariants.ts</span><span class="dep-badge">utils/workspace-registry.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 server-tools/task-submitter.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">constants.ts</span><span class="dep-badge">mcp-server/context.ts</span><span class="dep-badge">models/task-metadata.ts</span><span class="dep-badge">utils/file-backend.ts</span><span class="dep-badge">utils/identity-invariants.ts</span><span class="dep-badge">utils/workspace-registry.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="server-tools/workspace-connector.ts" data-deps="constants.ts utils/bootstrap.ts utils/identity-invariants.ts utils/workspace-registry.ts ">
-        <td class="file-name">📄 server-tools/workspace-connector.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">constants.ts</span><span class="dep-badge">utils/bootstrap.ts</span><span class="dep-badge">utils/identity-invariants.ts</span><span class="dep-badge">utils/workspace-registry.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 server-tools/workspace-connector.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">constants.ts</span><span class="dep-badge">utils/bootstrap.ts</span><span class="dep-badge">utils/identity-invariants.ts</span><span class="dep-badge">utils/workspace-registry.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="task/constants.ts" data-deps="constants.ts ">
-        <td class="file-name">📄 task/constants.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">constants.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 task/constants.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">constants.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="task/index.ts" data-deps="task/constants.ts task/models.ts ">
-        <td class="file-name">📄 task/index.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">task/constants.ts</span><span class="dep-badge">task/models.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 task/index.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">task/constants.ts</span><span class="dep-badge">task/models.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="task/models.ts" data-deps="task/constants.ts ">
-        <td class="file-name">📄 task/models.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">task/constants.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 task/models.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">task/constants.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="utils/bootstrap.ts" data-deps="constants.ts models/bootstrap.ts models/config.ts utils/file-backend.ts ">
-        <td class="file-name">📄 utils/bootstrap.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">constants.ts</span><span class="dep-badge">models/bootstrap.ts</span><span class="dep-badge">models/config.ts</span><span class="dep-badge">utils/file-backend.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 utils/bootstrap.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">constants.ts</span><span class="dep-badge">models/bootstrap.ts</span><span class="dep-badge">models/config.ts</span><span class="dep-badge">utils/file-backend.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="utils/file-backend.ts" data-deps="constants.ts ">
-        <td class="file-name">📄 utils/file-backend.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">constants.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 utils/file-backend.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">constants.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="utils/identity-invariants.ts" data-deps="constants.ts models/index.ts task/index.ts utils/workspace-registry.ts ">
-        <td class="file-name">📄 utils/identity-invariants.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">constants.ts</span><span class="dep-badge">models/index.ts</span><span class="dep-badge">task/index.ts</span><span class="dep-badge">utils/workspace-registry.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 utils/identity-invariants.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">constants.ts</span><span class="dep-badge">models/index.ts</span><span class="dep-badge">task/index.ts</span><span class="dep-badge">utils/workspace-registry.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="utils/lifecycle-timing.ts" data-deps="runtime/constants.ts ">
-        <td class="file-name">📄 utils/lifecycle-timing.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">runtime/constants.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 utils/lifecycle-timing.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">runtime/constants.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="utils/logger.ts" data-deps="constants.ts utils/file-backend.ts ">
-        <td class="file-name">📄 utils/logger.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">constants.ts</span><span class="dep-badge">utils/file-backend.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 utils/logger.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">constants.ts</span><span class="dep-badge">utils/file-backend.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="utils/ollama-launcher.ts" data-deps=" ">
-        <td class="file-name">📄 utils/ollama-launcher.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge none">None</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 utils/ollama-launcher.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge none">None</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="utils/startup-prompt.ts" data-deps="constants.ts models/index.ts ">
-        <td class="file-name">📄 utils/startup-prompt.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">constants.ts</span><span class="dep-badge">models/index.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 utils/startup-prompt.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">constants.ts</span><span class="dep-badge">models/index.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="utils/task-identity-registry.ts" data-deps="constants.ts mcp-server/task-queue.ts task/index.ts utils/file-backend.ts utils/identity-invariants.ts ">
-        <td class="file-name">📄 utils/task-identity-registry.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">constants.ts</span><span class="dep-badge">mcp-server/task-queue.ts</span><span class="dep-badge">task/index.ts</span><span class="dep-badge">utils/file-backend.ts</span><span class="dep-badge">utils/identity-invariants.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 utils/task-identity-registry.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">constants.ts</span><span class="dep-badge">mcp-server/task-queue.ts</span><span class="dep-badge">task/index.ts</span><span class="dep-badge">utils/file-backend.ts</span><span class="dep-badge">utils/identity-invariants.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="utils/worker-registry.ts" data-deps="constants.ts models/index.ts utils/file-backend.ts utils/identity-invariants.ts utils/task-identity-registry.ts ">
-        <td class="file-name">📄 utils/worker-registry.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">constants.ts</span><span class="dep-badge">models/index.ts</span><span class="dep-badge">utils/file-backend.ts</span><span class="dep-badge">utils/identity-invariants.ts</span><span class="dep-badge">utils/task-identity-registry.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 utils/worker-registry.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">constants.ts</span><span class="dep-badge">models/index.ts</span><span class="dep-badge">utils/file-backend.ts</span><span class="dep-badge">utils/identity-invariants.ts</span><span class="dep-badge">utils/task-identity-registry.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="utils/workspace-registry.ts" data-deps="utils/bootstrap.ts ">
-        <td class="file-name">📄 utils/workspace-registry.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">utils/bootstrap.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 utils/workspace-registry.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">utils/bootstrap.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="visibility/constants.ts" data-deps=" ">
-        <td class="file-name">📄 visibility/constants.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge none">None</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 visibility/constants.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge none">None</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="visibility/index.ts" data-deps="visibility/constants.ts visibility/models.ts visibility/resource-terminal-table.ts ">
-        <td class="file-name">📄 visibility/index.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">visibility/constants.ts</span><span class="dep-badge">visibility/models.ts</span><span class="dep-badge">visibility/resource-terminal-table.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 visibility/index.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">visibility/constants.ts</span><span class="dep-badge">visibility/models.ts</span><span class="dep-badge">visibility/resource-terminal-table.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="visibility/models.ts" data-deps=" ">
-        <td class="file-name">📄 visibility/models.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge none">None</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 visibility/models.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge none">None</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="visibility/resource-terminal-table.ts" data-deps="infra/index.ts visibility/constants.ts visibility/models.ts ">
-        <td class="file-name">📄 visibility/resource-terminal-table.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">infra/index.ts</span><span class="dep-badge">visibility/constants.ts</span><span class="dep-badge">visibility/models.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 visibility/resource-terminal-table.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">infra/index.ts</span><span class="dep-badge">visibility/constants.ts</span><span class="dep-badge">visibility/models.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="worker/adapters/llm-adapter.ts" data-deps=" ">
-        <td class="file-name">📄 worker/adapters/llm-adapter.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge none">None</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 worker/adapters/llm-adapter.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge none">None</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="worker/adapters/ollama-adapter.ts" data-deps="worker/adapters/llm-adapter.ts ">
-        <td class="file-name">📄 worker/adapters/ollama-adapter.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">worker/adapters/llm-adapter.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 worker/adapters/ollama-adapter.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">worker/adapters/llm-adapter.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="worker/dispatch-loop.ts" data-deps="constants.ts infra/index.ts mcp-server/state-manager.ts mcp-server/task-queue.ts runtime-adapters/ollama/index.ts runtime/index.ts scheduler/index.ts utils/worker-registry.ts worker/model-selector.ts worker/process-manager.ts ">
-        <td class="file-name">📄 worker/dispatch-loop.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">constants.ts</span><span class="dep-badge">infra/index.ts</span><span class="dep-badge">mcp-server/state-manager.ts</span><span class="dep-badge">mcp-server/task-queue.ts</span><span class="dep-badge">runtime-adapters/ollama/index.ts</span><span class="dep-badge">runtime/index.ts</span><span class="dep-badge">scheduler/index.ts</span><span class="dep-badge">utils/worker-registry.ts</span><span class="dep-badge">worker/model-selector.ts</span><span class="dep-badge">worker/process-manager.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 worker/dispatch-loop.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">constants.ts</span><span class="dep-badge">infra/index.ts</span><span class="dep-badge">mcp-server/state-manager.ts</span><span class="dep-badge">mcp-server/task-queue.ts</span><span class="dep-badge">runtime-adapters/ollama/index.ts</span><span class="dep-badge">runtime/index.ts</span><span class="dep-badge">scheduler/index.ts</span><span class="dep-badge">utils/worker-registry.ts</span><span class="dep-badge">worker/model-selector.ts</span><span class="dep-badge">worker/process-manager.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="worker/model-selector.ts" data-deps="constants.ts infra/index.ts mcp-server/task-queue.ts task/index.ts worker/adapters/ollama-adapter.ts ">
-        <td class="file-name">📄 worker/model-selector.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">constants.ts</span><span class="dep-badge">infra/index.ts</span><span class="dep-badge">mcp-server/task-queue.ts</span><span class="dep-badge">task/index.ts</span><span class="dep-badge">worker/adapters/ollama-adapter.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 worker/model-selector.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">constants.ts</span><span class="dep-badge">infra/index.ts</span><span class="dep-badge">mcp-server/task-queue.ts</span><span class="dep-badge">task/index.ts</span><span class="dep-badge">worker/adapters/ollama-adapter.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="worker/process-manager.ts" data-deps="constants.ts runtime/constants.ts runtime/models.ts utils/lifecycle-timing.ts ">
-        <td class="file-name">📄 worker/process-manager.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">constants.ts</span><span class="dep-badge">runtime/constants.ts</span><span class="dep-badge">runtime/models.ts</span><span class="dep-badge">utils/lifecycle-timing.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 worker/process-manager.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">constants.ts</span><span class="dep-badge">runtime/constants.ts</span><span class="dep-badge">runtime/models.ts</span><span class="dep-badge">utils/lifecycle-timing.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
       <tr class="searchable-row" data-file="worker/vram-manager.ts" data-deps="constants.ts worker/adapters/ollama-adapter.ts worker/model-selector.ts ">
-        <td class="file-name">📄 worker/vram-manager.ts</td>
-        <td class="dependencies-cell"><span class="dep-badge">constants.ts</span><span class="dep-badge">worker/adapters/ollama-adapter.ts</span><span class="dep-badge">worker/model-selector.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
+        <td class="file-name" style="vertical-align: top;">📄 worker/vram-manager.ts</td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="dep-badge">constants.ts</span><span class="dep-badge">worker/adapters/ollama-adapter.ts</span><span class="dep-badge">worker/model-selector.ts</span></div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container"><span class="npm-badge none">None</span></div>
+        </td>
       </tr>
           </tbody>
         </table>

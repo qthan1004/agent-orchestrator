@@ -461,9 +461,13 @@ ${fileListMarkdown}
 
     directoryRowsHtml += `
       <tr class="searchable-row" data-file="${file.toLowerCase()}" data-deps="${deps.join(' ').toLowerCase()} ${npmDeps.join(' ').toLowerCase()}">
-        <td class="file-name">📄 ${file}</td>
-        <td class="dependencies-cell">${depBadges}</td>
-        <td class="dependencies-cell">${npmBadges}</td>
+        <td class="file-name" style="vertical-align: top;">📄 ${file}</td>
+        <td class="dependencies-cell">
+          <div class="badge-container">${depBadges}</div>
+        </td>
+        <td class="dependencies-cell">
+          <div class="badge-container">${npmBadges}</div>
+        </td>
       </tr>`;
   }
 
@@ -824,6 +828,10 @@ ${fileListMarkdown}
     }
 
     .dependencies-cell {
+      vertical-align: top;
+    }
+
+    .badge-container {
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
