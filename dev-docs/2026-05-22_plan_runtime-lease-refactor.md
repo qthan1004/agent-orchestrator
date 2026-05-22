@@ -2,6 +2,20 @@
 
 > Date: 2026-05-22
 > Scope: technical mindset, module boundaries, runtime isolation, scheduler points, hybrid local/CLI workers
+> Implementation status: IMEDIALY-00 through IMEDIALY-08 implemented as structure/runtime boundary refactor; IMEDIALY-09 closes docs/task-board alignment and stops this plan.
+
+## Implementation Addendum
+
+Implemented architecture now has:
+
+- domain public APIs for `runtime`, `task`, `scheduler`, `infra`, and `visibility`
+- runtime lease records, heartbeat store, point allocator, capacity store, lease validator, and runtime manager
+- callback identity threading with `task_id`, `worker_id`, `runtime_id`, and `lease_generation`
+- server rejection for late or stale completion/handover callbacks that do not match the active runtime lease
+- infra verifier and terminal resource table; server only wires snapshot collection to renderer output
+- Ollama runtime adapter boundary with isolated endpoint resolution when enabled and explicit shared dev fallback capped at one local worker
+- Codex CLI and AG CLI runtime adapter boundaries, with scheduler route contracts for CLI backend pools
+- structured per-service handover records stored on task transition state, not global shared memory
 
 ## Correction Summary
 
@@ -63,7 +77,7 @@ Harness responsibilities:
 
 Backend adapter responsibilities:
 
-- local Ollama: private Ollama endpoint per runtime lease
+- local Ollama: private Ollama endpoint per runtime lease when isolation is enabled; shared daemon is dev-only fallback capped at one worker
 - Codex CLI: private CLI process/session per runtime lease
 - AG CLI: private CLI process/session per runtime lease
 
@@ -209,6 +223,7 @@ export interface InfraResourceSnapshot {
   dispatch_loop: 'running' | 'stopped';
   queue: InfraQueueSnapshot;
   active_workers: InfraWorkerSnapshot[];
+  capacity?: VerifiedInfraCapacity;
   ollama: InfraOllamaSnapshot;
   vram: InfraVramSnapshot;
   ram: InfraMemorySnapshot;
@@ -259,6 +274,27 @@ export interface RuntimeHeartbeat extends RuntimeIdentity {
   health_state: RuntimeHealthState;
 }
 ```
+
+Worker-service handover:
+
+```ts
+export interface WorkerServiceHandoverRecord {
+  task_id: string;
+  worker_id: string;
+  runtime_id: string;
+  lease_generation: number;
+  attempt: number;
+  order: number;
+  summary: string;
+  open_questions: string[];
+  modified_files: string[];
+  next_action: string;
+  content: string;
+  created_at: string;
+}
+```
+
+Handover source is the current runtime lease. Handover target is the next runtime lease chosen by scheduler/allocator. Late handover with old `runtime_id` or `lease_generation` is rejected before task mutation.
 
 Callback validation:
 

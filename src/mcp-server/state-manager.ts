@@ -3,7 +3,8 @@ import fs from 'fs';
 import { readJSON, writeJSON, moveFile, listFiles, ensureDir, readFile } from '../utils/file-backend.js';
 import { TaskQueue, type TaskQueueStatus } from './task-queue.js';
 import { TASK_STATUS, FILE_PREFIXES, STATE_EVENTS, RECOVERY_EVENTS, RECOVERY_DEFAULTS, type TaskStatusValue } from '../constants.js';
-import type { WorkspaceConfig, TaskDef, TaskGraph, TaskIdentityRecord, TaskResult } from '../models/index.js';
+import type { WorkspaceConfig } from '../models/index.js';
+import type { TaskDef, TaskGraph, TaskIdentityRecord, TaskResult, WorkerServiceHandoverRecord } from '../task/index.js';
 import type { Logger } from '../utils/logger.js';
 import { TaskIdentityRegistry } from '../utils/task-identity-registry.js';
 
@@ -358,13 +359,17 @@ export class StateManager {
     return newRetryCount;
   }
 
-  requeueWithHandover(taskId: string, handover: string, workspaceRoot?: string): number {
+  requeueWithHandover(taskId: string, handover: WorkerServiceHandoverRecord, workspaceRoot?: string): number {
     const activePath = path.join(this.config.exchange.active, `${FILE_PREFIXES.TASK}${taskId}.json`);
     const taskData = readJSON<TaskDef>(activePath);
     if (!taskData) return 0;
 
     const respawnCount = Number((taskData as any).respawn_count || 0) + 1;
-    (taskData as any).handover_context = handover;
+    (taskData as any).handover_context = {
+      ...handover,
+      attempt: respawnCount,
+      order: respawnCount,
+    };
     (taskData as any).respawn_count = respawnCount;
     writeJSON(activePath, taskData);
 
@@ -372,7 +377,7 @@ export class StateManager {
 
     const task = this.queue.tasks.get(taskId);
     if (task) {
-      (task as any).handover_context = handover;
+      (task as any).handover_context = (taskData as any).handover_context;
       (task as any).respawn_count = respawnCount;
     }
 

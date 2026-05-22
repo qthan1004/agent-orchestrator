@@ -10,7 +10,8 @@ import {
 } from '../constants.js';
 import { listFiles, readJSON } from '../utils/file-backend.js';
 import { deriveHealthCheckIntervalMs } from '../utils/lifecycle-timing.js';
-import type { AppConfig, TaskDef, WorkerInfo } from '../models/index.js';
+import type { AppConfig, WorkerInfo } from '../models/index.js';
+import type { TaskDef } from '../task/index.js';
 import type { Logger } from '../utils/logger.js';
 import type { WorkerRegistry } from '../utils/worker-registry.js';
 import type { StateManager } from './state-manager.js';
@@ -29,7 +30,7 @@ export interface RecoveryManagerParams {
   recoveryConfig?: RecoveryConfigOverrides;
 }
 
-export type WorkerProcessProbe = (workerId: string) => boolean;
+export type RuntimeLivenessProbe = (workerId: string) => boolean;
 
 export interface StartupRecoveryResult {
   wasClean: boolean;
@@ -50,7 +51,7 @@ export class RecoveryManager {
   maxRetries: number;
   maxTaskRetries: number;
   private _monitorTimer: NodeJS.Timeout | null;
-  private workerProcessProbe: WorkerProcessProbe | null;
+  private runtimeLivenessProbe: RuntimeLivenessProbe | null;
 
   /**
    * @param {object} params
@@ -72,11 +73,11 @@ export class RecoveryManager {
     this.maxTaskRetries = config.global.recovery?.maxTaskRetries ?? RECOVERY_DEFAULTS.MAX_TASK_RETRIES;
 
     this._monitorTimer = null;
-    this.workerProcessProbe = null;
+    this.runtimeLivenessProbe = null;
   }
 
-  setWorkerProcessProbe(probe: WorkerProcessProbe): void {
-    this.workerProcessProbe = probe;
+  setRuntimeLivenessProbe(probe: RuntimeLivenessProbe): void {
+    this.runtimeLivenessProbe = probe;
   }
 
   // ─── Shutdown Marker ────────────────────────────────────────
@@ -162,7 +163,7 @@ export class RecoveryManager {
 
       this.logger.log(RECOVERY_EVENTS.ORPHAN_REQUEUED, {
         task_id: taskId,
-        message: 'Orphan task released from active/ to inbox without retry increment'
+        message: SYSTEM_MESSAGE.RECOVERY_ORPHAN_RELEASED
       });
     }
 
@@ -185,15 +186,15 @@ export class RecoveryManager {
       const elapsed = now - lastBeat;
 
       if (elapsed > this.staleWorkerThresholdMs) {
-        const processAlive = this.workerProcessProbe?.(worker.id) ?? false;
+        const processAlive = this.runtimeLivenessProbe?.(worker.id) ?? false;
         if (processAlive) {
           this.workerRegistry.updateHeartbeat(worker.id);
-          this.logger.log('STALE_WORKER_PROCESS_ALIVE', {
+          this.logger.log(SYSTEM_MESSAGE.RECOVERY_PROCESS_ALIVE_EVENT, {
             worker_id: worker.id,
             task_id: worker.current_task,
             elapsed_ms: elapsed,
             threshold_ms: this.staleWorkerThresholdMs,
-            message: `Worker ${worker.id} missed registry heartbeat but process is still alive; refreshed heartbeat and skipped recovery`
+            message: SYSTEM_MESSAGE.RECOVERY_PROCESS_ALIVE(worker.id)
           });
           continue;
         }
@@ -205,7 +206,7 @@ export class RecoveryManager {
           task_id: worker.current_task,
           elapsed_ms: elapsed,
           threshold_ms: this.staleWorkerThresholdMs,
-          message: `Worker ${worker.id} stale for ${Math.round(elapsed / 1000)}s`
+          message: SYSTEM_MESSAGE.RECOVERY_WORKER_STALE(worker.id, elapsed)
         });
 
         this.stateManager.writeRecoverySignal(worker.id, worker.current_task, elapsed);
@@ -246,7 +247,7 @@ export class RecoveryManager {
       this.logger.log(RECOVERY_EVENTS.ORPHAN_REQUEUED, {
         task_id: data.id,
         retry_count: retryCount,
-        message: `Safety net: FAILED task found in outbox (retry ${retryCount}/${this.maxTaskRetries}), requeuing to inbox`
+        message: SYSTEM_MESSAGE.RECOVERY_FAILED_OUTBOX_REQUEUE(retryCount, this.maxTaskRetries)
       });
 
       // Move to inbox without incrementing retry count (already counted when failed)
@@ -276,7 +277,7 @@ export class RecoveryManager {
       this.logger.log(RECOVERY_EVENTS.STALE_WORKER_DETECTED, {
         worker_id: worker.id,
         task_id: taskId,
-        message: `Task ${taskId} already moved from active/ (race with complete_task), skipping requeue`
+        message: SYSTEM_MESSAGE.RECOVERY_TASK_ALREADY_MOVED(taskId)
       });
 
       // Still mark worker as disconnected
@@ -291,7 +292,7 @@ export class RecoveryManager {
       task_id: taskId,
       worker_id: worker.id,
       retry: newRetryCount,
-      message: `Stale task requeued to inbox (attempt ${newRetryCount})`
+      message: SYSTEM_MESSAGE.RECOVERY_STALE_TASK_REQUEUED(newRetryCount)
     });
 
     // Mark worker as disconnected (keeps entry for late complete_task)
@@ -316,7 +317,7 @@ export class RecoveryManager {
     this.logger.log(RECOVERY_EVENTS.MONITORING_STARTED, {
       interval_ms: this.monitorIntervalMs,
       stale_threshold_ms: this.staleWorkerThresholdMs,
-      message: `Recovery monitoring started (every ${this.monitorIntervalMs / 1000}s)`
+      message: SYSTEM_MESSAGE.RECOVERY_MONITORING_STARTED(this.monitorIntervalMs)
     });
   }
 
@@ -327,7 +328,7 @@ export class RecoveryManager {
       this._monitorTimer = null;
 
       this.logger.log(RECOVERY_EVENTS.MONITORING_STOPPED, {
-        message: 'Recovery monitoring stopped'
+        message: SYSTEM_MESSAGE.RECOVERY_MONITORING_STOPPED
       });
     }
   }

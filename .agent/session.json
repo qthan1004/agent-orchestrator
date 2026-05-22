@@ -1,5 +1,5 @@
 {
-  "task": "module-boundary-skill-and-runtime-refactor-plan",
-  "status": "created IMEDIALY task chain with per-task Plan Continuation sections; workflow/tools unchanged",
+  "task": "IMEDIALY-runtime-lease-refactor",
+  "status": "IMEDIALY-08 completed and moved done; picking STOP task",
   "updatedAt": "2026-05-22"
 }

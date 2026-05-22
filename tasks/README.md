@@ -2,12 +2,12 @@
 
 | Status | Count |
 |--------|-------|
-| Pending | 26 |
+| Pending | 17 |
 | Processing | 0 |
-| Done | 40 |
-| **Total** | **66** |
+| Done | 51 |
+| **Total** | **68** |
 
-Progress: 40/66 (61%)
+Progress: 51/68 (75%)
 
 ---
 
@@ -52,19 +52,20 @@ Progress: 40/66 (61%)
 
 ### Tier -1: IMEDIALY Runtime Lease Refactor
 
-These tasks are highest priority. Structure refactor comes before mindset/docs alignment.
+Status: **COMPLETED 2026-05-22**. Structure refactor completed before mindset/docs alignment. This immediate chain supersedes the older P2 FIFO order until this plan boundary.
 
 | # | Task | What | Relation |
 |---|------|------|----------|
-| 0 | `IMEDIALY-00-refactor-domain-structure-contracts.md` | Create domain folders/contracts first | next: IMEDIALY-01 |
-| 1 | `IMEDIALY-01-refactor-constants-and-text-boundaries.md` | Move constants/text/timing into domain owners | next: IMEDIALY-02 |
-| 2 | `IMEDIALY-02-refactor-runtime-lease-stores.md` | RuntimeRegistry, HeartbeatStore, PointAllocator, CapacityStore | next: IMEDIALY-03 |
-| 3 | `IMEDIALY-03-refactor-scheduler-runtime-split.md` | Split scheduler policy from runtime process/session lifecycle | next: IMEDIALY-04 |
-| 4 | `IMEDIALY-04-refactor-callback-lease-identity.md` | Add `runtime_id + lease_generation` to assignment/callback/recovery | next: IMEDIALY-05 |
-| 5 | `IMEDIALY-05-refactor-infra-capacity-and-resource-visibility.md` | Dynamic capacity + terminal resource table, no UI | next: IMEDIALY-06 |
-| 6 | `IMEDIALY-06-refactor-local-ollama-isolation.md` | Isolated Ollama runtime endpoint per lease | next: IMEDIALY-07 |
-| 7 | `IMEDIALY-07-refactor-cli-runtime-adapters.md` | Codex CLI + AG CLI runtime adapter boundaries | next: IMEDIALY-08 |
-| 8 | `IMEDIALY-08-mindset-docs-and-task-board-alignment.md` | Docs/skill/task board alignment after structure refactor | final section says STOP |
+| 0 | `IMEDIALY-00-refactor-domain-structure-contracts.md` | Create domain folders/contracts first | done |
+| 1 | `IMEDIALY-01-refactor-constants-and-text-boundaries.md` | Move constants/text/timing into domain owners | done |
+| 2 | `IMEDIALY-02-refactor-runtime-lease-stores.md` | RuntimeRegistry, HeartbeatStore, PointAllocator, CapacityStore | done |
+| 3 | `IMEDIALY-03-refactor-scheduler-runtime-split.md` | Split scheduler policy from runtime process/session lifecycle | done |
+| 4 | `IMEDIALY-04-refactor-callback-lease-identity.md` | Add `runtime_id + lease_generation` to assignment/callback/recovery | done |
+| 5 | `IMEDIALY-05-refactor-infra-capacity-and-resource-visibility.md` | Dynamic capacity + terminal resource table, no UI | done |
+| 6 | `IMEDIALY-06-refactor-local-ollama-isolation.md` | Isolated Ollama runtime endpoint per lease | done |
+| 7 | `IMEDIALY-07-refactor-cli-runtime-adapters.md` | Codex CLI + AG CLI runtime adapter boundaries | done |
+| 8 | `IMEDIALY-08-worker-service-handover-pipeline.md` | Worker service handover pipeline between runtime leases | done |
+| 9 | `IMEDIALY-09-mindset-docs-and-task-board-alignment.md` | Docs/skill/task board alignment after structure refactor | STOP |
 
 ### Tier 0: Core Architecture Alignment (Paused Until IMEDIALY Plan Ends)
 
@@ -117,7 +118,8 @@ IMEDIALY-00 structure contracts
   → IMEDIALY-05 infra capacity/resource visibility
   → IMEDIALY-06 local Ollama isolation
   → IMEDIALY-07 CLI runtime adapters
-  → IMEDIALY-08 docs/task-board alignment
+  → IMEDIALY-08 worker service handover pipeline
+  → IMEDIALY-09 docs/task-board alignment
   → STOP
 ```
 

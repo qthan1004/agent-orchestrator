@@ -49,6 +49,7 @@ export interface InfraResourceSnapshot {
   dispatch_loop: InfraDispatchLoopStatus;
   queue: InfraQueueSnapshot;
   active_workers: InfraWorkerSnapshot[];
+  capacity?: VerifiedInfraCapacity;
   ollama: InfraOllamaSnapshot;
   vram: InfraVramSnapshot;
   ram: InfraMemorySnapshot;
@@ -63,4 +64,37 @@ export interface InfraResourceMonitorDeps {
   getVramStatus(): InfraVramSnapshot;
   checkOllamaHealth(): Promise<boolean>;
   listOllamaModels(): Promise<string[]>;
+  verifyCapacity?(): VerifiedInfraCapacity;
+}
+
+export interface InfraCapacityResourceEstimate {
+  resource: 'vram' | 'ram' | 'cpu' | 'worker_slot';
+  amount: number;
+  unit: 'mb' | 'cores' | 'count';
+}
+
+export interface InfraCapacitySnapshot {
+  checked_at: string;
+  available_worker_slots: number;
+  available_vram_mb?: number;
+  available_ram_mb: number;
+  cpu_load_1m: number;
+}
+
+export interface InfraCapacityRequest {
+  worker_slots: number;
+  estimated_vram_mb?: number;
+  estimated_ram_mb?: number;
+  estimated_cpu_cores?: number;
+}
+
+export interface VerifiedInfraCapacity {
+  provider: 'local-gpu' | 'local-cpu' | 'cli' | 'cloud';
+  total_vram_mb?: number;
+  available_vram_mb?: number;
+  total_ram_mb?: number;
+  available_ram_mb?: number;
+  max_local_runtimes: number;
+  supported_backends: string[];
+  checked_at: string;
 }

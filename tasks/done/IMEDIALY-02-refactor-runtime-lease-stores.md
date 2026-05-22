@@ -47,13 +47,13 @@ npm run build
 
 ## Done Criteria
 
-- [ ] One active runtime record per active task attempt
-- [ ] Heartbeat store tracks `last_seen_at`, `stale_at`, `last_health_check_at`, `next_health_check_at`
-- [ ] Point allocator reserves/releases by runtime lease
-- [ ] Capacity store reads verified capacity, not hardcoded GPU/VRAM truth
-- [ ] Existing behavior remains buildable
-- [ ] `npm run typecheck` passes
-- [ ] `npm run build` passes
+- [x] One active runtime record per active task attempt
+- [x] Heartbeat store tracks `last_seen_at`, `stale_at`, `last_health_check_at`, `next_health_check_at`
+- [x] Point allocator reserves/releases by runtime lease
+- [x] Capacity store reads verified capacity, not hardcoded GPU/VRAM truth
+- [x] Existing behavior remains buildable
+- [x] `npm run typecheck` passes
+- [x] `npm run build` passes
 
 ### Plan Continuation
 

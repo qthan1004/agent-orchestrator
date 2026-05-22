@@ -8,7 +8,7 @@
 - **Priority:** 0
 - **Plan-ID:** IMEDIALY-runtime-lease-refactor
 - **Plan-Order:** 07
-- **Plan-Next:** IMEDIALY-08-mindset-docs-and-task-board-alignment.md
+- **Plan-Next:** IMEDIALY-08-worker-service-handover-pipeline.md
 - **Ref:** `dev-docs/2026-05-22_plan_runtime-lease-refactor.md`
 
 ## Constraints
@@ -44,18 +44,18 @@ npm run build
 
 ## Done Criteria
 
-- [ ] Codex CLI adapter owns Codex process/session lifecycle
-- [ ] AG CLI adapter owns AG process/session lifecycle
-- [ ] High-point task can route to CLI pool by contract
-- [ ] Local and CLI runtime leases can coexist
-- [ ] Server modules do not import CLI adapter internals
-- [ ] `npm run typecheck` passes
-- [ ] `npm run build` passes
+- [x] Codex CLI adapter owns Codex process/session lifecycle
+- [x] AG CLI adapter owns AG process/session lifecycle
+- [x] High-point task can route to CLI pool by contract
+- [x] Local and CLI runtime leases can coexist
+- [x] Server modules do not import CLI adapter internals
+- [x] `npm run typecheck` passes
+- [x] `npm run build` passes
 
 ### Plan Continuation
 
 After this task is completed and moved to `tasks/done/`, call `/pick-task` again.
 
-Expected next task in this plan: `IMEDIALY-08-mindset-docs-and-task-board-alignment.md`.
+Expected next task in this plan: `IMEDIALY-08-worker-service-handover-pipeline.md`.
 
 Do not pick tasks outside `Plan-ID: IMEDIALY-runtime-lease-refactor` until this plan reaches `STOP`.

@@ -9,6 +9,7 @@
 > **Review:** See `phase2_review.md` + `phase2_technical_supplement.md` for detailed analysis
 > **2026 Review:** See `2026-05-02_review_phase2-vs-2026-industry.md`
 > **2026-05-22 Correction:** See `2026-05-22_plan_runtime-lease-refactor.md`
+> **Implementation note:** IMEDIALY runtime lease refactor supersedes older worker-count and shared-Ollama assumptions in this document.
 
 ---
 
@@ -384,7 +385,7 @@ Allocator rejects any plan whose summed active estimates exceed verified availab
 2. KEEP:  keep_alive: 0 → unload IMMEDIATELY after response
 3. UNLOAD: POST /api/generate { model, prompt:"", keep_alive: 0 }
            OR: ollama stop <model>
-4. VERIFY: ollama ps → see loaded models | nvidia-smi → see actual VRAM
+4. VERIFY: infra verifier snapshot → see loaded models, VRAM/RAM/CPU, and verified capacity
 ```
 
 **Why NOT Docker:** Ollama is already a daemon process managing model isolation. Workers are just Node.js scripts calling Ollama API. Docker adds ~200-500MB overhead, complex GPU passthrough, and slow cold-starts. `child_process.spawn` is zero-overhead and instant.
@@ -420,7 +421,7 @@ export const SERVER_PROFILES = {
     staleThresholdMs: 15_000,         // 15 seconds
     autoKillWorker: true,
     workerType: 'LOCAL_LLM',          // ephemeral
-    maxConcurrentWorkers: 1,          // 1 for 9B, 2 for 4B
+    maxConcurrentWorkers: derived from verified runtime capacity
     roleManagement: 'strict',
   }
 } as const;
@@ -521,7 +522,7 @@ Layer 1 — Process Status (event-driven):
 
 Layer 2 — Ollama Status (every 30s):
   GET http://localhost:11434/api/tags → Ollama alive?
-  ollama ps (via execSync) → which models loaded? VRAM?
+  infra/resource-monitor snapshot → loaded models, VRAM, RAM, CPU, verified capacity
 
 Layer 3 — Infra Capacity Monitor (every 30s):
   infra verifier refreshes available runtime capacity

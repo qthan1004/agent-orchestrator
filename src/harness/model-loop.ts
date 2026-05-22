@@ -5,65 +5,19 @@ import { ToolExecutor } from '../worker/tool-executor.js';
 import { TokenCounter } from '../worker/token-counter.js';
 import { SYSTEM_MESSAGE } from '../constants.js';
 import { UnifiedCheckpoint } from '../models/checkpoint.js';
+import {
+  HANDOVER_PROMPT,
+  HARNESS_LIMITS,
+  HARNESS_LOG,
+  HARNESS_STATUS,
+  HARNESS_SUMMARY,
+  HARNESS_TEXT,
+} from './constants.js';
 
-/** Maximum number of tool-call loop iterations before aborting. */
-const MAX_TOOL_CALLS = 50;
-const HARNESS_CHAT_TIMEOUT_MS = 5 * 60 * 1000;
-const TOOL_PREVIEW_LIMIT = 160;
+export const HarnessStatus = HARNESS_STATUS;
+export type HarnessStatus = (typeof HARNESS_STATUS)[keyof typeof HARNESS_STATUS];
 
-export enum HarnessStatus {
-  COMPLETE = 'complete',
-  CONTEXT_EXCEEDED = 'context_exceeded',
-  ERROR = 'error',
-  MAX_ITERATIONS = 'max_iterations'
-}
-
-const HARNESS_SUMMARY = {
-  DEFAULT_COMPLETE: 'Task completed',
-  NO_TOOL_CALLS: 'Failed: No tool calls for 3 consecutive turns',
-  MALFORMED_JSON: 'Failed: Malformed JSON 3 times',
-  SCOPE_VIOLATION: 'scope_violation',
-  CONTEXT_HANDOVER: 'Context {percent}% - handover generated'
-} as const;
-
-const HANDOVER_PROMPT = [
-  'STOP. Your context window is almost full.',
-  'Write a handover report for the next worker:',
-  '',
-  '## Completed',
-  '- List files modified and specific changes made',
-  '',
-  '## In Progress',
-  '- What step/task is partially done?',
-  '',
-  '## Not Started',
-  '- Remaining steps from the original task',
-  '',
-  '## Next Steps',
-  '- Where should the next worker start?',
-  '- Any important notes or caveats?',
-  '',
-  'DO NOT call any tools. Write text report only.'
-] as const;
-
-const HARNESS_TEXT = {
-  ATTEMPTED_FIX_NONE: 'None',
-  NO_TOOL_CALLS_ERROR: 'No tool calls',
-  NO_TOOL_CALLS_HYPOTHESIS: 'LLM failed to output tool calls 3 times',
-  NO_TOOL_CALLS_PROMPT: "You did not call any tools. You must use a tool to progress. If the task is done, use the 'complete_task' tool.",
-  MALFORMED_JSON_ERROR: 'Malformed JSON',
-  MALFORMED_JSON_HYPOTHESIS: 'LLM consistently fails to format JSON correctly',
-  MALFORMED_JSON_ATTEMPTED_FIX: 'Retried 3 times',
-  JSON_FIX_PROMPT: 'Please fix the JSON formatting.',
-  SCOPE_VIOLATION_HYPOTHESIS: 'Worker attempted to write outside declared target_files',
-  SCOPE_VIOLATION_ATTEMPTED_FIX: 'Execution stopped immediately after scope violation',
-  REFLEXION_HYPOTHESIS: 'Tools kept failing despite retries',
-  REFLEXION_ATTEMPTED_FIX: 'Reflexion loop maxed out at 2',
-  FATAL_HYPOTHESIS: 'Fatal exception in runner loop',
-  TOKEN_CHECKPOINT_HYPOTHESIS: 'Token limit checkpoint hit during error'
-} as const;
-
-function truncateForLog(value: string, maxLength: number = TOOL_PREVIEW_LIMIT): string {
+function truncateForLog(value: string, maxLength: number = HARNESS_LIMITS.TOOL_PREVIEW_LIMIT): string {
   return value.length > maxLength ? `${value.slice(0, maxLength)}...` : value;
 }
 
@@ -129,17 +83,17 @@ export class LLMHarness {
       let consecutiveMalformedJson = 0;
       let reflexionCount = 0;
 
-      console.log(`[Harness] Model loop started: model=${this.config.model}, tools=${this.config.tools.length}.`);
+      console.log(HARNESS_LOG.MODEL_LOOP_STARTED(this.config.model, this.config.tools.length));
 
-      while (loopCount < MAX_TOOL_CALLS) {
+      while (loopCount < HARNESS_LIMITS.MAX_TOOL_CALLS) {
         loopCount++;
 
-        console.log(`[Harness] Turn ${loopCount}/${MAX_TOOL_CALLS}: waiting for model response (${this.config.model}).`);
+        console.log(HARNESS_LOG.TURN_WAITING(loopCount, HARNESS_LIMITS.MAX_TOOL_CALLS, this.config.model));
         const response = await this.config.adapter.chat({
           model: this.config.model,
           messages,
           tools: this.config.tools,
-          timeoutMs: HARNESS_CHAT_TIMEOUT_MS
+          timeoutMs: HARNESS_LIMITS.CHAT_TIMEOUT_MS
         });
 
         this.tokenCounter.addUsage(response.tokenUsage.promptTokens, response.tokenUsage.completionTokens);
@@ -147,17 +101,17 @@ export class LLMHarness {
 
         const usage = this.getContextUsage();
         const toolCalls = response.message.tool_calls;
-        console.log(`[Harness] Turn ${loopCount}: response received, context=${Math.round(usage.percent)}%, tool_calls=${toolCalls?.length || 0}.`);
+        console.log(HARNESS_LOG.TURN_RECEIVED(loopCount, Math.round(usage.percent), toolCalls?.length || 0));
 
         if (usage.percent >= this.config.contextThreshold * 100) {
-          console.warn(`[Harness] Context threshold reached (${Math.round(usage.percent)}%). Generating handover.`);
+          console.warn(HARNESS_LOG.CONTEXT_THRESHOLD(Math.round(usage.percent)));
           return await this.generateHandover(messages);
         }
 
         if (!toolCalls || toolCalls.length === 0) {
           consecutiveNoTools++;
-          console.warn(`[Harness] Turn ${loopCount}: no tool call (${consecutiveNoTools}/3).`);
-          if (consecutiveNoTools >= 3) {
+          console.warn(HARNESS_LOG.NO_TOOL_CALL(loopCount, consecutiveNoTools, HARNESS_LIMITS.NO_TOOL_CALL_LIMIT));
+          if (consecutiveNoTools >= HARNESS_LIMITS.NO_TOOL_CALL_LIMIT) {
             return this.errorResult(HARNESS_SUMMARY.NO_TOOL_CALLS, {
               error: HARNESS_TEXT.NO_TOOL_CALLS_ERROR,
               hypothesis: HARNESS_TEXT.NO_TOOL_CALLS_HYPOTHESIS,
@@ -174,7 +128,7 @@ export class LLMHarness {
 
         for (const call of toolCalls) {
           if (call.function.name === 'complete_task') {
-            console.log(`[Harness] complete_task requested by model for ${this.config.checkpoint?.taskId || 'unknown task'}.`);
+            console.log(HARNESS_LOG.COMPLETE_TASK(this.config.checkpoint?.taskId || HARNESS_TEXT.UNKNOWN_TASK));
             let summary = HARNESS_SUMMARY.DEFAULT_COMPLETE;
             let changelog: any = undefined;
             try {
@@ -199,8 +153,8 @@ export class LLMHarness {
             consecutiveMalformedJson = 0;
           } catch (err: any) {
             consecutiveMalformedJson++;
-            console.warn(`[Harness] Tool ${call.function.name} arguments invalid (${consecutiveMalformedJson}/3): ${err.message}`);
-            if (consecutiveMalformedJson >= 3) {
+            console.warn(HARNESS_LOG.TOOL_ARGUMENTS_INVALID(call.function.name, consecutiveMalformedJson, HARNESS_LIMITS.MALFORMED_JSON_LIMIT, err.message));
+            if (consecutiveMalformedJson >= HARNESS_LIMITS.MALFORMED_JSON_LIMIT) {
               return this.errorResult(HARNESS_SUMMARY.MALFORMED_JSON, {
                 error: HARNESS_TEXT.MALFORMED_JSON_ERROR,
                 hypothesis: HARNESS_TEXT.MALFORMED_JSON_HYPOTHESIS,
@@ -208,21 +162,21 @@ export class LLMHarness {
               });
             }
             hasError = true;
-            toolErrorDiagnosis = `Invalid JSON arguments: ${err.message}`;
+            toolErrorDiagnosis = HARNESS_TEXT.INVALID_JSON_ARGUMENTS(err.message);
             messages.push({
               role: ChatRole.TOOL,
-              content: `Error: ${toolErrorDiagnosis}. ${HARNESS_TEXT.JSON_FIX_PROMPT}`,
+              content: HARNESS_TEXT.TOOL_ERROR_WITH_FIX(toolErrorDiagnosis),
               name: call.function.name,
               tool_call_id: call.id
             });
             continue;
           }
 
-          console.log(`[Harness] Tool ${call.function.name} start${formatToolCallPreview(call.function.name, args)}.`);
+          console.log(HARNESS_LOG.TOOL_START(call.function.name, formatToolCallPreview(call.function.name, args)));
           const result = await this.config.toolExecutor.execute(call.function.name, args);
 
           if (result.error) {
-            console.warn(`[Harness] Tool ${call.function.name} failed: ${truncateForLog(result.error, 240)}`);
+            console.warn(HARNESS_LOG.TOOL_FAILED(call.function.name, truncateForLog(result.error, HARNESS_LIMITS.TOOL_ERROR_PREVIEW_LIMIT)));
             if (result.error.startsWith('SCOPE_VIOLATION:')) {
               return this.errorResult(HARNESS_SUMMARY.SCOPE_VIOLATION, {
                 error: result.error,
@@ -233,12 +187,12 @@ export class LLMHarness {
             hasError = true;
             toolErrorDiagnosis = result.error;
           } else {
-            console.log(`[Harness] Tool ${call.function.name} ok (${result.output?.length || 0} chars).`);
+            console.log(HARNESS_LOG.TOOL_OK(call.function.name, result.output?.length || 0));
           }
 
           messages.push({
             role: ChatRole.TOOL,
-            content: result.error ? `Error: ${result.error}` : (result.output || 'Success'),
+            content: result.error ? HARNESS_TEXT.TOOL_ERROR_CONTENT(result.error) : (result.output || HARNESS_TEXT.TOOL_SUCCESS),
             name: call.function.name,
             tool_call_id: call.id
           });
@@ -246,15 +200,18 @@ export class LLMHarness {
 
         if (hasError) {
           reflexionCount++;
-          console.warn(`[Harness] Reflexion retry ${reflexionCount}/2 after tool failure.`);
-          if (reflexionCount > 2) {
-            return this.errorResult(`Reflexion failed: ${toolErrorDiagnosis}`, {
+          console.warn(HARNESS_LOG.REFLEXION_RETRY(reflexionCount, HARNESS_LIMITS.REFLEXION_LIMIT));
+          if (reflexionCount > HARNESS_LIMITS.REFLEXION_LIMIT) {
+            return this.errorResult(HARNESS_SUMMARY.REFLEXION_FAILED(toolErrorDiagnosis), {
               error: toolErrorDiagnosis,
               hypothesis: HARNESS_TEXT.REFLEXION_HYPOTHESIS,
               attempted_fix: HARNESS_TEXT.REFLEXION_ATTEMPTED_FIX
             });
           }
-          messages.push({ role: ChatRole.USER, content: `Tool execution failed. Diagnose the error and try a different approach. You have ${3 - reflexionCount} attempts left before aborting.` });
+          messages.push({
+            role: ChatRole.USER,
+            content: HARNESS_TEXT.TOOL_FAILURE_RETRY_PROMPT(HARNESS_LIMITS.REFLEXION_LIMIT + 1 - reflexionCount),
+          });
         } else {
           reflexionCount = 0;
         }
@@ -267,17 +224,17 @@ export class LLMHarness {
 
       return {
         status: HarnessStatus.MAX_ITERATIONS,
-        summary: `Failed: Max tool calls (${MAX_TOOL_CALLS}) exceeded`,
+        summary: HARNESS_SUMMARY.MAX_TOOL_CALLS(HARNESS_LIMITS.MAX_TOOL_CALLS),
         tokenUsage: this.getContextUsage(),
         errorContext: {
-          error: `Max tool calls (${MAX_TOOL_CALLS}) exceeded`,
+          error: HARNESS_SUMMARY.MAX_TOOL_CALLS(HARNESS_LIMITS.MAX_TOOL_CALLS),
           hypothesis: HARNESS_TEXT.FATAL_HYPOTHESIS,
           attempted_fix: HARNESS_TEXT.ATTEMPTED_FIX_NONE
         }
       };
     } catch (err: any) {
       console.error(SYSTEM_MESSAGE.AGENT_ERROR, err.message);
-      return this.errorResult(`Failed: ${err.message}`, {
+      return this.errorResult(HARNESS_SUMMARY.FAILED(err.message), {
         error: err.message,
         hypothesis: HARNESS_TEXT.FATAL_HYPOTHESIS,
         attempted_fix: HARNESS_TEXT.ATTEMPTED_FIX_NONE
@@ -310,11 +267,11 @@ export class LLMHarness {
       content: HANDOVER_PROMPT.join('\n')
     });
 
-    console.log(`[Harness] Requesting handover from model (${this.config.model}).`);
+    console.log(HARNESS_LOG.REQUESTING_HANDOVER(this.config.model));
     const response = await this.config.adapter.chat({
       model: this.config.model,
       messages,
-      timeoutMs: HARNESS_CHAT_TIMEOUT_MS
+      timeoutMs: HARNESS_LIMITS.CHAT_TIMEOUT_MS
     });
 
     this.tokenCounter.addUsage(response.tokenUsage.promptTokens, response.tokenUsage.completionTokens);
@@ -369,7 +326,7 @@ export class LLMHarness {
       }
       fs.writeFileSync(cpPath, JSON.stringify(cpData, null, 2), 'utf-8');
     } catch (e: any) {
-      console.error(SYSTEM_MESSAGE.AGENT_ERROR, `Failed to write checkpoint: ${e.message}`);
+      console.error(SYSTEM_MESSAGE.AGENT_ERROR, HARNESS_LOG.CHECKPOINT_WRITE_FAILED(e.message));
     }
   }
 }

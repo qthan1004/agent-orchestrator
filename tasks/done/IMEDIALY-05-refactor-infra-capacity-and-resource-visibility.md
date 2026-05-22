@@ -47,13 +47,13 @@ npm run build
 
 ## Done Criteria
 
-- [ ] Local capacity is measured dynamically
-- [ ] Model/runtime profiles are estimates only
-- [ ] Terminal table shows queue, workers, backend health, loaded models, VRAM, RAM, and CPU load
-- [ ] Server does not own rendering logic
-- [ ] No UI added
-- [ ] `npm run typecheck` passes
-- [ ] `npm run build` passes
+- [x] Local capacity is measured dynamically
+- [x] Model/runtime profiles are estimates only
+- [x] Terminal table shows queue, workers, backend health, loaded models, VRAM, RAM, and CPU load
+- [x] Server does not own rendering logic
+- [x] No UI added
+- [x] `npm run typecheck` passes
+- [x] `npm run build` passes
 
 ### Plan Continuation
 

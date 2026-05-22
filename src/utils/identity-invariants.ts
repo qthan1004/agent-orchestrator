@@ -1,5 +1,6 @@
 import { TASK_STATUS, WORKER_STATUS } from '../constants.js';
-import type { TaskIdentityRecord, WorkerInfo } from '../models/index.js';
+import type { WorkerInfo } from '../models/index.js';
+import type { TaskIdentityRecord } from '../task/index.js';
 import type { WorkspaceMetadata } from './workspace-registry.js';
 
 const FORBIDDEN_TASK_BODY_FIELDS = new Set([

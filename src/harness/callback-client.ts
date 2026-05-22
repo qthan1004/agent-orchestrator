@@ -1,10 +1,11 @@
 import { SYSTEM_MESSAGE } from '../constants.js';
-
-const CALLBACK_TIMEOUT_MS = 30_000;
+import { CALLBACK_TEXT, HARNESS_LIMITS } from './constants.js';
 
 export interface CompletionCallbackInput {
   workerId: string;
   taskId: string;
+  runtimeId: string;
+  leaseGeneration: number;
   summary: string;
   success: boolean;
   errorContext?: unknown;
@@ -22,7 +23,7 @@ export class CallbackClient {
 
   public async complete(input: CompletionCallbackInput): Promise<void> {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), CALLBACK_TIMEOUT_MS);
+    const timeoutId = setTimeout(() => controller.abort(), HARNESS_LIMITS.CALLBACK_TIMEOUT_MS);
 
     try {
       const response = await fetch(this.callbackUrl, {
@@ -32,6 +33,8 @@ export class CallbackClient {
         body: JSON.stringify({
           worker_id: input.workerId,
           task_id: input.taskId,
+          runtime_id: input.runtimeId,
+          lease_generation: input.leaseGeneration,
           summary: input.summary,
           success: input.success,
           error_context: input.errorContext,
@@ -44,15 +47,15 @@ export class CallbackClient {
       const responseBody = this.parseResponse(responseText);
 
       if (!response.ok) {
-        throw new Error(`${response.status} ${response.statusText}: ${responseText || 'empty response'}`);
+        throw new Error(`${response.status} ${response.statusText}: ${responseText || CALLBACK_TEXT.EMPTY_RESPONSE}`);
       }
 
       if (responseBody.accepted === false) {
-        throw new Error(responseBody.error || responseText || 'completion callback rejected');
+        throw new Error(responseBody.error || responseText || CALLBACK_TEXT.REJECTED);
       }
 
       if (responseBody.accepted !== true) {
-        throw new Error(responseBody.error || responseText || 'completion callback missing accepted=true');
+        throw new Error(responseBody.error || responseText || CALLBACK_TEXT.MISSING_ACCEPTED);
       }
     } catch (err) {
       clearTimeout(timeoutId);

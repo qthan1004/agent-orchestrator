@@ -205,6 +205,10 @@ export const POLL_DEFAULTS = {
 export type PollDefaultValue =
   (typeof POLL_DEFAULTS)[keyof typeof POLL_DEFAULTS];
 
+export const SERVER_RUNTIME_DEFAULTS = {
+  ONE_SHOT_IDLE_MS: 2_000,
+} as const;
+
 export const SYSTEM_MESSAGE = {
   // Setup & Bootstrap
   BOOTSTRAP_FAILED: 'Failed to create directories:',
@@ -213,9 +217,22 @@ export const SYSTEM_MESSAGE = {
   WORKERS_CLEANED: (count: number) => `Cleaned ${count} disconnected worker(s) from previous session.`,
   HYBRID_ACTIVATED: 'Hybrid runtime activated: Dispatch loop and resource monitoring started.',
   JSON_PARSE_ERROR: (method: string, url: string) => `JSON parse error from ${method} ${url}:`,
+  PRIMARY_WORKSPACE: (name: string, id: string) => `  Primary workspace: ${name} [${id}]`,
+  WORKSPACE_PATH: (workspacePath: string) => `    Path: ${workspacePath}`,
+  WORKSPACE_DIRS_CREATED: (created: number, skipped: number) => `    Created ${created} workspace directories (${skipped} existed).`,
+  OLLAMA_NOT_AVAILABLE: '  ⚠ Ollama not available — dispatch loop will not spawn workers until Ollama is reachable.',
   RECOVERY_CLEAN: 'clean',
   RECOVERY_ORPHANS: (count: number) => `recovered ${count} orphans`,
   SHUTDOWN_RECEIVED: (signal: string) => `\nReceived ${signal}. Shutting down gracefully...`,
+  RECOVERY_ORPHAN_RELEASED: 'Orphan task released from active/ to inbox without retry increment',
+  RECOVERY_PROCESS_ALIVE_EVENT: 'STALE_WORKER_PROCESS_ALIVE',
+  RECOVERY_PROCESS_ALIVE: (workerId: string) => `Worker ${workerId} missed registry heartbeat but process is still alive; refreshed heartbeat and skipped recovery`,
+  RECOVERY_WORKER_STALE: (workerId: string, elapsedMs: number) => `Worker ${workerId} stale for ${Math.round(elapsedMs / 1000)}s`,
+  RECOVERY_FAILED_OUTBOX_REQUEUE: (retryCount: number, maxRetries: number) => `Safety net: FAILED task found in outbox (retry ${retryCount}/${maxRetries}), requeuing to inbox`,
+  RECOVERY_TASK_ALREADY_MOVED: (taskId: string) => `Task ${taskId} already moved from active/ (race with complete_task), skipping requeue`,
+  RECOVERY_STALE_TASK_REQUEUED: (retryCount: number) => `Stale task requeued to inbox (attempt ${retryCount})`,
+  RECOVERY_MONITORING_STARTED: (intervalMs: number) => `Recovery monitoring started (every ${intervalMs / 1000}s)`,
+  RECOVERY_MONITORING_STOPPED: 'Recovery monitoring stopped',
   SETUP_BANNER: '\nMCP Orchestrator Setup',
   SETUP_INVALID_PROFILE: 'Invalid profile. Hybrid runtime is always enabled.',
   SETUP_CUSTOM_APPLIED: '\n  Custom config applied (session-only)\n',
@@ -236,6 +253,34 @@ export const SYSTEM_MESSAGE = {
   DISPATCH_MODEL_UNLOADED: (model: string) => `[DispatchLoop] Unloaded model ${model} to free VRAM.`,
   DISPATCH_MODEL_UNLOAD_FAILED: (model: string, error: string) => `[DispatchLoop] Failed to unload model ${model}: ${error}`,
   DISPATCH_ERROR: (error: string) => `[DispatchLoop] Error in loop: ${error}`,
+
+  // Worker completion API
+  WORKER_COMPLETE_INVALID_PAYLOAD: 'Invalid worker completion payload',
+  WORKER_COMPLETE_UNKNOWN_WORKER: (workerId: string) => `Unknown worker: ${workerId}`,
+  WORKER_COMPLETE_NOT_ASSIGNED: (workerId: string, taskId: string) => `Worker ${workerId} is not assigned to task ${taskId}`,
+  WORKER_COMPLETE_LEASE_MISMATCH: (workerId: string, taskId: string, runtimeId: string, leaseGeneration: number) =>
+    `Worker ${workerId} callback for task ${taskId} does not match active runtime lease ${runtimeId} generation ${leaseGeneration}`,
+  WORKER_COMPLETE_RECEIVED: (status: string, workerId: string, taskId: string, summary: string) => `[WorkerComplete] Received ${status} from ${workerId}/${taskId}: ${summary}`,
+  WORKER_COMPLETE_NO_ACTIVE_HARNESS: (workerId: string, taskId: string) => `[WorkerComplete] Completion accepted for ${workerId}/${taskId}, but no active harness monitor was found.`,
+  WORKER_COMPLETE_HANDOVER_REQUEUED: (taskId: string, respawnCount: number) => `[WorkerComplete] Task ${taskId} requeued with handover (respawn ${respawnCount}).`,
+  WORKER_COMPLETE_STATUS_SUCCESS: 'success',
+  WORKER_COMPLETE_STATUS_FAILURE: 'failure',
+
+  // Server lifecycle
+  SERVER_UNHANDLED_ERROR: 'Unhandled error:',
+  SERVER_INTERNAL_ERROR: 'Internal server error',
+  SERVER_BANNER_TOP: '┌───────────────────────────────────┐',
+  SERVER_BANNER_LISTENING: (portStr: string) => `│  MCP Server listening :${portStr}       │`,
+  SERVER_BANNER_TRANSPORT: '│  Transport: Streamable HTTP       │',
+  SERVER_BANNER_ENDPOINT: (route: string) => `│  Endpoint: ${route.padEnd(23)}│`,
+  SERVER_BANNER_HEALTH: (route: string) => `│  Health: ${route.padEnd(25)}│`,
+  SERVER_BANNER_VERSION: (version: string) => `│  Version: ${version.padEnd(24)}│`,
+  SERVER_BANNER_BOTTOM: '└───────────────────────────────────┘',
+  SERVER_RECOVERY_STATUS: (status: string) => `  Recovery: ${status}`,
+  SHUTDOWN_KILLING_WORKER: (workerId: string, pid: number) => `[Shutdown] Killing active worker ${workerId} (PID ${pid})...`,
+  SHUTDOWN_UNLOADED_MODEL: (model: string) => `[Shutdown] Unloaded model ${model} from VRAM.`,
+  SHUTDOWN_UNLOAD_FAILED: (error: string) => `[Shutdown] Failed to unload models: ${error}`,
+  ONE_SHOT_ENABLED: (idleMs: number) => `[OneShot] Enabled. Server will exit after observed work drains for ${idleMs}ms.`,
 
   // VRAM Manager
   VRAM_UNLOADED: (model: string) => `[VRAM] Unloaded model: ${model}`,

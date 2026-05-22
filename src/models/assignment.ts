@@ -83,38 +83,12 @@ export interface RegisterWorkerResponse {
   contract_mode: typeof ASSIGNMENT_CONTRACT_MODE;
 }
 
-export interface AssignmentPayload {
-  task_id: string;
-  module?: string;
-  action: string;
-  verification?: string;
-  workspace: WorkspaceScopedContext;
-  done_criteria?: string[];
-  metadata?: Record<string, unknown>;
-}
-
-export interface DispatchRoutingMetadata {
-  mode: 'lite' | 'standard' | 'cloud';
-  model: string;
-  max_workers: number;
-  estimated_vram_gb: number;
-}
-
-export interface AssignmentEnvelope {
-  operation: typeof ASSIGNMENT_OPERATIONS.ASSIGN_TASK;
-  worker_id: string;
-  task_id: string;
-  workspace: WorkspaceScopedContext;
-  payload: AssignmentPayload;
-  routing: DispatchRoutingMetadata;
-  assigned_at: string;
-}
-
-export interface AssignTaskRequest {
-  worker_id: string;
-  task_id: string;
-  payload: AssignmentPayload;
-}
+export type {
+  AssignmentEnvelope,
+  AssignmentPayload,
+  AssignTaskRequest,
+  DispatchRoutingMetadata,
+} from '../scheduler/models.js';
 
 export interface AckAssignmentRequest {
   worker_id: string;

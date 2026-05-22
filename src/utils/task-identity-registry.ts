@@ -1,7 +1,7 @@
 import path from 'path';
 import { TASK_STATUS, type TaskStatusValue } from '../constants.js';
 import type { QueueTask } from '../mcp-server/task-queue.js';
-import type { TaskIdentityRecord } from '../models/index.js';
+import type { TaskIdentityRecord } from '../task/index.js';
 import { ensureDir, readJSON, writeJSON } from './file-backend.js';
 import { assertTaskRegistryRecordHasNoBody } from './identity-invariants.js';
 

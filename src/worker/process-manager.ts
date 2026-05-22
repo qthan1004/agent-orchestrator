@@ -1,60 +1,28 @@
 import { spawn as spawnProcess } from 'child_process';
-import type { ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
 import path from 'path';
 import { RECOVERY_DEFAULTS, SYSTEM_MESSAGE } from '../constants.js';
+import type {
+  RuntimeProcessInfo,
+  RuntimeProcessManagerOptions,
+  RuntimeProcessOutcome,
+  RuntimeProcessPayload,
+  RuntimeSpawnOptions,
+  SpawnedRuntimeProcess,
+} from '../runtime/index.js';
+import { RUNTIME_PROCESS_TEXT, RUNTIME_TIMING_DEFAULTS } from '../runtime/index.js';
 import { deriveNextHealthCheckDelayMs } from '../utils/lifecycle-timing.js';
-
-const DEFAULT_WORKER_MAX_RUNTIME_MS = 5 * 60 * 1000;
-const FORCE_KILL_GRACE_MS = 3_000;
 
 function getDefaultHarnessEntrypoint(): string {
   return path.join(process.cwd(), 'dist', 'harness', 'index.js');
 }
 
-export interface WorkerPayload {
-  worker_id: string;
-  task_id?: string;
-  [key: string]: any;
-}
-
-export interface WorkerProcessInfo {
-  pid: number;
-  worker_id: string;
-  task_id?: string;
-  started_at: string;
-  process: ChildProcess;
-  timeoutTimer?: NodeJS.Timeout;
-  healthCheckTimer?: NodeJS.Timeout;
-  completion: Promise<WorkerProcessOutcome>;
-}
-
-export interface SpawnOptions {
-  timeoutMs?: number;
-  scriptPath?: string;
-}
-
-export interface WorkerProcessManagerOptions {
-  staleWorkerThresholdMs?: number;
-}
-
-export type WorkerProcessExit = {
-  type: 'exit';
-  code: number | null;
-  signal: NodeJS.Signals | null;
-};
-
-export type WorkerProcessTimeout = {
-  type: 'timeout';
-};
-
-export type WorkerProcessOutcome = WorkerProcessExit | WorkerProcessTimeout;
-
-export interface SpawnedWorker {
-  pid: number;
-  worker_id: string;
-  completion: Promise<WorkerProcessOutcome>;
-}
+export type WorkerPayload = RuntimeProcessPayload;
+export type WorkerProcessInfo = RuntimeProcessInfo;
+export type SpawnOptions = RuntimeSpawnOptions;
+export type WorkerProcessManagerOptions = RuntimeProcessManagerOptions;
+export type WorkerProcessOutcome = RuntimeProcessOutcome;
+export type SpawnedWorker = SpawnedRuntimeProcess;
 
 export class WorkerProcessManager extends EventEmitter {
   private activeWorkers: Map<number, WorkerProcessInfo>;
@@ -74,19 +42,20 @@ export class WorkerProcessManager extends EventEmitter {
    */
   spawn(payload: WorkerPayload, options: SpawnOptions = {}): SpawnedWorker {
     const scriptPath = options.scriptPath || getDefaultHarnessEntrypoint();
-    const timeoutMs = options.timeoutMs || DEFAULT_WORKER_MAX_RUNTIME_MS;
+    const timeoutMs = options.timeoutMs || RUNTIME_TIMING_DEFAULTS.DEFAULT_WORKER_MAX_RUNTIME_MS;
 
     const child = spawnProcess(process.execPath, [scriptPath], {
       stdio: ['pipe', 'pipe', 'pipe']
     });
 
     if (child.pid === undefined) {
-      throw new Error('Failed to spawn child process');
+      throw new Error(RUNTIME_PROCESS_TEXT.SPAWN_FAILED);
     }
 
     const pid = child.pid;
     const worker_id = payload.worker_id;
     const task_id = payload.task_id;
+    const runtime_identity = payload.runtime_identity;
     const startedAt = new Date().toISOString();
 
     let completionSettled = false;
@@ -104,7 +73,7 @@ export class WorkerProcessManager extends EventEmitter {
       const lines = data.toString().trim();
       if (lines) {
         for (const line of lines.split('\n')) {
-          console.log(`  │ \x1b[36m[${worker_id}]\x1b[0m ${line}`);
+          console.log(RUNTIME_PROCESS_TEXT.STDOUT_LINE(worker_id, line));
         }
       }
     });
@@ -113,7 +82,7 @@ export class WorkerProcessManager extends EventEmitter {
       const lines = data.toString().trim();
       if (lines) {
         for (const line of lines.split('\n')) {
-          console.error(`  │ \x1b[33m[${worker_id}]\x1b[0m ${line}`);
+          console.error(RUNTIME_PROCESS_TEXT.STDERR_LINE(worker_id, line));
         }
       }
     });
@@ -125,8 +94,15 @@ export class WorkerProcessManager extends EventEmitter {
       lastHealthCheckAt = Date.now();
       const elapsedMs = lastHealthCheckAt - Date.parse(startedAt);
       const elapsedSeconds = Math.round(elapsedMs / 1000);
-      this.emit('worker:heartbeat', { pid, worker_id, task_id, elapsed_ms: elapsedMs });
-      console.log(`  │ \x1b[90m[${worker_id}] still running ${elapsedSeconds}s — task: ${task_id || 'none'}\x1b[0m`);
+      this.emit('worker:heartbeat', {
+        pid,
+        worker_id,
+        task_id,
+        runtime_identity,
+        elapsed_ms: elapsedMs,
+        heartbeat_at: new Date(lastHealthCheckAt).toISOString(),
+      });
+      console.log(RUNTIME_PROCESS_TEXT.STILL_RUNNING(worker_id, elapsedSeconds, task_id || RUNTIME_PROCESS_TEXT.NO_TASK));
       scheduleHealthCheck();
     };
 
@@ -165,7 +141,7 @@ export class WorkerProcessManager extends EventEmitter {
       if (healthCheckTimer) clearTimeout(healthCheckTimer);
       this.activeWorkers.delete(pid);
       const exitInfo = signal ? `signal=${signal}` : `code=${code}`;
-      console.log(`  └─ \x1b[90m[${worker_id}] Worker exited (${exitInfo}) — PID ${pid}\x1b[0m`);
+      console.log(RUNTIME_PROCESS_TEXT.EXITED(worker_id, exitInfo, pid));
       this.emit('worker:exit', { pid, worker_id, task_id, code, signal });
       settleCompletion({ type: 'exit', code, signal });
     });
@@ -174,7 +150,7 @@ export class WorkerProcessManager extends EventEmitter {
       console.error(SYSTEM_MESSAGE.PROCESS_ERROR(worker_id, pid), err.message);
     });
 
-    console.log(`  ┌─ \x1b[32m[${worker_id}] Worker spawned\x1b[0m — PID ${pid} — task: ${task_id || 'none'}`);
+    console.log(RUNTIME_PROCESS_TEXT.SPAWNED(worker_id, pid, task_id || RUNTIME_PROCESS_TEXT.NO_TASK));
     // Send payload after lifecycle listeners are attached.
     if (child.stdin) {
       child.stdin.write(JSON.stringify(payload) + '\n');
@@ -236,14 +212,14 @@ export class WorkerProcessManager extends EventEmitter {
         } catch (err) {
           // Ignore
         }
-      }, FORCE_KILL_GRACE_MS);
+      }, RUNTIME_TIMING_DEFAULTS.FORCE_KILL_GRACE_MS);
       nuclearKillTimer.unref();
 
       child.once('exit', () => {
         clearTimeout(nuclearKillTimer);
       });
       
-    }, FORCE_KILL_GRACE_MS);
+    }, RUNTIME_TIMING_DEFAULTS.FORCE_KILL_GRACE_MS);
 
     // Ensure we don't hold the event loop open for the fallback kill
     forceKillTimer.unref();

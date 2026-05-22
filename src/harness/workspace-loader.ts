@@ -1,6 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import type { HarnessPayload } from './payload.js';
+import { WORKSPACE_LOADER_TEXT } from './constants.js';
 
 export interface LoadedStaticFile {
   path: string;
@@ -29,7 +30,7 @@ export class WorkspaceLoader {
       : payload.task_details || '';
 
     if (!taskBody.trim()) {
-      throw new Error('Assigned task body is empty.');
+      throw new Error(WORKSPACE_LOADER_TEXT.EMPTY_TASK_BODY);
     }
 
     return {
@@ -41,13 +42,13 @@ export class WorkspaceLoader {
   }
 
   private async loadTaskBody(taskFilePath: string): Promise<string> {
-    const activeTaskContent = await this.readOrchestratorFile(taskFilePath, '.orchestrator task file');
+    const activeTaskContent = await this.readOrchestratorFile(taskFilePath, WORKSPACE_LOADER_TEXT.ORCHESTRATOR_TASK_FILE);
 
     try {
       const parsed = JSON.parse(activeTaskContent) as Record<string, unknown>;
       const contentPath = typeof parsed.task_content_path === 'string' ? parsed.task_content_path : '';
       if (contentPath.trim()) {
-        return await this.readOrchestratorFile(contentPath, 'task content file');
+        return await this.readOrchestratorFile(contentPath, WORKSPACE_LOADER_TEXT.TASK_CONTENT_FILE);
       }
     } catch {
       // Non-JSON task files are valid task bodies.
@@ -62,7 +63,7 @@ export class WorkspaceLoader {
       const normalized = this.normalizeStaticPath(filePath, kind);
       files.push({
         path: normalized,
-        content: await this.readOrchestratorFile(normalized, `${kind} file`)
+        content: await this.readOrchestratorFile(normalized, WORKSPACE_LOADER_TEXT.FILE_LABEL(kind))
       });
     }
     return files;
@@ -77,17 +78,17 @@ export class WorkspaceLoader {
 
   private async readOrchestratorFile(relativePath: string, label: string): Promise<string> {
     const resolved = this.resolveInsideWorkspace(relativePath, label);
-    this.assertInside(this.orchestratorRoot, resolved, `${label} must be under .orchestrator`);
+    this.assertInside(this.orchestratorRoot, resolved, WORKSPACE_LOADER_TEXT.UNDER_ORCHESTRATOR(label));
     return await fs.readFile(resolved, 'utf-8');
   }
 
   private resolveInsideWorkspace(relativePath: string, label: string): string {
     if (path.isAbsolute(relativePath)) {
-      throw new Error(`${label} must be relative to workspace root.`);
+      throw new Error(WORKSPACE_LOADER_TEXT.RELATIVE_REQUIRED(label));
     }
 
     const resolved = path.resolve(this.workspaceRoot, relativePath);
-    this.assertInside(this.workspaceRoot, resolved, `${label} escapes workspace root`);
+    this.assertInside(this.workspaceRoot, resolved, WORKSPACE_LOADER_TEXT.ESCAPES_WORKSPACE(label));
     return resolved;
   }
 

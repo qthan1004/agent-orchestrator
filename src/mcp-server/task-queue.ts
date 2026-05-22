@@ -1,15 +1,10 @@
 import { EventEmitter } from 'node:events';
 import { TASK_STATUS, type TaskStatusValue } from '../constants.js';
-import type { TaskDef, TaskGraph, TaskGroup, TaskMetadata } from '../models/index.js';
+import type { TaskMetadata } from '../models/index.js';
+import type { SchedulerQueueStatus } from '../scheduler/index.js';
+import type { TaskDef, TaskGraph, TaskGroup } from '../task/index.js';
 
-export interface TaskQueueStatus {
-  total: number;
-  pending: number;
-  active: number;
-  done: number;
-  failed: number;
-  blocked: number;
-}
+export type TaskQueueStatus = SchedulerQueueStatus;
 
 export type QueueTask = TaskDef | TaskMetadata;
 

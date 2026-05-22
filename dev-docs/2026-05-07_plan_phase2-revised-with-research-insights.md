@@ -5,6 +5,7 @@
 > **Status**: DRAFT — awaiting approval
 > **Input**: 3 research docs + review decisions
 > **Ref**: `dev-docs/plan_phase2-hybrid-architecture.md` (original Phase 2 plan)
+> **Runtime lease addendum**: IMEDIALY-00 through IMEDIALY-08 implemented the immediate runtime lease boundary refactor. Older P2 ordering is paused until this chain is closed by IMEDIALY-09.
 
 ---
 
@@ -45,6 +46,7 @@ Hệ quả:
 - Terminal/log visibility phải báo spawn, backend start, model/tool progress, callback send/accept, health check, retry, reclaim.
 - Local scheduling dùng verified capacity profile từ infra verifier, không dùng fixed VRAM assumption hay fixed worker count.
 - Resource monitor hiển thị bằng terminal table; UI để sau.
+- Worker-service handover là bản ghi chuyển tiếp theo `task_id + runtime_id + lease_generation`, không phải shared memory toàn cục.
 
 **Impact lên tasks**: Trước khi thêm Codex/AG adapter, cần refactor runtime lease boundary theo `dev-docs/2026-05-22_plan_runtime-lease-refactor.md`.
 

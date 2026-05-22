@@ -1,14 +1,9 @@
 import { RESOURCE_TABLE_COLUMNS, RESOURCE_TABLE_TEXT } from './constants.js';
-import type { InfraResourceSnapshot } from '../infra/models.js';
-
-type ResourceRow = {
-  resource: string;
-  status: string;
-  details: string;
-};
+import type { InfraResourceSnapshot } from '../infra/index.js';
+import type { VisibilityResourceTableRow } from './models.js';
 
 export function renderInfraResourceTable(snapshot: InfraResourceSnapshot): string {
-  const rows: ResourceRow[] = [
+  const rows: VisibilityResourceTableRow[] = [
     {
       resource: RESOURCE_TABLE_TEXT.RESOURCE_SNAPSHOT,
       status: formatUptime(snapshot.uptime_seconds),
@@ -32,6 +27,11 @@ export function renderInfraResourceTable(snapshot: InfraResourceSnapshot): strin
       resource: RESOURCE_TABLE_TEXT.RESOURCE_WORKERS,
       status: snapshot.active_workers.length > 0 ? RESOURCE_TABLE_TEXT.ACTIVE : RESOURCE_TABLE_TEXT.IDLE,
       details: formatWorkers(snapshot),
+    },
+    {
+      resource: RESOURCE_TABLE_TEXT.RESOURCE_CAPACITY,
+      status: snapshot.capacity?.provider ?? RESOURCE_TABLE_TEXT.UNAVAILABLE,
+      details: formatCapacity(snapshot),
     },
     {
       resource: RESOURCE_TABLE_TEXT.RESOURCE_OLLAMA,
@@ -63,6 +63,11 @@ export function renderInfraResourceTable(snapshot: InfraResourceSnapshot): strin
     ...rows.map(item => row(item.resource, item.status, item.details)),
     separator(),
   ].join('\n');
+}
+
+function formatCapacity(snapshot: InfraResourceSnapshot): string {
+  if (!snapshot.capacity) return RESOURCE_TABLE_TEXT.UNAVAILABLE;
+  return `${RESOURCE_TABLE_TEXT.RUNTIMES}=${snapshot.capacity.max_local_runtimes}, ${RESOURCE_TABLE_TEXT.BACKENDS}=${snapshot.capacity.supported_backends.join(', ')}`;
 }
 
 function formatUptime(seconds: number): string {

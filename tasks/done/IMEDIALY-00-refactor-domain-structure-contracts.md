@@ -58,12 +58,12 @@ npm run build
 
 ## Done Criteria
 
-- [ ] Domain folders exist with `index.ts`, `models.ts`, and `constants.ts` where needed
-- [ ] Runtime, task, scheduler, infra, and visibility contracts are not duplicated
-- [ ] `Worker` is not used as a catch-all type for runtime/task/process/backend
-- [ ] No behavior change beyond import/contract normalization
-- [ ] `npm run typecheck` passes
-- [ ] `npm run build` passes
+- [x] Domain folders exist with `index.ts`, `models.ts`, and `constants.ts` where needed
+- [x] Runtime, task, scheduler, infra, and visibility contracts are not duplicated
+- [x] `Worker` is not used as a catch-all type for runtime/task/process/backend
+- [x] No behavior change beyond import/contract normalization
+- [x] `npm run typecheck` passes
+- [x] `npm run build` passes
 
 ### Plan Continuation
 

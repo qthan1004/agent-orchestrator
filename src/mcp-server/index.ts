@@ -1,7 +1,7 @@
 import express from 'express';
 import type { ErrorRequestHandler, NextFunction, Request, Response } from 'express';
 import { setupMcpRoutes } from './transport.js';
-import { SHUTDOWN_SIGNALS, API_ROUTES, VERSION, SYSTEM_MESSAGE, TASK_STATUS, type ShutdownSignalValue } from '../constants.js';
+import { SHUTDOWN_SIGNALS, API_ROUTES, VERSION, SYSTEM_MESSAGE, TASK_STATUS, SERVER_RUNTIME_DEFAULTS, type ShutdownSignalValue } from '../constants.js';
 import { StateManager } from './state-manager.js';
 import { RecoveryManager } from './recovery.js';
 import { PlanWatcher } from './plan-watcher.js';
@@ -13,7 +13,9 @@ import { WorkspaceRegistry } from '../utils/workspace-registry.js';
 import { ensureOllamaRunning } from '../utils/ollama-launcher.js';
 import { getWorkerCurrentTaskId } from '../utils/identity-invariants.js';
 import {
+  CapacityStore,
   INFRA_RESOURCE_MONITOR_ENV,
+  InfraVerifier,
   InfraResourceMonitor,
   resolveInfraResourceMonitorIntervalMs,
 } from '../infra/index.js';
@@ -24,7 +26,7 @@ import { VramManager } from '../worker/vram-manager.js';
 import { ModelSelector } from '../worker/model-selector.js';
 import { OllamaAdapter } from '../worker/adapters/ollama-adapter.js';
 
-const ONE_SHOT_IDLE_MS = Number(process.env.ORCHESTRATOR_ONESHOT_IDLE_MS || 2_000);
+const ONE_SHOT_IDLE_MS = Number(process.env.ORCHESTRATOR_ONESHOT_IDLE_MS || SERVER_RUNTIME_DEFAULTS.ONE_SHOT_IDLE_MS);
 
 export async function startServer(config: AppConfig): Promise<void> {
   const { port, host } = config.global.server;
@@ -49,10 +51,10 @@ export async function startServer(config: AppConfig): Promise<void> {
     console.error(SYSTEM_MESSAGE.BOOTSTRAP_FAILED, wsBoot.failed);
     process.exit(1);
   }
-  console.log(`  Primary workspace: ${primaryWorkspace.name} [${primaryWorkspace.id}]`);
-  console.log(`    Path: ${primaryWorkspace.path}`);
+  console.log(SYSTEM_MESSAGE.PRIMARY_WORKSPACE(primaryWorkspace.name, primaryWorkspace.id));
+  console.log(SYSTEM_MESSAGE.WORKSPACE_PATH(primaryWorkspace.path));
   if (wsBoot.created.length > 0) {
-    console.log(`    Created ${wsBoot.created.length} workspace directories (${wsBoot.skipped} existed).`);
+    console.log(SYSTEM_MESSAGE.WORKSPACE_DIRS_CREATED(wsBoot.created.length, wsBoot.skipped));
   }
 
   const logger = new Logger(config.workspace.exchange.logs);
@@ -101,13 +103,23 @@ export async function startServer(config: AppConfig): Promise<void> {
   const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
   const ollamaReady = await ensureOllamaRunning(ollamaBaseUrl);
   if (!ollamaReady) {
-    console.warn('  ⚠ Ollama not available — dispatch loop will not spawn workers until Ollama is reachable.');
+    console.warn(SYSTEM_MESSAGE.OLLAMA_NOT_AVAILABLE);
   }
 
   // Initialize Hybrid components (always-on — IDE/default mode archived)
   const ollamaAdapter = new OllamaAdapter(ollamaBaseUrl);
   const modelSelector = new ModelSelector();
   const vramManager = new VramManager(ollamaBaseUrl);
+  const capacityStore = new CapacityStore();
+  const infraVerifier = new InfraVerifier({
+    getVramStatus: () => {
+      const status = vramManager.checkVram();
+      return status
+        ? { available: true, ...status }
+        : { available: false };
+    },
+  });
+  capacityStore.setVerifiedCapacity(infraVerifier.verify());
   
   const dispatchLoop = new TaskDispatchLoop({
     queue: stateManager.queue,
@@ -118,9 +130,10 @@ export async function startServer(config: AppConfig): Promise<void> {
     allowedTools: ['*'],
     workspaceId: config.workspace.workspaceId,
     maxTaskRetries: config.global.recovery.maxTaskRetries,
-    staleWorkerThresholdMs: config.global.recovery.staleWorkerThresholdMs
+    staleWorkerThresholdMs: config.global.recovery.staleWorkerThresholdMs,
+    capacityStore,
   });
-  recoveryManager.setWorkerProcessProbe(workerId => dispatchLoop.isWorkerProcessActive(workerId));
+  recoveryManager.setRuntimeLivenessProbe(workerId => dispatchLoop.isRuntimeAlive(workerId));
 
   const resourceMonitor = new InfraResourceMonitor({
     getUptimeSeconds: () => process.uptime(),
@@ -146,6 +159,11 @@ export async function startServer(config: AppConfig): Promise<void> {
             .map((model: any) => typeof model?.name === 'string' ? model.name : '')
             .filter(Boolean)
         : [];
+    },
+    verifyCapacity: () => {
+      const capacity = infraVerifier.verify();
+      capacityStore.setVerifiedCapacity(capacity);
+      return capacity;
     },
   });
 
@@ -211,35 +229,62 @@ export async function startServer(config: AppConfig): Promise<void> {
   });
 
   app.post('/api/worker/complete', (req: Request, res: Response) => {
-    const { worker_id, task_id, summary, success, error_context, changelog } = req.body || {};
+    const { worker_id, task_id, runtime_id, lease_generation, summary, success, error_context, changelog } = req.body || {};
 
-    if (typeof worker_id !== 'string' || typeof task_id !== 'string' || typeof summary !== 'string' || typeof success !== 'boolean') {
-      res.status(400).json({ accepted: false, error: 'Invalid worker completion payload' });
+    if (
+      typeof worker_id !== 'string' ||
+      typeof task_id !== 'string' ||
+      typeof runtime_id !== 'string' ||
+      typeof lease_generation !== 'number' ||
+      typeof summary !== 'string' ||
+      typeof success !== 'boolean'
+    ) {
+      res.status(400).json({ accepted: false, error: SYSTEM_MESSAGE.WORKER_COMPLETE_INVALID_PAYLOAD });
       return;
     }
 
     const worker = workerRegistry.getWorker(worker_id);
     if (!worker) {
-      res.status(404).json({ accepted: false, error: `Unknown worker: ${worker_id}` });
+      res.status(404).json({ accepted: false, error: SYSTEM_MESSAGE.WORKER_COMPLETE_UNKNOWN_WORKER(worker_id) });
       return;
     }
 
     if (getWorkerCurrentTaskId(worker) !== task_id) {
-      res.status(409).json({ accepted: false, error: `Worker ${worker_id} is not assigned to task ${task_id}` });
+      res.status(409).json({ accepted: false, error: SYSTEM_MESSAGE.WORKER_COMPLETE_NOT_ASSIGNED(worker_id, task_id) });
       return;
     }
 
-    console.log(`[WorkerComplete] Received ${success ? 'success' : 'failure'} from ${worker_id}/${task_id}: ${summary}`);
+    const runtimeIdentity = {
+      runtime_id,
+      worker_id,
+      task_id,
+      lease_generation,
+    };
+
+    if (!dispatchLoop.acknowledgeHarnessCompletion(worker_id, task_id, runtimeIdentity)) {
+      res.status(409).json({ accepted: false, error: SYSTEM_MESSAGE.WORKER_COMPLETE_LEASE_MISMATCH(worker_id, task_id, runtime_id, lease_generation) });
+      return;
+    }
+
+    console.log(SYSTEM_MESSAGE.WORKER_COMPLETE_RECEIVED(
+      success ? SYSTEM_MESSAGE.WORKER_COMPLETE_STATUS_SUCCESS : SYSTEM_MESSAGE.WORKER_COMPLETE_STATUS_FAILURE,
+      worker_id,
+      task_id,
+      summary
+    ));
 
     try {
-      if (!success && error_context?.error === 'context_exceeded' && typeof error_context?.handover === 'string') {
+      if (
+        !success &&
+        error_context?.error === 'context_exceeded' &&
+        error_context?.handover &&
+        typeof error_context.handover === 'object' &&
+        !Array.isArray(error_context.handover)
+      ) {
         const respawnCount = stateManager.requeueWithHandover(task_id, error_context.handover, config.workspace.workspaceRoot);
-        if (!dispatchLoop.acknowledgeHarnessCompletion(worker_id, task_id)) {
-          console.warn(`[WorkerComplete] Completion accepted for ${worker_id}/${task_id}, but no active harness monitor was found.`);
-        }
         workerRegistry.clearAssignment(worker_id, stateManager.taskRegistry);
         stateManager.saveCheckpoint();
-        console.log(`[WorkerComplete] Task ${task_id} requeued with handover (respawn ${respawnCount}).`);
+        console.log(SYSTEM_MESSAGE.WORKER_COMPLETE_HANDOVER_REQUEUED(task_id, respawnCount));
         res.json({ accepted: true, action: 'requeued_with_handover', respawn_count: respawnCount });
         return;
       }
@@ -282,9 +327,6 @@ export async function startServer(config: AppConfig): Promise<void> {
         }
       }
 
-      if (!dispatchLoop.acknowledgeHarnessCompletion(worker_id, task_id)) {
-        console.warn(`[WorkerComplete] Completion accepted for ${worker_id}/${task_id}, but no active harness monitor was found.`);
-      }
       workerRegistry.clearAssignment(worker_id, stateManager.taskRegistry);
       stateManager.saveCheckpoint();
       res.json({ accepted: true });
@@ -299,11 +341,11 @@ export async function startServer(config: AppConfig): Promise<void> {
 
   // Catch-all error handler (last middleware)
   const catchAllErrorHandler: ErrorRequestHandler = (err, req, res, next) => {
-    console.error('Unhandled error:', err.message);
+    console.error(SYSTEM_MESSAGE.SERVER_UNHANDLED_ERROR, err.message);
     if (!res.headersSent) {
       res.status(500).json({
         jsonrpc: '2.0',
-        error: { code: -32603, message: 'Internal server error' },
+        error: { code: -32603, message: SYSTEM_MESSAGE.SERVER_INTERNAL_ERROR },
         id: null
       });
     }
@@ -314,14 +356,14 @@ export async function startServer(config: AppConfig): Promise<void> {
     logger.log('SERVER_START', { port, host });
     const portStr = port.toString().padEnd(4, ' ');
     const recoveryStatus = wasClean ? SYSTEM_MESSAGE.RECOVERY_CLEAN : SYSTEM_MESSAGE.RECOVERY_ORPHANS(orphanCount);
-    console.log(`┌───────────────────────────────────┐`);
-    console.log(`│  MCP Server listening :${portStr}       │`);
-    console.log(`│  Transport: Streamable HTTP       │`);
-    console.log(`│  Endpoint: ${API_ROUTES.MCP.padEnd(23)}│`);
-    console.log(`│  Health: ${API_ROUTES.HEALTH.padEnd(25)}│`);
-    console.log(`│  Version: ${VERSION.padEnd(24)}│`);
-    console.log(`└───────────────────────────────────┘`);
-    console.log(`  Recovery: ${recoveryStatus}`);
+    console.log(SYSTEM_MESSAGE.SERVER_BANNER_TOP);
+    console.log(SYSTEM_MESSAGE.SERVER_BANNER_LISTENING(portStr));
+    console.log(SYSTEM_MESSAGE.SERVER_BANNER_TRANSPORT);
+    console.log(SYSTEM_MESSAGE.SERVER_BANNER_ENDPOINT(API_ROUTES.MCP));
+    console.log(SYSTEM_MESSAGE.SERVER_BANNER_HEALTH(API_ROUTES.HEALTH));
+    console.log(SYSTEM_MESSAGE.SERVER_BANNER_VERSION(VERSION));
+    console.log(SYSTEM_MESSAGE.SERVER_BANNER_BOTTOM);
+    console.log(SYSTEM_MESSAGE.SERVER_RECOVERY_STATUS(recoveryStatus));
   });
 
   const shutdown = async (signal: ShutdownSignalValue) => {
@@ -338,7 +380,7 @@ export async function startServer(config: AppConfig): Promise<void> {
 
     const activeWorkers = dispatchLoop.getActiveWorkers();
     for (const worker of activeWorkers) {
-      console.log(`[Shutdown] Killing active worker ${worker.worker_id} (PID ${worker.pid})...`);
+      console.log(SYSTEM_MESSAGE.SHUTDOWN_KILLING_WORKER(worker.worker_id, worker.pid));
       dispatchLoop.killWorker(worker.pid);
     }
 
@@ -347,11 +389,11 @@ export async function startServer(config: AppConfig): Promise<void> {
       if (psData && psData.models) {
         for (const m of psData.models) {
           await ollamaAdapter.unload(m.name);
-          console.log(`[Shutdown] Unloaded model ${m.name} from VRAM.`);
+          console.log(SYSTEM_MESSAGE.SHUTDOWN_UNLOADED_MODEL(m.name));
         }
       }
     } catch (err: any) {
-      console.warn(`[Shutdown] Failed to unload models: ${err.message}`);
+      console.warn(SYSTEM_MESSAGE.SHUTDOWN_UNLOAD_FAILED(err.message));
     }
 
     vramManager.stopMonitoring();
@@ -372,7 +414,7 @@ export async function startServer(config: AppConfig): Promise<void> {
     let sawTask = stateManager.getStatus().total > 0;
     let idleSince: number | null = null;
 
-    console.log(`[OneShot] Enabled. Server will exit after observed work drains for ${ONE_SHOT_IDLE_MS}ms.`);
+    console.log(SYSTEM_MESSAGE.ONE_SHOT_ENABLED(ONE_SHOT_IDLE_MS));
 
     const oneShotTimer = setInterval(() => {
       const queueStatus = stateManager.getStatus();

@@ -1,5 +1,6 @@
-import type { TaskDef } from '../models/task.js';
+import type { TaskDef } from '../task/index.js';
 import type { TaskQueueStatus } from '../mcp-server/task-queue.js';
+import type { CapacityStore } from '../infra/index.js';
 import { OllamaAdapter } from './adapters/ollama-adapter.js';
 import { SYSTEM_MESSAGE } from '../constants.js';
 
@@ -74,7 +75,7 @@ export function evaluateDifficulty(signals: DifficultySignals): ModelProfile['mo
 export class ModelSelector {
   private ollamaAdapter: OllamaAdapter;
 
-  constructor() {
+  constructor(private readonly capacityStore?: CapacityStore) {
     this.ollamaAdapter = new OllamaAdapter(process.env.OLLAMA_BASE_URL);
   }
 
@@ -144,30 +145,13 @@ export class ModelSelector {
    */
   private async checkVRAM(profile: ModelProfile): Promise<void> {
     try {
-      const psData = await this.ollamaAdapter.ps();
-      // psData has models[] which currently occupy VRAM.
-      // We don't have total free VRAM easily from Ollama API without nvidia-smi.
-      // But we can check what's loaded.
-      // Actually, if we just want to log a warning, let's just log it.
-      // For a proper check, we would run nvidia-smi if available.
-      let hasNvidiaSmi = false;
-      let freeVramGB = 0;
-      try {
-        const { execSync } = await import('child_process');
-        const output = execSync('nvidia-smi --query-gpu=memory.free --format=csv,noheader,nounits', { encoding: 'utf-8' });
-        const freeMb = parseInt(output.trim().split('\n')[0], 10);
-        if (!isNaN(freeMb)) {
-          hasNvidiaSmi = true;
-          freeVramGB = freeMb / 1024;
+      const capacity = this.capacityStore?.getVerifiedCapacity() ?? null;
+      if (typeof capacity?.available_vram_mb === 'number') {
+        const freeVramGB = capacity.available_vram_mb / 1024;
+        if (freeVramGB < profile.estimated_vram_gb) {
+          console.warn(SYSTEM_MESSAGE.MODEL_WARNING_VRAM(profile.mode, profile.estimated_vram_gb, freeVramGB));
         }
-      } catch (err) {
-        // nvidia-smi not available
       }
-
-      if (hasNvidiaSmi && freeVramGB < profile.estimated_vram_gb) {
-        console.warn(SYSTEM_MESSAGE.MODEL_WARNING_VRAM(profile.mode, profile.estimated_vram_gb, freeVramGB));
-      }
-
     } catch (err) {
       console.warn(SYSTEM_MESSAGE.MODEL_CHECK_ERROR((err as Error).message));
     }

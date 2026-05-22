@@ -33,6 +33,7 @@ export class InfraResourceMonitor {
       dispatch_loop: this.deps.getDispatchLoopStatus(),
       queue: this.deps.getQueueStatus(),
       active_workers: this.deps.getActiveWorkers(),
+      capacity: this.deps.verifyCapacity?.(),
       ollama,
       vram,
       ram: this.collectRam(),

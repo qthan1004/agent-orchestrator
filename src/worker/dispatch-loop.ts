@@ -1,16 +1,23 @@
 import path from 'path';
-import type { AssignmentEnvelope, AssignmentPayload } from '../models/assignment.js';
+import type { AssignmentEnvelope, AssignmentPayload } from '../scheduler/index.js';
 import type { QueueTask, TaskQueue, TaskQueueStatus } from '../mcp-server/task-queue.js';
 import type { StateManager } from '../mcp-server/state-manager.js';
 import type { WorkerRegistry } from '../utils/worker-registry.js';
 import { ModelSelector, type ModelProfile } from './model-selector.js';
-import { WorkerProcessManager, type WorkerProcessOutcome } from './process-manager.js';
-import { OllamaAdapter } from './adapters/ollama-adapter.js';
+import type { WorkerProcessOutcome } from './process-manager.js';
 import { FILE_PREFIXES, RECOVERY_DEFAULTS, SERVER_PROFILES, SYSTEM_MESSAGE, TASK_STATUS } from '../constants.js';
-
-const MAX_RESPAWNS = 3;
-const LOOP_SLEEP_MS = 2000;
-const OLLAMA_UNAVAILABLE_LOG_INTERVAL_MS = 10_000;
+import type { CapacityStore } from '../infra/index.js';
+import {
+  RUNTIME_BACKEND,
+  RUNTIME_ISOLATION,
+  RUNTIME_LEASE_STATUS,
+  LeaseValidator,
+  RuntimeManager,
+  type RuntimeIdentity,
+  type RuntimeLeaseStatus,
+} from '../runtime/index.js';
+import { isSharedOllamaDevFallback, OLLAMA_RUNTIME_DEFAULTS } from '../runtime-adapters/ollama/index.js';
+import { DISPATCH_LOOP_DEFAULTS, DISPATCH_LOOP_TEXT } from '../scheduler/index.js';
 
 export interface DispatchLoopConfig {
   queue: TaskQueue;
@@ -23,18 +30,23 @@ export interface DispatchLoopConfig {
   maxConcurrentWorkers?: number;
   maxTaskRetries?: number;
   staleWorkerThresholdMs?: number;
+  capacityStore?: CapacityStore;
 }
 
 interface ActiveHarness {
   workerId: string;
   taskId: string;
   model: string;
+  runtimeIdentity: RuntimeIdentity;
   completionAccepted: boolean;
 }
 
 function resolveMaxConcurrentWorkers(configured?: number): number {
   const raw = configured ?? Number(process.env.ORCHESTRATOR_MAX_WORKERS || SERVER_PROFILES.HYBRID.maxConcurrentWorkers);
-  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : SERVER_PROFILES.HYBRID.maxConcurrentWorkers;
+  const resolved = Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : SERVER_PROFILES.HYBRID.maxConcurrentWorkers;
+  return isSharedOllamaDevFallback()
+    ? Math.min(resolved, OLLAMA_RUNTIME_DEFAULTS.SHARED_FALLBACK_MAX_WORKERS)
+    : resolved;
 }
 
 export class TaskDispatchLoop {
@@ -43,8 +55,7 @@ export class TaskDispatchLoop {
   private stateManager: StateManager;
   private workerRegistry: WorkerRegistry;
   private modelSelector: ModelSelector;
-  private processManager: WorkerProcessManager;
-  private ollamaAdapter: OllamaAdapter;
+  private runtimeManager: RuntimeManager;
   private serverUrl: string;
   private workspaceRoot: string;
   private allowedTools: string[];
@@ -52,6 +63,7 @@ export class TaskDispatchLoop {
   private lastOllamaUnavailableLogAt = 0;
   private maxConcurrentWorkers: number;
   private maxTaskRetries: number;
+  private staleWorkerThresholdMs: number;
   private activeHarnesses = new Map<string, ActiveHarness>();
 
   constructor(config: DispatchLoopConfig) {
@@ -64,15 +76,18 @@ export class TaskDispatchLoop {
     this.workspaceId = config.workspaceId;
     this.maxConcurrentWorkers = resolveMaxConcurrentWorkers(config.maxConcurrentWorkers);
     this.maxTaskRetries = config.maxTaskRetries ?? RECOVERY_DEFAULTS.MAX_TASK_RETRIES;
+    this.staleWorkerThresholdMs = config.staleWorkerThresholdMs ?? RECOVERY_DEFAULTS.STALE_WORKER_THRESHOLD_MS;
 
-    this.modelSelector = new ModelSelector();
-    this.processManager = new WorkerProcessManager({
-      staleWorkerThresholdMs: config.staleWorkerThresholdMs ?? RECOVERY_DEFAULTS.STALE_WORKER_THRESHOLD_MS
+    this.modelSelector = new ModelSelector(config.capacityStore);
+    this.runtimeManager = new RuntimeManager({
+      staleWorkerThresholdMs: this.staleWorkerThresholdMs,
+      workspaceRoot: this.workspaceRoot,
+      ollamaBaseUrl: process.env.OLLAMA_BASE_URL,
+      capacityStore: config.capacityStore,
     });
-    this.processManager.on('worker:heartbeat', ({ worker_id }) => {
+    this.runtimeManager.on('runtime:heartbeat', ({ worker_id }) => {
       this.workerRegistry.updateHeartbeat(worker_id);
     });
-    this.ollamaAdapter = new OllamaAdapter(process.env.OLLAMA_BASE_URL);
   }
 
   public start(): void {
@@ -88,21 +103,24 @@ export class TaskDispatchLoop {
     console.log(SYSTEM_MESSAGE.DISPATCH_STOPPING);
   }
 
-  public getActiveWorkers(): ReturnType<WorkerProcessManager['getActive']> {
-    return this.processManager.getActive();
+  public getActiveWorkers(): ReturnType<RuntimeManager['getActiveWorkers']> {
+    return this.runtimeManager.getActiveWorkers();
   }
 
-  public isWorkerProcessActive(workerId: string): boolean {
-    return this.getActiveWorkers().some(worker => worker.worker_id === workerId);
+  public isRuntimeAlive(workerId: string): boolean {
+    return this.runtimeManager.isAlive(workerId);
   }
 
   public killWorker(pid: number): void {
-    this.processManager.kill(pid);
+    this.runtimeManager.kill(pid);
   }
 
-  public acknowledgeHarnessCompletion(workerId: string, taskId: string): boolean {
+  public acknowledgeHarnessCompletion(workerId: string, taskId: string, runtimeIdentity: RuntimeIdentity): boolean {
     const activeHarness = this.activeHarnesses.get(workerId);
     if (!activeHarness || activeHarness.taskId !== taskId) {
+      return false;
+    }
+    if (!LeaseValidator.identityMatches(activeHarness.runtimeIdentity, runtimeIdentity)) {
       return false;
     }
 
@@ -115,11 +133,11 @@ export class TaskDispatchLoop {
       try {
         const dispatched = await this.dispatchAvailableTasks();
         if (dispatched === 0) {
-          await this.sleep(LOOP_SLEEP_MS);
+          await this.sleep(DISPATCH_LOOP_DEFAULTS.LOOP_SLEEP_MS);
         }
       } catch (err: any) {
         console.error(SYSTEM_MESSAGE.DISPATCH_ERROR(err.message));
-        await this.sleep(LOOP_SLEEP_MS);
+        await this.sleep(DISPATCH_LOOP_DEFAULTS.LOOP_SLEEP_MS);
       }
     }
   }
@@ -131,7 +149,7 @@ export class TaskDispatchLoop {
       const task = this.queue.getDispatchableTasks()[0] || null;
       if (!task) break;
 
-      const ollamaAvailable = await this.ollamaAdapter.health();
+      const ollamaAvailable = await this.runtimeManager.isBackendHealthy({ backend: RUNTIME_BACKEND.OLLAMA });
       if (!ollamaAvailable) {
         this.logOllamaUnavailable();
         break;
@@ -147,50 +165,76 @@ export class TaskDispatchLoop {
   private async dispatchTask(task: QueueTask, queueStatus: TaskQueueStatus): Promise<void> {
     let movedToActive = false;
     let workerId = 'dispatch-loop';
+    let runtimeIdentity: RuntimeIdentity | null = null;
 
     try {
-      console.log(`[DispatchLoop] Dispatching task ${task.id}: moving inbox -> active.`);
+      console.log(DISPATCH_LOOP_TEXT.DISPATCHING(task.id));
       this.stateManager.moveToActive(task.id);
       movedToActive = true;
 
       const activeTaskPath = path.join(this.stateManager.config.exchange.active, `${FILE_PREFIXES.TASK}${task.id}.json`);
       const taskFilePath = path.relative(this.workspaceRoot, activeTaskPath).replace(/\\/g, '/');
       if (taskFilePath.startsWith('..')) {
-        throw new Error(`Active task path escapes workspace root: ${activeTaskPath}`);
+        throw new Error(DISPATCH_LOOP_TEXT.ACTIVE_TASK_PATH_ESCAPES(activeTaskPath));
       }
 
-      if (Number((task as any).respawn_count || 0) >= MAX_RESPAWNS) {
+      if (Number((task as any).respawn_count || 0) >= DISPATCH_LOOP_DEFAULTS.MAX_RESPAWNS) {
         this.stateManager.moveToOutbox(task.id, {
           task_id: task.id,
           status: TASK_STATUS.BLOCKED,
-          summary: `Task exceeded max respawns (${MAX_RESPAWNS}). Consider using a cloud model.`,
+          summary: DISPATCH_LOOP_TEXT.MAX_RESPAWNS_SUMMARY(DISPATCH_LOOP_DEFAULTS.MAX_RESPAWNS),
           worker_id: 'dispatch-loop',
           completed_at: new Date().toISOString(),
-          blocked_reason: 'max_respawns_exceeded'
+          blocked_reason: DISPATCH_LOOP_TEXT.MAX_RESPAWNS_BLOCKED_REASON
         } as any);
         this.stateManager.saveCheckpoint();
-        console.warn(`[DispatchLoop] Task ${task.id} exceeded max respawns (${MAX_RESPAWNS}); marked blocked.`);
+        console.warn(DISPATCH_LOOP_TEXT.MAX_RESPAWNS_MARKED(task.id, DISPATCH_LOOP_DEFAULTS.MAX_RESPAWNS));
         return;
       }
 
       const profile = await this.modelSelector.selectProfile(task, queueStatus);
-      console.log(`[DispatchLoop] Selected model ${profile.model} (${profile.mode}) for task ${task.id}.`);
+      console.log(DISPATCH_LOOP_TEXT.SELECTED_MODEL(profile.model, profile.mode, task.id));
       const worker = this.workerRegistry.register(this.workspaceId);
       workerId = worker.id;
+      const leaseGeneration = this.getLeaseGeneration(task);
+      runtimeIdentity = {
+        runtime_id: `${workerId}:${task.id}:${leaseGeneration}`,
+        worker_id: workerId,
+        task_id: task.id,
+        lease_generation: leaseGeneration,
+      };
+      const runtimeBackend = {
+        backend: RUNTIME_BACKEND.OLLAMA,
+        model: profile.model,
+        endpoint_url: process.env.OLLAMA_BASE_URL,
+      };
+      const runtimeIsolation = {
+        mode: RUNTIME_ISOLATION.SHARED_DEV,
+        workspace_root: this.workspaceRoot,
+      };
 
       const assignmentPayload = this.buildAssignmentPayload(task);
-      const assignment = this.buildAssignment(workerId, task, assignmentPayload, profile);
+      const assignment = this.buildAssignment(workerId, task, runtimeIdentity, assignmentPayload, profile);
       this.workerRegistry.assignTask(workerId, task.id, this.stateManager.taskRegistry);
 
-      const handoverContext = typeof (task as any).handover_context === 'string' ? (task as any).handover_context : undefined;
+      const handoverContext = (task as any).handover_context &&
+        (typeof (task as any).handover_context === 'string' || typeof (task as any).handover_context === 'object')
+        ? (task as any).handover_context
+        : undefined;
       if (handoverContext) {
-        console.log(`[DispatchLoop] Injected handover for task ${task.id} (respawn ${(task as any).respawn_count || 0}).`);
+        console.log(DISPATCH_LOOP_TEXT.INJECTED_HANDOVER(task.id, Number((task as any).respawn_count || 0)));
       }
 
       const payload = {
         workspace_id: this.workspaceId,
         worker_id: workerId,
         task_id: task.id,
+        runtime_id: runtimeIdentity.runtime_id,
+        lease_generation: runtimeIdentity.lease_generation,
+        runtime_identity: runtimeIdentity,
+        backend: {
+          ...runtimeBackend,
+        },
         assignment,
         task_file_path: taskFilePath,
         tool_bundle: typeof (task as any).tool_bundle === 'string' ? (task as any).tool_bundle : 'generic-file',
@@ -210,14 +254,32 @@ export class TaskDispatchLoop {
         workerId,
         taskId: task.id,
         model: profile.model,
+        runtimeIdentity,
         completionAccepted: false
       };
       this.activeHarnesses.set(workerId, activeHarness);
 
-      const spawned = this.processManager.spawn(payload);
-      console.log(`[DispatchLoop] Monitoring harness ${workerId} for task ${task.id}.`);
+      const spawned = this.runtimeManager.spawn({
+        worker_id: workerId,
+        task_id: task.id,
+        lease_generation: leaseGeneration,
+        backend: runtimeBackend,
+        isolation: runtimeIsolation,
+        reserved_points: DISPATCH_LOOP_DEFAULTS.DEFAULT_POINTS_REQUIRED,
+        capacity_request: {
+          worker_slots: 1,
+          estimated_vram_mb: Math.round(profile.estimated_vram_gb * 1024),
+        },
+        payload,
+      });
+      runtimeIdentity = spawned.runtimeIdentity;
+      activeHarness.runtimeIdentity = spawned.runtimeIdentity;
+      console.log(DISPATCH_LOOP_TEXT.MONITORING_HARNESS(workerId, task.id));
       void this.monitorHarness(activeHarness, spawned.completion);
     } catch (err: any) {
+      if (runtimeIdentity) {
+        await this.releaseRuntimeLease(runtimeIdentity, RUNTIME_LEASE_STATUS.FAILED);
+      }
       this.activeHarnesses.delete(workerId);
       this.workerRegistry.clearAssignment(workerId, this.stateManager.taskRegistry);
       if (movedToActive && this.stateManager.isTaskInActive(task.id)) {
@@ -251,9 +313,16 @@ export class TaskDispatchLoop {
     };
   }
 
+  private getLeaseGeneration(task: QueueTask): number {
+    const retryGeneration = Number((task as any).retry_count || 0);
+    const respawnGeneration = Number((task as any).respawn_count || 0);
+    return Math.max(retryGeneration, respawnGeneration) + 1;
+  }
+
   private buildAssignment(
     workerId: string,
     task: QueueTask,
+    runtimeIdentity: RuntimeIdentity,
     assignmentPayload: AssignmentPayload,
     profile: ModelProfile
   ): AssignmentEnvelope {
@@ -261,6 +330,7 @@ export class TaskDispatchLoop {
       operation: 'assign_task',
       worker_id: workerId,
       task_id: task.id,
+      runtime_identity: runtimeIdentity,
       workspace: assignmentPayload.workspace,
       payload: assignmentPayload,
       routing: {
@@ -284,8 +354,10 @@ export class TaskDispatchLoop {
         if (result.type === 'exit' && result.code === 0) {
           console.log(SYSTEM_MESSAGE.DISPATCH_WORKER_SUCCESS(activeHarness.workerId, activeHarness.taskId));
         } else {
-          const exitDetail = result.type === 'timeout' ? 'timeout' : `code ${result.code}`;
-          console.warn(`[DispatchLoop] Harness ${activeHarness.workerId} ended with ${exitDetail} after accepted completion for task ${activeHarness.taskId}.`);
+          const exitDetail = result.type === 'timeout'
+            ? DISPATCH_LOOP_TEXT.EXIT_DETAIL_TIMEOUT
+            : DISPATCH_LOOP_TEXT.EXIT_DETAIL_CODE(result.code);
+          console.warn(DISPATCH_LOOP_TEXT.ACCEPTED_BUT_EXITED(activeHarness.workerId, exitDetail, activeHarness.taskId));
         }
         return;
       }
@@ -294,8 +366,12 @@ export class TaskDispatchLoop {
     } catch (err: any) {
       console.error(SYSTEM_MESSAGE.DISPATCH_ERROR(err.message));
     } finally {
-      await this.unloadModelIfUnused(activeHarness.model);
+      await this.releaseRuntimeLease(activeHarness.runtimeIdentity);
     }
+  }
+
+  private async releaseRuntimeLease(identity: RuntimeIdentity, status: RuntimeLeaseStatus = RUNTIME_LEASE_STATUS.RELEASED): Promise<void> {
+    await this.runtimeManager.release(identity, status);
   }
 
   private handleMissingCompletionSignal(activeHarness: ActiveHarness, result: WorkerProcessOutcome): void {
@@ -304,12 +380,12 @@ export class TaskDispatchLoop {
     } else if (result.code !== 0) {
       console.warn(SYSTEM_MESSAGE.DISPATCH_WORKER_EXITED(activeHarness.workerId, result.code, activeHarness.taskId));
     } else {
-      console.warn(`[DispatchLoop] Worker ${activeHarness.workerId} exited without accepted completion callback. Requeuing task ${activeHarness.taskId}.`);
+      console.warn(DISPATCH_LOOP_TEXT.MISSING_COMPLETION(activeHarness.workerId, activeHarness.taskId));
     }
 
     this.workerRegistry.clearAssignment(activeHarness.workerId, this.stateManager.taskRegistry);
     if (this.stateManager.isTaskInActive(activeHarness.taskId)) {
-      this.requeueOrFailActiveTask(activeHarness.taskId, activeHarness.workerId, 'missing accepted harness completion signal');
+      this.requeueOrFailActiveTask(activeHarness.taskId, activeHarness.workerId, DISPATCH_LOOP_TEXT.MISSING_COMPLETION_REASON);
     }
   }
 
@@ -319,7 +395,7 @@ export class TaskDispatchLoop {
       this.stateManager.moveToOutbox(taskId, {
         task_id: taskId,
         status: TASK_STATUS.FAILED,
-        summary: `Harness attempt failed after ${retryCount} retries: ${reason}`,
+        summary: DISPATCH_LOOP_TEXT.RETRY_FAILED_SUMMARY(retryCount, reason),
         worker_id: workerId,
         completed_at: new Date().toISOString(),
         permanently_failed: true,
@@ -327,37 +403,22 @@ export class TaskDispatchLoop {
         error: reason
       } as any);
       this.stateManager.saveCheckpoint();
-      console.warn(`[DispatchLoop] Task ${taskId} reached max retries (${this.maxTaskRetries}); marked failed.`);
+      console.warn(DISPATCH_LOOP_TEXT.MAX_RETRIES_MARKED(taskId, this.maxTaskRetries));
       return;
     }
 
     const newRetryCount = this.stateManager.requeueWithRetry(taskId, this.workspaceRoot);
     this.stateManager.saveCheckpoint();
-    console.warn(`[DispatchLoop] Requeued task ${taskId} after harness failure (${newRetryCount}/${this.maxTaskRetries}).`);
-  }
-
-  private async unloadModelIfUnused(model: string): Promise<void> {
-    const modelStillActive = Array.from(this.activeHarnesses.values())
-      .some(activeHarness => activeHarness.model === model);
-    if (modelStillActive) return;
-
-    try {
-      const unloaded = await this.ollamaAdapter.unload(model);
-      if (unloaded) {
-        console.log(SYSTEM_MESSAGE.DISPATCH_MODEL_UNLOADED(model));
-      }
-    } catch (err: any) {
-      console.warn(SYSTEM_MESSAGE.DISPATCH_MODEL_UNLOAD_FAILED(model, err.message));
-    }
+    console.warn(DISPATCH_LOOP_TEXT.REQUEUED_AFTER_FAILURE(taskId, newRetryCount, this.maxTaskRetries));
   }
 
   private logOllamaUnavailable(): void {
     const now = Date.now();
-    if (now - this.lastOllamaUnavailableLogAt < OLLAMA_UNAVAILABLE_LOG_INTERVAL_MS) {
+    if (now - this.lastOllamaUnavailableLogAt < DISPATCH_LOOP_DEFAULTS.OLLAMA_UNAVAILABLE_LOG_INTERVAL_MS) {
       return;
     }
 
-    console.warn('[DispatchLoop] Ollama unavailable; waiting before dispatch.');
+    console.warn(DISPATCH_LOOP_TEXT.OLLAMA_UNAVAILABLE);
     this.lastOllamaUnavailableLogAt = now;
   }
 

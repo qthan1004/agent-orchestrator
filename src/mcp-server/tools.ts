@@ -7,7 +7,8 @@ import {
 } from '../constants.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import type { ServerContext, TaskDef, TaskGraph, TaskResult } from '../models/index.js';
+import type { ServerContext } from '../models/index.js';
+import type { TaskDef, TaskGraph, TaskResult } from '../task/index.js';
 import { executeScanWorkspace } from './tools/scan-workspace.js';
 import { executeSessionCheckpoint } from './tools/session-checkpoint.js';
 import type { SessionCheckpointInput } from './tools/session-checkpoint.js';

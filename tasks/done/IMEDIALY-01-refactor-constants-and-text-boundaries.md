@@ -50,12 +50,12 @@ npm run build
 
 ## Done Criteria
 
-- [ ] No repeated lifecycle/log/error text in touched logic
-- [ ] No class-local magic numbers for lifecycle timing
-- [ ] Timing defaults have one owner
-- [ ] Domain text lives in domain constants
-- [ ] `npm run typecheck` passes
-- [ ] `npm run build` passes
+- [x] No repeated lifecycle/log/error text in touched logic
+- [x] No class-local magic numbers for lifecycle timing
+- [x] Timing defaults have one owner
+- [x] Domain text lives in domain constants
+- [x] `npm run typecheck` passes
+- [x] `npm run build` passes
 
 ### Plan Continuation
 

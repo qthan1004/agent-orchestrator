@@ -49,12 +49,12 @@ npm run build
 
 ## Done Criteria
 
-- [ ] Callback payload includes `runtime_id` and `lease_generation`
-- [ ] Server accepts callback only for active matching lease
-- [ ] Late callback after requeue is rejected
-- [ ] Accepted callback is the terminal done signal
-- [ ] `npm run typecheck` passes
-- [ ] `npm run build` passes
+- [x] Callback payload includes `runtime_id` and `lease_generation`
+- [x] Server accepts callback only for active matching lease
+- [x] Late callback after requeue is rejected
+- [x] Accepted callback is the terminal done signal
+- [x] `npm run typecheck` passes
+- [x] `npm run build` passes
 
 ### Plan Continuation
 

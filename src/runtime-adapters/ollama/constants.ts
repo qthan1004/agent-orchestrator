@@ -1,0 +1,15 @@
+export const OLLAMA_RUNTIME_ENV = {
+  ISOLATION: 'ORCHESTRATOR_OLLAMA_ISOLATION',
+  BASE_PORT: 'ORCHESTRATOR_OLLAMA_BASE_PORT',
+} as const;
+
+export const OLLAMA_RUNTIME_DEFAULTS = {
+  SHARED_BASE_URL: 'http://localhost:11434',
+  ISOLATED_BASE_PORT: 12434,
+  SHARED_FALLBACK_MAX_WORKERS: 1,
+} as const;
+
+export const OLLAMA_RUNTIME_ISOLATION = {
+  ISOLATED: 'isolated',
+  SHARED_DEV_FALLBACK: 'shared-dev-fallback',
+} as const;

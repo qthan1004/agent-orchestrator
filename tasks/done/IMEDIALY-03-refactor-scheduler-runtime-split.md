@@ -45,12 +45,12 @@ npm run build
 
 ## Done Criteria
 
-- [ ] Dispatch loop no longer owns process health details
-- [ ] Runtime manager exposes `spawn`, `kill`, and `isAlive`
-- [ ] Recovery checks runtime manager before reclaim
-- [ ] Server modules do not import backend adapters for scheduling decisions
-- [ ] `npm run typecheck` passes
-- [ ] `npm run build` passes
+- [x] Dispatch loop no longer owns process health details
+- [x] Runtime manager exposes `spawn`, `kill`, and `isAlive`
+- [x] Recovery checks runtime manager before reclaim
+- [x] Server modules do not import backend adapters for scheduling decisions
+- [x] `npm run typecheck` passes
+- [x] `npm run build` passes
 
 ### Plan Continuation
 

@@ -46,12 +46,12 @@ npm run build
 
 ## Done Criteria
 
-- [ ] Two local leases can use different endpoints
-- [ ] Worker A cannot complete worker B task
-- [ ] Killing lease A does not unload/kill lease B
-- [ ] Shared fallback is explicitly marked dev-only and single-worker
-- [ ] `npm run typecheck` passes
-- [ ] `npm run build` passes
+- [x] Two local leases can use different endpoints
+- [x] Worker A cannot complete worker B task
+- [x] Killing lease A does not unload/kill lease B
+- [x] Shared fallback is explicitly marked dev-only and single-worker
+- [x] `npm run typecheck` passes
+- [x] `npm run build` passes
 
 ### Plan Continuation
 

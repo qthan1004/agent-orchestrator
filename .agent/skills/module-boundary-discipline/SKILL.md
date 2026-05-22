@@ -123,6 +123,7 @@ Do not collapse task, worker, runtime, and heartbeat into one concept.
 - One runtime lease owns exactly one point reservation.
 - One runtime lease owns exactly one heartbeat record.
 - A shared Ollama daemon is not worker isolation. It is only a dev fallback.
+- Worker-service handover is task transition state scoped to `task_id + runtime_id + lease_generation`, not shared memory.
 
 Recovery may reclaim a task only when:
 
@@ -147,6 +148,7 @@ There is one stale truth per runtime lease.
 Parallel scheduling is valid only when runtime leases are independent.
 
 - Local small task: isolated Ollama runtime/endpoint per lease.
+- Shared Ollama fallback is dev-only and capped to one local worker.
 - Large/high-point task: isolated Codex CLI or AG CLI runtime/session per lease.
 - Multiple workers sharing one hidden backend state breaks point-based scheduling.
 - Running Qwen 4B and Qwen 7B together requires separate runtime leases with explicit capacity accounting.
@@ -171,6 +173,13 @@ Do not build a UI for resource monitoring unless explicitly requested.
 - Server code only wires collection to output.
 - Current visibility target is a terminal table.
 - Terminal table must show queue, active workers, backend health, loaded models, VRAM, RAM, and CPU load.
+
+## Handover Rule
+
+- Handover source is the current runtime lease/session.
+- Handover target is the next runtime lease selected by scheduler/allocator.
+- Handover records must include `task_id`, `worker_id`, `runtime_id`, `lease_generation`, attempt/order, summary, open questions, modified files, and next action.
+- Late handover from an old runtime id or lease generation must be rejected before task mutation.
 
 ## Review Gate
 

@@ -1,13 +1,13 @@
-# Task IMEDIALY-08: Mindset Docs And Task Board Alignment
+# Task IMEDIALY-09: Mindset Docs And Task Board Alignment
 
 ## Info
-- **ID:** IMEDIALY-08-mindset-docs-and-task-board-alignment
+- **ID:** IMEDIALY-09-mindset-docs-and-task-board-alignment
 - **Module:** dev docs, task board, local agent skills
 - **Group:** Immediate Runtime Lease Refactor
-- **Dependencies:** IMEDIALY-07
+- **Dependencies:** IMEDIALY-08
 - **Priority:** 0
 - **Plan-ID:** IMEDIALY-runtime-lease-refactor
-- **Plan-Order:** 08
+- **Plan-Order:** 09
 - **Plan-Next:** STOP
 - **Ref:** `dev-docs/2026-05-22_plan_runtime-lease-refactor.md`
 
@@ -49,6 +49,7 @@ npm run build
 - [ ] Task board shows immediate chain completed
 - [ ] Final `### Plan Continuation` section says to stop at this plan boundary
 - [ ] No hardcoded local VRAM/GPU assumptions remain in active docs
+- [ ] Worker-service handover pipeline is documented as per-service, not shared memory
 - [ ] `npm run typecheck` passes
 - [ ] `npm run build` passes
 
