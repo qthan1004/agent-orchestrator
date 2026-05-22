@@ -1,5 +1,5 @@
 {
-  "task": "consolidate-worker-harness-runtime-service-analysis",
-  "status": "added context succession, VRAM warm-cache, and non-silent harness visibility rules",
+  "task": "break-worker-harness-runtime-service-analysis-into-tasks",
+  "status": "created IMEDIALY-10-through-21 task chain and updated task board handoff",
   "updatedAt": "2026-05-22"
 }

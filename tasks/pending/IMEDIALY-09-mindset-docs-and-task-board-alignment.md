@@ -8,7 +8,7 @@
 - **Priority:** 0
 - **Plan-ID:** IMEDIALY-runtime-lease-refactor
 - **Plan-Order:** 09
-- **Plan-Next:** STOP
+- **Plan-Next:** IMEDIALY-10-audit-worker-harness-runtime-service-gaps.md
 - **Ref:** `dev-docs/2026-05-22_plan_runtime-lease-refactor.md`
 
 ## Constraints
@@ -47,7 +47,7 @@ npm run build
 
 - [ ] Docs describe implemented architecture, not desired architecture
 - [ ] Task board shows immediate chain completed
-- [ ] Final `### Plan Continuation` section says to stop at this plan boundary
+- [ ] Final `### Plan Continuation` section hands off to the worker/harness service correction plan
 - [ ] No hardcoded local VRAM/GPU assumptions remain in active docs
 - [ ] Worker-service handover pipeline is documented as per-service, not shared memory
 - [ ] `npm run typecheck` passes
@@ -57,4 +57,8 @@ npm run build
 
 This task ends `Plan-ID: IMEDIALY-runtime-lease-refactor`.
 
-After this task is completed and moved to `tasks/done/`, stop. Do not call `/pick-task` for tasks outside this plan.
+After this task is completed and moved to `tasks/done/`, call `/pick-task` again.
+
+Expected next task in the next plan: `IMEDIALY-10-audit-worker-harness-runtime-service-gaps.md`.
+
+The next task starts `Plan-ID: IMEDIALY-worker-harness-service-correction`.
