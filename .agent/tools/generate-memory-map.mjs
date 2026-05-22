@@ -257,15 +257,18 @@ try {
   }
   folderMermaid += '```';
 
-  // Filter for Core Modules Relationship Graph
+  // Filter for Core Modules Relationship Graph (including beautiful styled NPM library nodes!)
   const coreConnections = [];
   const coreNodes = new Set();
+  const coreNpmNodes = new Set();
 
   Object.entries(fileLocalDeps).forEach(([file, deps]) => {
     const isFileCore = coreKeywords.some(kw => file.includes(kw));
     if (isFileCore) {
       const cleanFile = file.replace(/\.(ts|js)$/, '');
       coreNodes.add(cleanFile);
+      
+      // Draw local core links
       deps.forEach(dep => {
         const isDepCore = coreKeywords.some(kw => dep.includes(kw));
         if (isDepCore) {
@@ -274,14 +277,34 @@ try {
           coreConnections.push(`  ${cleanFile.replace(/[\/-]/g, '_')} --> ${cleanDep.replace(/[\/-]/g, '_')}`);
         }
       });
+
+      // Draw links to external libraries used by this core module
+      const npmDeps = fileNpmDeps[file] || [];
+      npmDeps.forEach(npmLib => {
+        const cleanLibId = 'npm_' + npmLib.replace(/[\/-]/g, '_');
+        coreNpmNodes.add(npmLib);
+        coreConnections.push(`  ${cleanFile.replace(/[\/-]/g, '_')} -.-> ${cleanLibId}`);
+      });
     }
   });
 
   let coreMermaid = '```mermaid\nflowchart LR\n';
+  coreMermaid += '  classDef coreFile fill:#1E1B4B,stroke:#6366F1,stroke-width:2px,color:#E0E7FF;\n';
+  coreMermaid += '  classDef externalLib fill:#311042,stroke:#A78BFA,stroke-width:2px,stroke-dasharray: 5 5,color:#F3E8FF;\n\n';
+
+  // Declare local Core Nodes
   coreNodes.forEach(node => {
     const cleanId = node.replace(/[\/-]/g, '_');
-    coreMermaid += `  ${cleanId}["📄 ${node}"]\n`;
+    coreMermaid += `  ${cleanId}["📄 ${node}"]:::coreFile\n`;
   });
+
+  // Declare external NPM Nodes
+  coreNpmNodes.forEach(npmLib => {
+    const cleanLibId = 'npm_' + npmLib.replace(/[\/-]/g, '_');
+    coreMermaid += `  ${cleanLibId}["📦 ${npmLib}"]:::externalLib\n`;
+  });
+
+  // Declare links
   coreConnections.forEach(conn => {
     coreMermaid += conn + '\n';
   });

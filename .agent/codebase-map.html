@@ -499,37 +499,41 @@
           <div class="mermaid-canvas" id="core-canvas">
             <div class="mermaid">
               flowchart LR
-  constants["📄 constants"]
-  index["📄 index"]
-  mcp_server_index["📄 mcp-server/index"]
-  models_index["📄 models/index"]
-  infra_constants["📄 infra/constants"]
-  infra_index["📄 infra/index"]
-  infra_models["📄 infra/models"]
-  mcp_server_state_manager["📄 mcp-server/state-manager"]
-  visibility_index["📄 visibility/index"]
-  task_index["📄 task/index"]
-  mcp_server_tools["📄 mcp-server/tools"]
-  runtime_adapters_ag_cli_constants["📄 runtime-adapters/ag-cli/constants"]
-  runtime_adapters_ag_cli_index["📄 runtime-adapters/ag-cli/index"]
-  runtime_adapters_ag_cli_models["📄 runtime-adapters/ag-cli/models"]
-  runtime_models["📄 runtime/models"]
-  runtime_adapters_codex_cli_constants["📄 runtime-adapters/codex-cli/constants"]
-  runtime_adapters_codex_cli_index["📄 runtime-adapters/codex-cli/index"]
-  runtime_adapters_codex_cli_models["📄 runtime-adapters/codex-cli/models"]
-  runtime_adapters_ollama_constants["📄 runtime-adapters/ollama/constants"]
-  runtime_adapters_ollama_index["📄 runtime-adapters/ollama/index"]
-  runtime_adapters_ollama_models["📄 runtime-adapters/ollama/models"]
-  runtime_constants["📄 runtime/constants"]
-  runtime_index["📄 runtime/index"]
-  runtime_runtime_manager["📄 runtime/runtime-manager"]
-  scheduler_constants["📄 scheduler/constants"]
-  scheduler_index["📄 scheduler/index"]
-  scheduler_models["📄 scheduler/models"]
-  task_constants["📄 task/constants"]
-  task_models["📄 task/models"]
-  visibility_constants["📄 visibility/constants"]
-  visibility_models["📄 visibility/models"]
+  classDef coreFile fill:#1E1B4B,stroke:#6366F1,stroke-width:2px,color:#E0E7FF;
+  classDef externalLib fill:#311042,stroke:#A78BFA,stroke-width:2px,stroke-dasharray: 5 5,color:#F3E8FF;
+
+  constants["📄 constants"]:::coreFile
+  index["📄 index"]:::coreFile
+  mcp_server_index["📄 mcp-server/index"]:::coreFile
+  models_index["📄 models/index"]:::coreFile
+  infra_constants["📄 infra/constants"]:::coreFile
+  infra_index["📄 infra/index"]:::coreFile
+  infra_models["📄 infra/models"]:::coreFile
+  mcp_server_state_manager["📄 mcp-server/state-manager"]:::coreFile
+  visibility_index["📄 visibility/index"]:::coreFile
+  task_index["📄 task/index"]:::coreFile
+  mcp_server_tools["📄 mcp-server/tools"]:::coreFile
+  runtime_adapters_ag_cli_constants["📄 runtime-adapters/ag-cli/constants"]:::coreFile
+  runtime_adapters_ag_cli_index["📄 runtime-adapters/ag-cli/index"]:::coreFile
+  runtime_adapters_ag_cli_models["📄 runtime-adapters/ag-cli/models"]:::coreFile
+  runtime_models["📄 runtime/models"]:::coreFile
+  runtime_adapters_codex_cli_constants["📄 runtime-adapters/codex-cli/constants"]:::coreFile
+  runtime_adapters_codex_cli_index["📄 runtime-adapters/codex-cli/index"]:::coreFile
+  runtime_adapters_codex_cli_models["📄 runtime-adapters/codex-cli/models"]:::coreFile
+  runtime_adapters_ollama_constants["📄 runtime-adapters/ollama/constants"]:::coreFile
+  runtime_adapters_ollama_index["📄 runtime-adapters/ollama/index"]:::coreFile
+  runtime_adapters_ollama_models["📄 runtime-adapters/ollama/models"]:::coreFile
+  runtime_constants["📄 runtime/constants"]:::coreFile
+  runtime_index["📄 runtime/index"]:::coreFile
+  runtime_runtime_manager["📄 runtime/runtime-manager"]:::coreFile
+  scheduler_constants["📄 scheduler/constants"]:::coreFile
+  scheduler_index["📄 scheduler/index"]:::coreFile
+  scheduler_models["📄 scheduler/models"]:::coreFile
+  task_constants["📄 task/constants"]:::coreFile
+  task_models["📄 task/models"]:::coreFile
+  visibility_constants["📄 visibility/constants"]:::coreFile
+  visibility_models["📄 visibility/models"]:::coreFile
+  npm_..["📦 .."]:::externalLib
   index --> constants
   index --> mcp_server_index
   index --> models_index
@@ -540,11 +544,13 @@
   mcp_server_index --> mcp_server_state_manager
   mcp_server_index --> models_index
   mcp_server_index --> visibility_index
+  mcp_server_index -.-> npm_..
   mcp_server_state_manager --> constants
   mcp_server_state_manager --> models_index
   mcp_server_state_manager --> task_index
   mcp_server_tools --> constants
   mcp_server_tools --> task_index
+  mcp_server_tools -.-> npm_..
   runtime_adapters_ag_cli_index --> runtime_adapters_ag_cli_constants
   runtime_adapters_ag_cli_index --> runtime_adapters_ag_cli_models
   runtime_adapters_ag_cli_models --> runtime_models
