@@ -104,19 +104,19 @@ try {
     }
   } catch (e) {}
 
-  // Run Madge to get JSON dependencies
-  console.log('🔍 Scanning file relations (madge)...');
+  // Run Madge to get JSON dependencies (including npm dependencies)
+  console.log('🔍 Scanning file relations and libraries (madge)...');
   let madgeJsonRaw = '';
   try {
     madgeJsonRaw = execSync(
-      `${madgeCmd} --json "${entrypoint}"`,
+      `${madgeCmd} --json --include-npm "${entrypoint}"`,
       { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] }
     );
   } catch (err) {
     // If standard local command failed, try global madge command
     try {
       madgeJsonRaw = execSync(
-        `madge --json "${entrypoint}"`,
+        `madge --json --include-npm "${entrypoint}"`,
         { encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] }
       );
     } catch (err2) {
@@ -129,6 +129,37 @@ try {
   }
 
   const dependencies = JSON.parse(madgeJsonRaw || '{}');
+
+  // Classify local vs external npm dependencies
+  const localFiles = new Set(Object.keys(dependencies));
+  const fileLocalDeps = {};
+  const fileNpmDeps = {};
+  const allUsedNpmLibs = new Set();
+
+  Object.entries(dependencies).forEach(([file, deps]) => {
+    fileLocalDeps[file] = [];
+    fileNpmDeps[file] = [];
+    deps.forEach(dep => {
+      if (localFiles.has(dep)) {
+        fileLocalDeps[file].push(dep);
+      } else {
+        // Stop at package name level (e.g. '@angular/core' or 'express')
+        let cleanLibName = dep;
+        if (dep.startsWith('@')) {
+          const parts = dep.split('/');
+          if (parts.length >= 2) {
+            cleanLibName = `${parts[0]}/${parts[1]}`;
+          }
+        } else if (dep.includes('/')) {
+          cleanLibName = dep.split('/')[0];
+        }
+        fileNpmDeps[file].push(cleanLibName);
+        allUsedNpmLibs.add(cleanLibName);
+      }
+    });
+    // Remove duplicates
+    fileNpmDeps[file] = [...new Set(fileNpmDeps[file])];
+  });
 
   // Run Madge to get circular dependencies
   console.log('🔄 Checking for circular dependencies...');
@@ -162,10 +193,10 @@ try {
   let coreKeywords = [];
   if (coreParam) {
     coreKeywords = coreParam.split(',').map(s => s.trim());
-  } else if (Object.keys(dependencies).length > 0) {
+  } else if (Object.keys(fileLocalDeps).length > 0) {
     // Auto-discover the top connected files in the codebase as the "core flow" nodes
     const fileWeights = {};
-    Object.entries(dependencies).forEach(([file, deps]) => {
+    Object.entries(fileLocalDeps).forEach(([file, deps]) => {
       fileWeights[file] = (fileWeights[file] || 0) + deps.length;
       deps.forEach(dep => {
         fileWeights[dep] = (fileWeights[dep] || 0) + 1;
@@ -197,7 +228,7 @@ try {
   const folderConnections = new Set();
   const folderModules = {};
 
-  Object.entries(dependencies).forEach(([file, deps]) => {
+  Object.entries(fileLocalDeps).forEach(([file, deps]) => {
     const fileFolder = file.includes('/') ? file.split('/')[0] : 'root';
     if (!folderModules[fileFolder]) {
       folderModules[fileFolder] = new Set();
@@ -230,7 +261,7 @@ try {
   const coreConnections = [];
   const coreNodes = new Set();
 
-  Object.entries(dependencies).forEach(([file, deps]) => {
+  Object.entries(fileLocalDeps).forEach(([file, deps]) => {
     const isFileCore = coreKeywords.some(kw => file.includes(kw));
     if (isFileCore) {
       const cleanFile = file.replace(/\.(ts|js)$/, '');
@@ -269,10 +300,13 @@ try {
 
   // Format Complete File Directory (collapsible details block)
   let fileListMarkdown = '<details>\n<summary>🔍 Click to view full module relations directory</summary>\n\n';
-  fileListMarkdown += '| Source File | Depends On |\n| :--- | :--- |\n';
-  Object.entries(dependencies).forEach(([file, deps]) => {
+  fileListMarkdown += '| Source File | Local Dependencies | External Libraries Used (NPM) |\n| :--- | :--- | :--- |\n';
+  Object.entries(fileLocalDeps).forEach(([file, deps]) => {
     const depList = deps.length > 0 ? deps.map(d => `\`${d}\``).join(', ') : '_None_';
-    fileListMarkdown += `| \`${file}\` | ${depList} |\n`;
+    const npmList = fileNpmDeps[file] && fileNpmDeps[file].length > 0 
+      ? fileNpmDeps[file].map(d => `\`${d}\``).join(', ') 
+      : '_None_';
+    fileListMarkdown += '| `' + file + '` | ' + depList + ' | ' + npmList + ' |\n';
   });
   fileListMarkdown += '\n</details>';
 
@@ -366,14 +400,21 @@ ${fileListMarkdown}
 
   // Format directory rows as HTML
   let directoryRowsHtml = '';
-  for (const [file, deps] of Object.entries(dependencies)) {
+  for (const [file, deps] of Object.entries(fileLocalDeps)) {
     const depBadges = deps.length > 0 
       ? deps.map(d => `<span class="dep-badge">${d}</span>`).join('') 
       : '<span class="dep-badge none">None</span>';
+    
+    const npmDeps = fileNpmDeps[file] || [];
+    const npmBadges = npmDeps.length > 0
+      ? npmDeps.map(d => `<span class="npm-badge">${d}</span>`).join('')
+      : '<span class="npm-badge none">None</span>';
+
     directoryRowsHtml += `
-      <tr class="searchable-row" data-file="${file.toLowerCase()}" data-deps="${deps.join(' ').toLowerCase()}">
+      <tr class="searchable-row" data-file="${file.toLowerCase()}" data-deps="${deps.join(' ').toLowerCase()} ${npmDeps.join(' ').toLowerCase()}">
         <td class="file-name">📄 ${file}</td>
         <td class="dependencies-cell">${depBadges}</td>
+        <td class="dependencies-cell">${npmBadges}</td>
       </tr>`;
   }
 
@@ -755,6 +796,23 @@ ${fileListMarkdown}
       color: var(--text-muted);
     }
 
+    .npm-badge {
+      font-family: monospace;
+      font-size: 0.8rem;
+      background: rgba(124, 58, 237, 0.1);
+      border: 1px solid rgba(124, 58, 237, 0.25);
+      padding: 2px 8px;
+      border-radius: 4px;
+      color: #A78BFA;
+    }
+
+    .npm-badge.none {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-style: dashed;
+      color: var(--text-muted);
+    }
+
     /* Scrollbars */
     ::-webkit-scrollbar {
       width: 8px;
@@ -826,7 +884,8 @@ ${fileListMarkdown}
           <thead>
             <tr>
               <th>Module File</th>
-              <th>Imports / Dependencies</th>
+              <th>Local Dependencies</th>
+              <th>External Libraries Used (NPM)</th>
             </tr>
           </thead>
           <tbody id="directory-body">

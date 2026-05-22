@@ -229,86 +229,86 @@ flowchart LR
 <details>
 <summary>🔍 Click to view full module relations directory</summary>
 
-| Source File | Depends On |
-| :--- | :--- |
-| `config.ts` | `constants.ts`, `models/config.ts`, `utils/workspace-registry.ts` |
-| `constants.ts` | _None_ |
-| `index.ts` | `config.ts`, `constants.ts`, `mcp-server/index.ts`, `models/index.ts`, `utils/startup-prompt.ts` |
-| `infra/capacity-store.ts` | `infra/models.ts` |
-| `infra/constants.ts` | _None_ |
-| `infra/index.ts` | `infra/capacity-store.ts`, `infra/constants.ts`, `infra/infra-verifier.ts`, `infra/models.ts`, `infra/resource-monitor.ts` |
-| `infra/infra-verifier.ts` | `infra/models.ts` |
-| `infra/models.ts` | _None_ |
-| `infra/resource-monitor.ts` | `infra/constants.ts`, `infra/models.ts` |
-| `mcp-server/context.ts` | `mcp-server/plan-watcher.ts`, `mcp-server/recovery.ts`, `mcp-server/state-manager.ts`, `models/config.ts`, `utils/logger.ts`, `utils/worker-registry.ts` |
-| `mcp-server/index.ts` | `constants.ts`, `infra/index.ts`, `mcp-server/context.ts`, `mcp-server/plan-watcher.ts`, `mcp-server/recovery.ts`, `mcp-server/state-manager.ts`, `mcp-server/transport.ts`, `models/index.ts`, `utils/bootstrap.ts`, `utils/identity-invariants.ts`, `utils/logger.ts`, `utils/ollama-launcher.ts`, `utils/worker-registry.ts`, `utils/workspace-registry.ts`, `visibility/index.ts`, `worker/adapters/ollama-adapter.ts`, `worker/dispatch-loop.ts`, `worker/model-selector.ts`, `worker/vram-manager.ts` |
-| `mcp-server/plan-watcher.ts` | `constants.ts`, `mcp-server/state-manager.ts`, `models/index.ts`, `utils/file-backend.ts`, `utils/logger.ts`, `utils/workspace-registry.ts` |
-| `mcp-server/recovery.ts` | `constants.ts`, `mcp-server/state-manager.ts`, `models/index.ts`, `task/index.ts`, `utils/file-backend.ts`, `utils/lifecycle-timing.ts`, `utils/logger.ts`, `utils/worker-registry.ts` |
-| `mcp-server/server.ts` | `constants.ts`, `mcp-server/context.ts`, `mcp-server/tools.ts` |
-| `mcp-server/state-manager.ts` | `constants.ts`, `mcp-server/task-queue.ts`, `models/index.ts`, `task/index.ts`, `utils/file-backend.ts`, `utils/logger.ts`, `utils/task-identity-registry.ts` |
-| `mcp-server/task-queue.ts` | `constants.ts`, `models/index.ts`, `scheduler/index.ts`, `task/index.ts` |
-| `mcp-server/tools.ts` | `constants.ts`, `mcp-server/context.ts`, `mcp-server/tools/scan-workspace.ts`, `mcp-server/tools/session-checkpoint.ts`, `server-tools/task-submitter.ts`, `server-tools/workspace-connector.ts`, `task/index.ts`, `utils/bootstrap.ts`, `utils/file-backend.ts`, `utils/identity-invariants.ts`, `utils/workspace-registry.ts` |
-| `mcp-server/tools/scan-workspace.ts` | _None_ |
-| `mcp-server/tools/session-checkpoint.ts` | `constants.ts` |
-| `mcp-server/transport.ts` | `constants.ts`, `mcp-server/context.ts`, `mcp-server/server.ts` |
-| `models/assignment.ts` | `runtime/models.ts` |
-| `models/bootstrap.ts` | _None_ |
-| `models/checkpoint.ts` | _None_ |
-| `models/config.ts` | _None_ |
-| `models/index.ts` | `models/assignment.ts`, `models/bootstrap.ts`, `models/checkpoint.ts`, `models/config.ts`, `models/mcp.ts`, `models/plan.ts`, `models/task-metadata.ts`, `models/task.ts`, `models/worker.ts` |
-| `models/mcp.ts` | _None_ |
-| `models/plan.ts` | _None_ |
-| `models/task-metadata.ts` | `constants.ts`, `models/task.ts` |
-| `models/task.ts` | `task/models.ts` |
-| `models/worker.ts` | _None_ |
-| `runtime-adapters/ag-cli/ag-runtime.ts` | `runtime-adapters/ag-cli/constants.ts`, `runtime-adapters/ag-cli/models.ts`, `runtime/constants.ts` |
-| `runtime-adapters/ag-cli/constants.ts` | _None_ |
-| `runtime-adapters/ag-cli/index.ts` | `runtime-adapters/ag-cli/ag-runtime.ts`, `runtime-adapters/ag-cli/constants.ts`, `runtime-adapters/ag-cli/models.ts` |
-| `runtime-adapters/ag-cli/models.ts` | `runtime/models.ts` |
-| `runtime-adapters/codex-cli/codex-runtime.ts` | `runtime-adapters/codex-cli/constants.ts`, `runtime-adapters/codex-cli/models.ts`, `runtime/constants.ts` |
-| `runtime-adapters/codex-cli/constants.ts` | _None_ |
-| `runtime-adapters/codex-cli/index.ts` | `runtime-adapters/codex-cli/codex-runtime.ts`, `runtime-adapters/codex-cli/constants.ts`, `runtime-adapters/codex-cli/models.ts` |
-| `runtime-adapters/codex-cli/models.ts` | `runtime/models.ts` |
-| `runtime-adapters/ollama/constants.ts` | _None_ |
-| `runtime-adapters/ollama/index.ts` | `runtime-adapters/ollama/constants.ts`, `runtime-adapters/ollama/models.ts`, `runtime-adapters/ollama/ollama-runtime.ts` |
-| `runtime-adapters/ollama/models.ts` | `runtime-adapters/ollama/constants.ts`, `runtime/models.ts` |
-| `runtime-adapters/ollama/ollama-runtime.ts` | `runtime-adapters/ollama/constants.ts`, `runtime-adapters/ollama/models.ts`, `runtime/constants.ts`, `runtime/models.ts` |
-| `runtime/constants.ts` | _None_ |
-| `runtime/heartbeat-store.ts` | `runtime/constants.ts`, `runtime/models.ts`, `utils/lifecycle-timing.ts` |
-| `runtime/index.ts` | `runtime/constants.ts`, `runtime/heartbeat-store.ts`, `runtime/lease-validator.ts`, `runtime/models.ts`, `runtime/point-allocator.ts`, `runtime/runtime-manager.ts`, `runtime/runtime-registry.ts` |
-| `runtime/lease-validator.ts` | `runtime/models.ts` |
-| `runtime/models.ts` | `runtime/constants.ts` |
-| `runtime/point-allocator.ts` | `infra/index.ts`, `runtime/models.ts` |
-| `runtime/runtime-manager.ts` | `infra/index.ts`, `runtime-adapters/ag-cli/index.ts`, `runtime-adapters/codex-cli/index.ts`, `runtime-adapters/ollama/index.ts`, `runtime/constants.ts`, `runtime/heartbeat-store.ts`, `runtime/models.ts`, `runtime/point-allocator.ts`, `runtime/runtime-registry.ts`, `worker/adapters/ollama-adapter.ts`, `worker/process-manager.ts` |
-| `runtime/runtime-registry.ts` | `runtime/constants.ts`, `runtime/models.ts` |
-| `scheduler/constants.ts` | _None_ |
-| `scheduler/index.ts` | `scheduler/constants.ts`, `scheduler/models.ts` |
-| `scheduler/models.ts` | `models/assignment.ts`, `runtime/index.ts`, `scheduler/constants.ts`, `task/index.ts` |
-| `server-tools/task-submitter.ts` | `constants.ts`, `mcp-server/context.ts`, `models/task-metadata.ts`, `utils/file-backend.ts`, `utils/identity-invariants.ts`, `utils/workspace-registry.ts` |
-| `server-tools/workspace-connector.ts` | `constants.ts`, `utils/bootstrap.ts`, `utils/identity-invariants.ts`, `utils/workspace-registry.ts` |
-| `task/constants.ts` | `constants.ts` |
-| `task/index.ts` | `task/constants.ts`, `task/models.ts` |
-| `task/models.ts` | `task/constants.ts` |
-| `utils/bootstrap.ts` | `constants.ts`, `models/bootstrap.ts`, `models/config.ts`, `utils/file-backend.ts` |
-| `utils/file-backend.ts` | `constants.ts` |
-| `utils/identity-invariants.ts` | `constants.ts`, `models/index.ts`, `task/index.ts`, `utils/workspace-registry.ts` |
-| `utils/lifecycle-timing.ts` | `runtime/constants.ts` |
-| `utils/logger.ts` | `constants.ts`, `utils/file-backend.ts` |
-| `utils/ollama-launcher.ts` | _None_ |
-| `utils/startup-prompt.ts` | `constants.ts`, `models/index.ts` |
-| `utils/task-identity-registry.ts` | `constants.ts`, `mcp-server/task-queue.ts`, `task/index.ts`, `utils/file-backend.ts`, `utils/identity-invariants.ts` |
-| `utils/worker-registry.ts` | `constants.ts`, `models/index.ts`, `utils/file-backend.ts`, `utils/identity-invariants.ts`, `utils/task-identity-registry.ts` |
-| `utils/workspace-registry.ts` | `utils/bootstrap.ts` |
-| `visibility/constants.ts` | _None_ |
-| `visibility/index.ts` | `visibility/constants.ts`, `visibility/models.ts`, `visibility/resource-terminal-table.ts` |
-| `visibility/models.ts` | _None_ |
-| `visibility/resource-terminal-table.ts` | `infra/index.ts`, `visibility/constants.ts`, `visibility/models.ts` |
-| `worker/adapters/llm-adapter.ts` | _None_ |
-| `worker/adapters/ollama-adapter.ts` | `worker/adapters/llm-adapter.ts` |
-| `worker/dispatch-loop.ts` | `constants.ts`, `infra/index.ts`, `mcp-server/state-manager.ts`, `mcp-server/task-queue.ts`, `runtime-adapters/ollama/index.ts`, `runtime/index.ts`, `scheduler/index.ts`, `utils/worker-registry.ts`, `worker/model-selector.ts`, `worker/process-manager.ts` |
-| `worker/model-selector.ts` | `constants.ts`, `infra/index.ts`, `mcp-server/task-queue.ts`, `task/index.ts`, `worker/adapters/ollama-adapter.ts` |
-| `worker/process-manager.ts` | `constants.ts`, `runtime/constants.ts`, `runtime/models.ts`, `utils/lifecycle-timing.ts` |
-| `worker/vram-manager.ts` | `constants.ts`, `worker/adapters/ollama-adapter.ts`, `worker/model-selector.ts` |
+| Source File | Local Dependencies | External Libraries Used (NPM) |
+| :--- | :--- | :--- |
+| `config.ts` | `constants.ts`, `models/config.ts`, `utils/workspace-registry.ts` | _None_ |
+| `constants.ts` | _None_ | _None_ |
+| `index.ts` | `config.ts`, `constants.ts`, `mcp-server/index.ts`, `models/index.ts`, `utils/startup-prompt.ts` | _None_ |
+| `infra/capacity-store.ts` | `infra/models.ts` | _None_ |
+| `infra/constants.ts` | _None_ | _None_ |
+| `infra/index.ts` | `infra/capacity-store.ts`, `infra/constants.ts`, `infra/infra-verifier.ts`, `infra/models.ts`, `infra/resource-monitor.ts` | _None_ |
+| `infra/infra-verifier.ts` | `infra/models.ts` | _None_ |
+| `infra/models.ts` | _None_ | _None_ |
+| `infra/resource-monitor.ts` | `infra/constants.ts`, `infra/models.ts` | _None_ |
+| `mcp-server/context.ts` | `mcp-server/plan-watcher.ts`, `mcp-server/recovery.ts`, `mcp-server/state-manager.ts`, `models/config.ts`, `utils/logger.ts`, `utils/worker-registry.ts` | _None_ |
+| `mcp-server/index.ts` | `constants.ts`, `infra/index.ts`, `mcp-server/context.ts`, `mcp-server/plan-watcher.ts`, `mcp-server/recovery.ts`, `mcp-server/state-manager.ts`, `mcp-server/transport.ts`, `models/index.ts`, `utils/bootstrap.ts`, `utils/identity-invariants.ts`, `utils/logger.ts`, `utils/ollama-launcher.ts`, `utils/worker-registry.ts`, `utils/workspace-registry.ts`, `visibility/index.ts`, `worker/adapters/ollama-adapter.ts`, `worker/dispatch-loop.ts`, `worker/model-selector.ts`, `worker/vram-manager.ts` | `..` |
+| `mcp-server/plan-watcher.ts` | `constants.ts`, `mcp-server/state-manager.ts`, `models/index.ts`, `utils/file-backend.ts`, `utils/logger.ts`, `utils/workspace-registry.ts` | _None_ |
+| `mcp-server/recovery.ts` | `constants.ts`, `mcp-server/state-manager.ts`, `models/index.ts`, `task/index.ts`, `utils/file-backend.ts`, `utils/lifecycle-timing.ts`, `utils/logger.ts`, `utils/worker-registry.ts` | _None_ |
+| `mcp-server/server.ts` | `constants.ts`, `mcp-server/context.ts`, `mcp-server/tools.ts` | `..` |
+| `mcp-server/state-manager.ts` | `constants.ts`, `mcp-server/task-queue.ts`, `models/index.ts`, `task/index.ts`, `utils/file-backend.ts`, `utils/logger.ts`, `utils/task-identity-registry.ts` | _None_ |
+| `mcp-server/task-queue.ts` | `constants.ts`, `models/index.ts`, `scheduler/index.ts`, `task/index.ts` | _None_ |
+| `mcp-server/tools.ts` | `constants.ts`, `mcp-server/context.ts`, `mcp-server/tools/scan-workspace.ts`, `mcp-server/tools/session-checkpoint.ts`, `server-tools/task-submitter.ts`, `server-tools/workspace-connector.ts`, `task/index.ts`, `utils/bootstrap.ts`, `utils/file-backend.ts`, `utils/identity-invariants.ts`, `utils/workspace-registry.ts` | `..` |
+| `mcp-server/tools/scan-workspace.ts` | _None_ | _None_ |
+| `mcp-server/tools/session-checkpoint.ts` | `constants.ts` | `..` |
+| `mcp-server/transport.ts` | `constants.ts`, `mcp-server/context.ts`, `mcp-server/server.ts` | `..` |
+| `models/assignment.ts` | `runtime/models.ts` | _None_ |
+| `models/bootstrap.ts` | _None_ | _None_ |
+| `models/checkpoint.ts` | _None_ | _None_ |
+| `models/config.ts` | _None_ | _None_ |
+| `models/index.ts` | `models/assignment.ts`, `models/bootstrap.ts`, `models/checkpoint.ts`, `models/config.ts`, `models/mcp.ts`, `models/plan.ts`, `models/task-metadata.ts`, `models/task.ts`, `models/worker.ts` | _None_ |
+| `models/mcp.ts` | _None_ | _None_ |
+| `models/plan.ts` | _None_ | _None_ |
+| `models/task-metadata.ts` | `constants.ts`, `models/task.ts` | _None_ |
+| `models/task.ts` | `task/models.ts` | _None_ |
+| `models/worker.ts` | _None_ | _None_ |
+| `runtime-adapters/ag-cli/ag-runtime.ts` | `runtime-adapters/ag-cli/constants.ts`, `runtime-adapters/ag-cli/models.ts`, `runtime/constants.ts` | _None_ |
+| `runtime-adapters/ag-cli/constants.ts` | _None_ | _None_ |
+| `runtime-adapters/ag-cli/index.ts` | `runtime-adapters/ag-cli/ag-runtime.ts`, `runtime-adapters/ag-cli/constants.ts`, `runtime-adapters/ag-cli/models.ts` | _None_ |
+| `runtime-adapters/ag-cli/models.ts` | `runtime/models.ts` | _None_ |
+| `runtime-adapters/codex-cli/codex-runtime.ts` | `runtime-adapters/codex-cli/constants.ts`, `runtime-adapters/codex-cli/models.ts`, `runtime/constants.ts` | _None_ |
+| `runtime-adapters/codex-cli/constants.ts` | _None_ | _None_ |
+| `runtime-adapters/codex-cli/index.ts` | `runtime-adapters/codex-cli/codex-runtime.ts`, `runtime-adapters/codex-cli/constants.ts`, `runtime-adapters/codex-cli/models.ts` | _None_ |
+| `runtime-adapters/codex-cli/models.ts` | `runtime/models.ts` | _None_ |
+| `runtime-adapters/ollama/constants.ts` | _None_ | _None_ |
+| `runtime-adapters/ollama/index.ts` | `runtime-adapters/ollama/constants.ts`, `runtime-adapters/ollama/models.ts`, `runtime-adapters/ollama/ollama-runtime.ts` | _None_ |
+| `runtime-adapters/ollama/models.ts` | `runtime-adapters/ollama/constants.ts`, `runtime/models.ts` | _None_ |
+| `runtime-adapters/ollama/ollama-runtime.ts` | `runtime-adapters/ollama/constants.ts`, `runtime-adapters/ollama/models.ts`, `runtime/constants.ts`, `runtime/models.ts` | _None_ |
+| `runtime/constants.ts` | _None_ | _None_ |
+| `runtime/heartbeat-store.ts` | `runtime/constants.ts`, `runtime/models.ts`, `utils/lifecycle-timing.ts` | _None_ |
+| `runtime/index.ts` | `runtime/constants.ts`, `runtime/heartbeat-store.ts`, `runtime/lease-validator.ts`, `runtime/models.ts`, `runtime/point-allocator.ts`, `runtime/runtime-manager.ts`, `runtime/runtime-registry.ts` | _None_ |
+| `runtime/lease-validator.ts` | `runtime/models.ts` | _None_ |
+| `runtime/models.ts` | `runtime/constants.ts` | _None_ |
+| `runtime/point-allocator.ts` | `infra/index.ts`, `runtime/models.ts` | _None_ |
+| `runtime/runtime-manager.ts` | `infra/index.ts`, `runtime-adapters/ag-cli/index.ts`, `runtime-adapters/codex-cli/index.ts`, `runtime-adapters/ollama/index.ts`, `runtime/constants.ts`, `runtime/heartbeat-store.ts`, `runtime/models.ts`, `runtime/point-allocator.ts`, `runtime/runtime-registry.ts`, `worker/adapters/ollama-adapter.ts`, `worker/process-manager.ts` | _None_ |
+| `runtime/runtime-registry.ts` | `runtime/constants.ts`, `runtime/models.ts` | _None_ |
+| `scheduler/constants.ts` | _None_ | _None_ |
+| `scheduler/index.ts` | `scheduler/constants.ts`, `scheduler/models.ts` | _None_ |
+| `scheduler/models.ts` | `models/assignment.ts`, `runtime/index.ts`, `scheduler/constants.ts`, `task/index.ts` | _None_ |
+| `server-tools/task-submitter.ts` | `constants.ts`, `mcp-server/context.ts`, `models/task-metadata.ts`, `utils/file-backend.ts`, `utils/identity-invariants.ts`, `utils/workspace-registry.ts` | _None_ |
+| `server-tools/workspace-connector.ts` | `constants.ts`, `utils/bootstrap.ts`, `utils/identity-invariants.ts`, `utils/workspace-registry.ts` | _None_ |
+| `task/constants.ts` | `constants.ts` | _None_ |
+| `task/index.ts` | `task/constants.ts`, `task/models.ts` | _None_ |
+| `task/models.ts` | `task/constants.ts` | _None_ |
+| `utils/bootstrap.ts` | `constants.ts`, `models/bootstrap.ts`, `models/config.ts`, `utils/file-backend.ts` | _None_ |
+| `utils/file-backend.ts` | `constants.ts` | _None_ |
+| `utils/identity-invariants.ts` | `constants.ts`, `models/index.ts`, `task/index.ts`, `utils/workspace-registry.ts` | _None_ |
+| `utils/lifecycle-timing.ts` | `runtime/constants.ts` | _None_ |
+| `utils/logger.ts` | `constants.ts`, `utils/file-backend.ts` | _None_ |
+| `utils/ollama-launcher.ts` | _None_ | _None_ |
+| `utils/startup-prompt.ts` | `constants.ts`, `models/index.ts` | _None_ |
+| `utils/task-identity-registry.ts` | `constants.ts`, `mcp-server/task-queue.ts`, `task/index.ts`, `utils/file-backend.ts`, `utils/identity-invariants.ts` | _None_ |
+| `utils/worker-registry.ts` | `constants.ts`, `models/index.ts`, `utils/file-backend.ts`, `utils/identity-invariants.ts`, `utils/task-identity-registry.ts` | _None_ |
+| `utils/workspace-registry.ts` | `utils/bootstrap.ts` | _None_ |
+| `visibility/constants.ts` | _None_ | _None_ |
+| `visibility/index.ts` | `visibility/constants.ts`, `visibility/models.ts`, `visibility/resource-terminal-table.ts` | _None_ |
+| `visibility/models.ts` | _None_ | _None_ |
+| `visibility/resource-terminal-table.ts` | `infra/index.ts`, `visibility/constants.ts`, `visibility/models.ts` | _None_ |
+| `worker/adapters/llm-adapter.ts` | _None_ | _None_ |
+| `worker/adapters/ollama-adapter.ts` | `worker/adapters/llm-adapter.ts` | _None_ |
+| `worker/dispatch-loop.ts` | `constants.ts`, `infra/index.ts`, `mcp-server/state-manager.ts`, `mcp-server/task-queue.ts`, `runtime-adapters/ollama/index.ts`, `runtime/index.ts`, `scheduler/index.ts`, `utils/worker-registry.ts`, `worker/model-selector.ts`, `worker/process-manager.ts` | _None_ |
+| `worker/model-selector.ts` | `constants.ts`, `infra/index.ts`, `mcp-server/task-queue.ts`, `task/index.ts`, `worker/adapters/ollama-adapter.ts` | _None_ |
+| `worker/process-manager.ts` | `constants.ts`, `runtime/constants.ts`, `runtime/models.ts`, `utils/lifecycle-timing.ts` | _None_ |
+| `worker/vram-manager.ts` | `constants.ts`, `worker/adapters/ollama-adapter.ts`, `worker/model-selector.ts` | _None_ |
 
 </details>
 <!-- END_DEPENDENCY_MAP -->
