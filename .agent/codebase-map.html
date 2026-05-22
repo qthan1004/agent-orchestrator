@@ -533,7 +533,9 @@
   task_models["📄 task/models"]:::coreFile
   visibility_constants["📄 visibility/constants"]:::coreFile
   visibility_models["📄 visibility/models"]:::coreFile
-  npm_..["📦 .."]:::externalLib
+  npm_@types_express["📦 @types/express"]:::externalLib
+  npm_@modelcontextprotocol_sdk["📦 @modelcontextprotocol/sdk"]:::externalLib
+  npm_zod["📦 zod"]:::externalLib
   index --> constants
   index --> mcp_server_index
   index --> models_index
@@ -544,13 +546,14 @@
   mcp_server_index --> mcp_server_state_manager
   mcp_server_index --> models_index
   mcp_server_index --> visibility_index
-  mcp_server_index -.-> npm_..
+  mcp_server_index -.-> npm_@types_express
   mcp_server_state_manager --> constants
   mcp_server_state_manager --> models_index
   mcp_server_state_manager --> task_index
   mcp_server_tools --> constants
   mcp_server_tools --> task_index
-  mcp_server_tools -.-> npm_..
+  mcp_server_tools -.-> npm_@modelcontextprotocol_sdk
+  mcp_server_tools -.-> npm_zod
   runtime_adapters_ag_cli_index --> runtime_adapters_ag_cli_constants
   runtime_adapters_ag_cli_index --> runtime_adapters_ag_cli_models
   runtime_adapters_ag_cli_models --> runtime_models
@@ -662,10 +665,10 @@
         <td class="dependencies-cell"><span class="dep-badge">mcp-server/plan-watcher.ts</span><span class="dep-badge">mcp-server/recovery.ts</span><span class="dep-badge">mcp-server/state-manager.ts</span><span class="dep-badge">models/config.ts</span><span class="dep-badge">utils/logger.ts</span><span class="dep-badge">utils/worker-registry.ts</span></td>
         <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
       </tr>
-      <tr class="searchable-row" data-file="mcp-server/index.ts" data-deps="constants.ts infra/index.ts mcp-server/context.ts mcp-server/plan-watcher.ts mcp-server/recovery.ts mcp-server/state-manager.ts mcp-server/transport.ts models/index.ts utils/bootstrap.ts utils/identity-invariants.ts utils/logger.ts utils/ollama-launcher.ts utils/worker-registry.ts utils/workspace-registry.ts visibility/index.ts worker/adapters/ollama-adapter.ts worker/dispatch-loop.ts worker/model-selector.ts worker/vram-manager.ts ..">
+      <tr class="searchable-row" data-file="mcp-server/index.ts" data-deps="constants.ts infra/index.ts mcp-server/context.ts mcp-server/plan-watcher.ts mcp-server/recovery.ts mcp-server/state-manager.ts mcp-server/transport.ts models/index.ts utils/bootstrap.ts utils/identity-invariants.ts utils/logger.ts utils/ollama-launcher.ts utils/worker-registry.ts utils/workspace-registry.ts visibility/index.ts worker/adapters/ollama-adapter.ts worker/dispatch-loop.ts worker/model-selector.ts worker/vram-manager.ts @types/express">
         <td class="file-name">📄 mcp-server/index.ts</td>
         <td class="dependencies-cell"><span class="dep-badge">constants.ts</span><span class="dep-badge">infra/index.ts</span><span class="dep-badge">mcp-server/context.ts</span><span class="dep-badge">mcp-server/plan-watcher.ts</span><span class="dep-badge">mcp-server/recovery.ts</span><span class="dep-badge">mcp-server/state-manager.ts</span><span class="dep-badge">mcp-server/transport.ts</span><span class="dep-badge">models/index.ts</span><span class="dep-badge">utils/bootstrap.ts</span><span class="dep-badge">utils/identity-invariants.ts</span><span class="dep-badge">utils/logger.ts</span><span class="dep-badge">utils/ollama-launcher.ts</span><span class="dep-badge">utils/worker-registry.ts</span><span class="dep-badge">utils/workspace-registry.ts</span><span class="dep-badge">visibility/index.ts</span><span class="dep-badge">worker/adapters/ollama-adapter.ts</span><span class="dep-badge">worker/dispatch-loop.ts</span><span class="dep-badge">worker/model-selector.ts</span><span class="dep-badge">worker/vram-manager.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge">..</span></td>
+        <td class="dependencies-cell"><span class="npm-badge">@types/express</span></td>
       </tr>
       <tr class="searchable-row" data-file="mcp-server/plan-watcher.ts" data-deps="constants.ts mcp-server/state-manager.ts models/index.ts utils/file-backend.ts utils/logger.ts utils/workspace-registry.ts ">
         <td class="file-name">📄 mcp-server/plan-watcher.ts</td>
@@ -677,10 +680,10 @@
         <td class="dependencies-cell"><span class="dep-badge">constants.ts</span><span class="dep-badge">mcp-server/state-manager.ts</span><span class="dep-badge">models/index.ts</span><span class="dep-badge">task/index.ts</span><span class="dep-badge">utils/file-backend.ts</span><span class="dep-badge">utils/lifecycle-timing.ts</span><span class="dep-badge">utils/logger.ts</span><span class="dep-badge">utils/worker-registry.ts</span></td>
         <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
       </tr>
-      <tr class="searchable-row" data-file="mcp-server/server.ts" data-deps="constants.ts mcp-server/context.ts mcp-server/tools.ts ..">
+      <tr class="searchable-row" data-file="mcp-server/server.ts" data-deps="constants.ts mcp-server/context.ts mcp-server/tools.ts @modelcontextprotocol/sdk">
         <td class="file-name">📄 mcp-server/server.ts</td>
         <td class="dependencies-cell"><span class="dep-badge">constants.ts</span><span class="dep-badge">mcp-server/context.ts</span><span class="dep-badge">mcp-server/tools.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge">..</span></td>
+        <td class="dependencies-cell"><span class="npm-badge">@modelcontextprotocol/sdk</span></td>
       </tr>
       <tr class="searchable-row" data-file="mcp-server/state-manager.ts" data-deps="constants.ts mcp-server/task-queue.ts models/index.ts task/index.ts utils/file-backend.ts utils/logger.ts utils/task-identity-registry.ts ">
         <td class="file-name">📄 mcp-server/state-manager.ts</td>
@@ -692,25 +695,25 @@
         <td class="dependencies-cell"><span class="dep-badge">constants.ts</span><span class="dep-badge">models/index.ts</span><span class="dep-badge">scheduler/index.ts</span><span class="dep-badge">task/index.ts</span></td>
         <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
       </tr>
-      <tr class="searchable-row" data-file="mcp-server/tools.ts" data-deps="constants.ts mcp-server/context.ts mcp-server/tools/scan-workspace.ts mcp-server/tools/session-checkpoint.ts server-tools/task-submitter.ts server-tools/workspace-connector.ts task/index.ts utils/bootstrap.ts utils/file-backend.ts utils/identity-invariants.ts utils/workspace-registry.ts ..">
+      <tr class="searchable-row" data-file="mcp-server/tools.ts" data-deps="constants.ts mcp-server/context.ts mcp-server/tools/scan-workspace.ts mcp-server/tools/session-checkpoint.ts server-tools/task-submitter.ts server-tools/workspace-connector.ts task/index.ts utils/bootstrap.ts utils/file-backend.ts utils/identity-invariants.ts utils/workspace-registry.ts @modelcontextprotocol/sdk zod">
         <td class="file-name">📄 mcp-server/tools.ts</td>
         <td class="dependencies-cell"><span class="dep-badge">constants.ts</span><span class="dep-badge">mcp-server/context.ts</span><span class="dep-badge">mcp-server/tools/scan-workspace.ts</span><span class="dep-badge">mcp-server/tools/session-checkpoint.ts</span><span class="dep-badge">server-tools/task-submitter.ts</span><span class="dep-badge">server-tools/workspace-connector.ts</span><span class="dep-badge">task/index.ts</span><span class="dep-badge">utils/bootstrap.ts</span><span class="dep-badge">utils/file-backend.ts</span><span class="dep-badge">utils/identity-invariants.ts</span><span class="dep-badge">utils/workspace-registry.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge">..</span></td>
+        <td class="dependencies-cell"><span class="npm-badge">@modelcontextprotocol/sdk</span><span class="npm-badge">zod</span></td>
       </tr>
       <tr class="searchable-row" data-file="mcp-server/tools/scan-workspace.ts" data-deps=" ">
         <td class="file-name">📄 mcp-server/tools/scan-workspace.ts</td>
         <td class="dependencies-cell"><span class="dep-badge none">None</span></td>
         <td class="dependencies-cell"><span class="npm-badge none">None</span></td>
       </tr>
-      <tr class="searchable-row" data-file="mcp-server/tools/session-checkpoint.ts" data-deps="constants.ts ..">
+      <tr class="searchable-row" data-file="mcp-server/tools/session-checkpoint.ts" data-deps="constants.ts zod">
         <td class="file-name">📄 mcp-server/tools/session-checkpoint.ts</td>
         <td class="dependencies-cell"><span class="dep-badge">constants.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge">..</span></td>
+        <td class="dependencies-cell"><span class="npm-badge">zod</span></td>
       </tr>
-      <tr class="searchable-row" data-file="mcp-server/transport.ts" data-deps="constants.ts mcp-server/context.ts mcp-server/server.ts ..">
+      <tr class="searchable-row" data-file="mcp-server/transport.ts" data-deps="constants.ts mcp-server/context.ts mcp-server/server.ts @modelcontextprotocol/sdk @types/express">
         <td class="file-name">📄 mcp-server/transport.ts</td>
         <td class="dependencies-cell"><span class="dep-badge">constants.ts</span><span class="dep-badge">mcp-server/context.ts</span><span class="dep-badge">mcp-server/server.ts</span></td>
-        <td class="dependencies-cell"><span class="npm-badge">..</span></td>
+        <td class="dependencies-cell"><span class="npm-badge">@modelcontextprotocol/sdk</span><span class="npm-badge">@types/express</span></td>
       </tr>
       <tr class="searchable-row" data-file="models/assignment.ts" data-deps="runtime/models.ts ">
         <td class="file-name">📄 models/assignment.ts</td>

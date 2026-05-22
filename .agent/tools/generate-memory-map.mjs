@@ -143,18 +143,44 @@ try {
       if (localFiles.has(dep)) {
         fileLocalDeps[file].push(dep);
       } else {
-        // Stop at package name level (e.g. '@angular/core' or 'express')
+        // If it points inside node_modules (which madge often does for types/packages)
         let cleanLibName = dep;
-        if (dep.startsWith('@')) {
-          const parts = dep.split('/');
-          if (parts.length >= 2) {
-            cleanLibName = `${parts[0]}/${parts[1]}`;
+        if (dep.includes('node_modules/')) {
+          const parts = dep.split('node_modules/');
+          const relativeToNodeModules = parts[parts.length - 1];
+          if (relativeToNodeModules.startsWith('@')) {
+            const scopeParts = relativeToNodeModules.split('/');
+            if (scopeParts.length >= 2) {
+              cleanLibName = `${scopeParts[0]}/${scopeParts[1]}`;
+            } else {
+              cleanLibName = scopeParts[0];
+            }
+          } else {
+            cleanLibName = relativeToNodeModules.split('/')[0];
           }
-        } else if (dep.includes('/')) {
-          cleanLibName = dep.split('/')[0];
+        } else {
+          // Fallback parsing for direct module imports
+          if (dep.startsWith('@')) {
+            const parts = dep.split('/');
+            if (parts.length >= 2) {
+              cleanLibName = `${parts[0]}/${parts[1]}`;
+            }
+          } else if (dep.includes('/')) {
+            // Filter out relative path parts like '..', '.', etc.
+            const parts = dep.split('/');
+            const firstValidPart = parts.find(p => p !== '..' && p !== '.' && p !== '');
+            cleanLibName = firstValidPart || dep;
+          }
         }
-        fileNpmDeps[file].push(cleanLibName);
-        allUsedNpmLibs.add(cleanLibName);
+        
+        // Remove trailing types declarations extensions if any (e.g. '.d.ts', '.d.cts', etc.)
+        cleanLibName = cleanLibName.replace(/\.d\.[cm]?ts$/, '');
+
+        // Make sure it's not a relative path or garbage that leaked through
+        if (cleanLibName !== '..' && cleanLibName !== '.' && cleanLibName !== '') {
+          fileNpmDeps[file].push(cleanLibName);
+          allUsedNpmLibs.add(cleanLibName);
+        }
       }
     });
     // Remove duplicates

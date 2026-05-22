@@ -175,7 +175,9 @@ flowchart LR
   task_models["📄 task/models"]:::coreFile
   visibility_constants["📄 visibility/constants"]:::coreFile
   visibility_models["📄 visibility/models"]:::coreFile
-  npm_..["📦 .."]:::externalLib
+  npm_@types_express["📦 @types/express"]:::externalLib
+  npm_@modelcontextprotocol_sdk["📦 @modelcontextprotocol/sdk"]:::externalLib
+  npm_zod["📦 zod"]:::externalLib
   index --> constants
   index --> mcp_server_index
   index --> models_index
@@ -186,13 +188,14 @@ flowchart LR
   mcp_server_index --> mcp_server_state_manager
   mcp_server_index --> models_index
   mcp_server_index --> visibility_index
-  mcp_server_index -.-> npm_..
+  mcp_server_index -.-> npm_@types_express
   mcp_server_state_manager --> constants
   mcp_server_state_manager --> models_index
   mcp_server_state_manager --> task_index
   mcp_server_tools --> constants
   mcp_server_tools --> task_index
-  mcp_server_tools -.-> npm_..
+  mcp_server_tools -.-> npm_@modelcontextprotocol_sdk
+  mcp_server_tools -.-> npm_zod
   runtime_adapters_ag_cli_index --> runtime_adapters_ag_cli_constants
   runtime_adapters_ag_cli_index --> runtime_adapters_ag_cli_models
   runtime_adapters_ag_cli_models --> runtime_models
@@ -247,16 +250,16 @@ flowchart LR
 | `infra/models.ts` | _None_ | _None_ |
 | `infra/resource-monitor.ts` | `infra/constants.ts`, `infra/models.ts` | _None_ |
 | `mcp-server/context.ts` | `mcp-server/plan-watcher.ts`, `mcp-server/recovery.ts`, `mcp-server/state-manager.ts`, `models/config.ts`, `utils/logger.ts`, `utils/worker-registry.ts` | _None_ |
-| `mcp-server/index.ts` | `constants.ts`, `infra/index.ts`, `mcp-server/context.ts`, `mcp-server/plan-watcher.ts`, `mcp-server/recovery.ts`, `mcp-server/state-manager.ts`, `mcp-server/transport.ts`, `models/index.ts`, `utils/bootstrap.ts`, `utils/identity-invariants.ts`, `utils/logger.ts`, `utils/ollama-launcher.ts`, `utils/worker-registry.ts`, `utils/workspace-registry.ts`, `visibility/index.ts`, `worker/adapters/ollama-adapter.ts`, `worker/dispatch-loop.ts`, `worker/model-selector.ts`, `worker/vram-manager.ts` | `..` |
+| `mcp-server/index.ts` | `constants.ts`, `infra/index.ts`, `mcp-server/context.ts`, `mcp-server/plan-watcher.ts`, `mcp-server/recovery.ts`, `mcp-server/state-manager.ts`, `mcp-server/transport.ts`, `models/index.ts`, `utils/bootstrap.ts`, `utils/identity-invariants.ts`, `utils/logger.ts`, `utils/ollama-launcher.ts`, `utils/worker-registry.ts`, `utils/workspace-registry.ts`, `visibility/index.ts`, `worker/adapters/ollama-adapter.ts`, `worker/dispatch-loop.ts`, `worker/model-selector.ts`, `worker/vram-manager.ts` | `@types/express` |
 | `mcp-server/plan-watcher.ts` | `constants.ts`, `mcp-server/state-manager.ts`, `models/index.ts`, `utils/file-backend.ts`, `utils/logger.ts`, `utils/workspace-registry.ts` | _None_ |
 | `mcp-server/recovery.ts` | `constants.ts`, `mcp-server/state-manager.ts`, `models/index.ts`, `task/index.ts`, `utils/file-backend.ts`, `utils/lifecycle-timing.ts`, `utils/logger.ts`, `utils/worker-registry.ts` | _None_ |
-| `mcp-server/server.ts` | `constants.ts`, `mcp-server/context.ts`, `mcp-server/tools.ts` | `..` |
+| `mcp-server/server.ts` | `constants.ts`, `mcp-server/context.ts`, `mcp-server/tools.ts` | `@modelcontextprotocol/sdk` |
 | `mcp-server/state-manager.ts` | `constants.ts`, `mcp-server/task-queue.ts`, `models/index.ts`, `task/index.ts`, `utils/file-backend.ts`, `utils/logger.ts`, `utils/task-identity-registry.ts` | _None_ |
 | `mcp-server/task-queue.ts` | `constants.ts`, `models/index.ts`, `scheduler/index.ts`, `task/index.ts` | _None_ |
-| `mcp-server/tools.ts` | `constants.ts`, `mcp-server/context.ts`, `mcp-server/tools/scan-workspace.ts`, `mcp-server/tools/session-checkpoint.ts`, `server-tools/task-submitter.ts`, `server-tools/workspace-connector.ts`, `task/index.ts`, `utils/bootstrap.ts`, `utils/file-backend.ts`, `utils/identity-invariants.ts`, `utils/workspace-registry.ts` | `..` |
+| `mcp-server/tools.ts` | `constants.ts`, `mcp-server/context.ts`, `mcp-server/tools/scan-workspace.ts`, `mcp-server/tools/session-checkpoint.ts`, `server-tools/task-submitter.ts`, `server-tools/workspace-connector.ts`, `task/index.ts`, `utils/bootstrap.ts`, `utils/file-backend.ts`, `utils/identity-invariants.ts`, `utils/workspace-registry.ts` | `@modelcontextprotocol/sdk`, `zod` |
 | `mcp-server/tools/scan-workspace.ts` | _None_ | _None_ |
-| `mcp-server/tools/session-checkpoint.ts` | `constants.ts` | `..` |
-| `mcp-server/transport.ts` | `constants.ts`, `mcp-server/context.ts`, `mcp-server/server.ts` | `..` |
+| `mcp-server/tools/session-checkpoint.ts` | `constants.ts` | `zod` |
+| `mcp-server/transport.ts` | `constants.ts`, `mcp-server/context.ts`, `mcp-server/server.ts` | `@modelcontextprotocol/sdk`, `@types/express` |
 | `models/assignment.ts` | `runtime/models.ts` | _None_ |
 | `models/bootstrap.ts` | _None_ | _None_ |
 | `models/checkpoint.ts` | _None_ | _None_ |
