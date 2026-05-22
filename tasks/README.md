@@ -1,13 +1,13 @@
-# Task Board - 2026-05-21
+# Task Board - 2026-05-22
 
 | Status | Count |
 |--------|-------|
-| Pending | 21 |
+| Pending | 26 |
 | Processing | 0 |
-| Done | 36 |
-| **Total** | **57** |
+| Done | 40 |
+| **Total** | **66** |
 
-Progress: 36/57 (63%)
+Progress: 40/66 (61%)
 
 ---
 
@@ -45,12 +45,28 @@ Progress: 36/57 (63%)
 - `P2-27-deprecate-pull-apis.md`
 - `P2-28-orchestrator-owned-dispatch.md`
 
-## Pending — Re-prioritized (2026-05-21)
+## Pending — Re-prioritized (2026-05-22)
 
-> **Principle**: Tasks ordered by dependency chain + E2E critical path.
+> **Principle**: Immediate runtime lease refactor overrides previous FIFO order. Each IMEDIALY task has a final `### Plan Continuation` section that tells the agent whether to call `/pick-task` again or stop.
 > Head (Planner) = Manual (Human + IDE agent). Design chốt 2026-05-10.
 
-### Tier 0: Core Architecture Alignment
+### Tier -1: IMEDIALY Runtime Lease Refactor
+
+These tasks are highest priority. Structure refactor comes before mindset/docs alignment.
+
+| # | Task | What | Relation |
+|---|------|------|----------|
+| 0 | `IMEDIALY-00-refactor-domain-structure-contracts.md` | Create domain folders/contracts first | next: IMEDIALY-01 |
+| 1 | `IMEDIALY-01-refactor-constants-and-text-boundaries.md` | Move constants/text/timing into domain owners | next: IMEDIALY-02 |
+| 2 | `IMEDIALY-02-refactor-runtime-lease-stores.md` | RuntimeRegistry, HeartbeatStore, PointAllocator, CapacityStore | next: IMEDIALY-03 |
+| 3 | `IMEDIALY-03-refactor-scheduler-runtime-split.md` | Split scheduler policy from runtime process/session lifecycle | next: IMEDIALY-04 |
+| 4 | `IMEDIALY-04-refactor-callback-lease-identity.md` | Add `runtime_id + lease_generation` to assignment/callback/recovery | next: IMEDIALY-05 |
+| 5 | `IMEDIALY-05-refactor-infra-capacity-and-resource-visibility.md` | Dynamic capacity + terminal resource table, no UI | next: IMEDIALY-06 |
+| 6 | `IMEDIALY-06-refactor-local-ollama-isolation.md` | Isolated Ollama runtime endpoint per lease | next: IMEDIALY-07 |
+| 7 | `IMEDIALY-07-refactor-cli-runtime-adapters.md` | Codex CLI + AG CLI runtime adapter boundaries | next: IMEDIALY-08 |
+| 8 | `IMEDIALY-08-mindset-docs-and-task-board-alignment.md` | Docs/skill/task board alignment after structure refactor | final section says STOP |
+
+### Tier 0: Core Architecture Alignment (Paused Until IMEDIALY Plan Ends)
 
 These tasks lock the core concept before more runtime work:
 
@@ -93,12 +109,32 @@ These tasks lock the core concept before more runtime work:
 ## Core Critical Path
 
 ```
+IMEDIALY-00 structure contracts
+  → IMEDIALY-01 constants/text boundaries
+  → IMEDIALY-02 runtime lease stores
+  → IMEDIALY-03 scheduler/runtime split
+  → IMEDIALY-04 callback lease identity
+  → IMEDIALY-05 infra capacity/resource visibility
+  → IMEDIALY-06 local Ollama isolation
+  → IMEDIALY-07 CLI runtime adapters
+  → IMEDIALY-08 docs/task-board alignment
+  → STOP
+```
+
+Previous P2 path resumes after IMEDIALY plan ends:
+
+```
+P2-37 domain routing hint contract
+  → P2-38 domain routing hint implementation
+  → P2-39 contract/E2E gates
+  → P2-40 E2E integration
+```
+
+Archived completed path:
+
+```
 P2-33 doctrine
   → P2-34 workspace bootstrap template
   → P2-35 registry invariants
   → P2-36 harness boundary
-  → P2-37 domain routing hint contract
-  → P2-38 domain routing hint implementation
-  → P2-39 contract/E2E gates
-  → P2-40 E2E integration
 ```
