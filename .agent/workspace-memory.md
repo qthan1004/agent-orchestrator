@@ -175,8 +175,8 @@ flowchart LR
   task_models["📄 task/models"]:::coreFile
   visibility_constants["📄 visibility/constants"]:::coreFile
   visibility_models["📄 visibility/models"]:::coreFile
-  npm_@types_express["📦 @types/express"]:::externalLib
-  npm_@modelcontextprotocol_sdk["📦 @modelcontextprotocol/sdk"]:::externalLib
+  npm__types_express["📦 @types/express"]:::externalLib
+  npm__modelcontextprotocol_sdk["📦 @modelcontextprotocol/sdk"]:::externalLib
   npm_zod["📦 zod"]:::externalLib
   index --> constants
   index --> mcp_server_index
@@ -188,13 +188,13 @@ flowchart LR
   mcp_server_index --> mcp_server_state_manager
   mcp_server_index --> models_index
   mcp_server_index --> visibility_index
-  mcp_server_index -.-> npm_@types_express
+  mcp_server_index -.-> npm__types_express
   mcp_server_state_manager --> constants
   mcp_server_state_manager --> models_index
   mcp_server_state_manager --> task_index
   mcp_server_tools --> constants
   mcp_server_tools --> task_index
-  mcp_server_tools -.-> npm_@modelcontextprotocol_sdk
+  mcp_server_tools -.-> npm__modelcontextprotocol_sdk
   mcp_server_tools -.-> npm_zod
   runtime_adapters_ag_cli_index --> runtime_adapters_ag_cli_constants
   runtime_adapters_ag_cli_index --> runtime_adapters_ag_cli_models

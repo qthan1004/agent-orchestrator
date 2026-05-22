@@ -300,16 +300,16 @@ try {
         if (isDepCore) {
           const cleanDep = dep.replace(/\.(ts|js)$/, '');
           coreNodes.add(cleanDep);
-          coreConnections.push(`  ${cleanFile.replace(/[\/-]/g, '_')} --> ${cleanDep.replace(/[\/-]/g, '_')}`);
+          coreConnections.push(`  ${cleanFile.replace(/[^a-zA-Z0-9_]/g, '_')} --> ${cleanDep.replace(/[^a-zA-Z0-9_]/g, '_')}`);
         }
       });
 
       // Draw links to external libraries used by this core module
       const npmDeps = fileNpmDeps[file] || [];
       npmDeps.forEach(npmLib => {
-        const cleanLibId = 'npm_' + npmLib.replace(/[\/-]/g, '_');
+        const cleanLibId = 'npm_' + npmLib.replace(/[^a-zA-Z0-9_]/g, '_');
         coreNpmNodes.add(npmLib);
-        coreConnections.push(`  ${cleanFile.replace(/[\/-]/g, '_')} -.-> ${cleanLibId}`);
+        coreConnections.push(`  ${cleanFile.replace(/[^a-zA-Z0-9_]/g, '_')} -.-> ${cleanLibId}`);
       });
     }
   });
@@ -320,13 +320,13 @@ try {
 
   // Declare local Core Nodes
   coreNodes.forEach(node => {
-    const cleanId = node.replace(/[\/-]/g, '_');
+    const cleanId = node.replace(/[^a-zA-Z0-9_]/g, '_');
     coreMermaid += `  ${cleanId}["📄 ${node}"]:::coreFile\n`;
   });
 
   // Declare external NPM Nodes
   coreNpmNodes.forEach(npmLib => {
-    const cleanLibId = 'npm_' + npmLib.replace(/[\/-]/g, '_');
+    const cleanLibId = 'npm_' + npmLib.replace(/[^a-zA-Z0-9_]/g, '_');
     coreMermaid += `  ${cleanLibId}["📦 ${npmLib}"]:::externalLib\n`;
   });
 
