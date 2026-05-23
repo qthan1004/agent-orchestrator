@@ -1,588 +1,743 @@
-# 🤖 Agent Orchestrator
+# Agent Orchestrator
 
-> Standalone AI Agent Orchestrator — Auto-Tasking engine with DAG-based dependency management, multi-session coordination, and file-based state machine.
+Agent Orchestrator là một server chạy trên máy của bạn để điều phối AI làm việc theo kế hoạch. Bạn viết yêu cầu vào file Markdown, bỏ file đó vào thư mục đúng chỗ, server sẽ đọc, chia việc, xếp hàng, cấp phiên chạy cho AI, theo dõi tiến độ, rồi lưu kết quả lại.
 
-[![Node.js](https://img.shields.io/badge/Node.js-≥18-green)]()
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue)]()
-[![MCP](https://img.shields.io/badge/Protocol-MCP-blue)]()
-[![Status](https://img.shields.io/badge/Status-v0.2.0-orange)]()
+Tài liệu này viết cho người không rành kỹ thuật. Cứ đi theo từng bước là dùng được.
 
----
+## Mục Lục
 
-## 📖 Mục lục
+- [Đây là gì?](#đây-là-gì)
+- [Dùng để làm gì?](#dùng-để-làm-gì)
+- [Cách hệ thống hoạt động](#cách-hệ-thống-hoạt-động)
+- [Chuẩn bị trước khi dùng](#chuẩn-bị-trước-khi-dùng)
+- [Cài đặt lần đầu](#cài-đặt-lần-đầu)
+- [Chạy hằng ngày](#chạy-hằng-ngày)
+- [Giao việc cho AI](#giao-việc-cho-ai)
+- [Theo dõi tiến độ](#theo-dõi-tiến-độ)
+- [Xem kết quả](#xem-kết-quả)
+- [Xử lý lỗi thường gặp](#xử-lý-lỗi-thường-gặp)
+- [Điều không nên làm](#điều-không-nên-làm)
+- [Phần kỹ thuật ngắn](#phần-kỹ-thuật-ngắn)
 
-- [Tổng quan](#-tổng-quan)
-- [Tính năng chính](#-tính-năng-chính)
-- [Kiến trúc](#️-kiến-trúc)
-- [Cài đặt](#-cài-đặt)
-- [Kết nối Antigravity IDE](#-kết-nối-antigravity-ide)
-- [Kiểm tra kết nối](#-kiểm-tra-kết-nối)
-- [Cách sử dụng](#-cách-sử-dụng)
-- [MCP Tools Reference](#️-mcp-tools-reference)
-- [Cấu trúc thư mục](#-cấu-trúc-thư-mục)
-- [Brain Watcher (Desktop Notifications)](#-brain-watcher-desktop-notifications)
-- [Xử lý lỗi & Recovery](#-xử-lý-lỗi--recovery)
-- [CLI & Utility Scripts](#-cli--utility-scripts)
-- [Tech Stack](#-tech-stack)
+## Đây là gì?
 
----
+Agent Orchestrator là "người điều phối" cho AI agent.
 
-## 🌟 Tổng quan
+Thay vì bạn phải ngồi nhắc AI từng bước, hệ thống làm các việc sau:
 
-**Agent Orchestrator** là một server chạy trên máy tính cá nhân (localhost), đóng vai trò **"bộ não trung tâm"** điều phối các AI Agent hoạt động trong IDE Antigravity.
+- Nhận một yêu cầu lớn từ bạn.
+- Chia yêu cầu đó thành nhiều task nhỏ.
+- Biết task nào phải làm trước, task nào được làm sau.
+- Chọn runtime phù hợp để chạy AI.
+- Cấp quyền làm đúng task đang được giao.
+- Theo dõi AI đã sẵn sàng chưa, đang chạy chưa, đã xong chưa.
+- Nhận callback từ harness khi AI báo `complete`, `failed`, hoặc `handover_required`.
+- Lưu kết quả vào workspace của bạn.
 
-**Bài toán:** Bạn muốn AI tự động làm việc — đọc yêu cầu, chia nhỏ, code, test, báo cáo — mà bạn chỉ cần mô tả yêu cầu.
+Trong Phase 2, worker không còn tự bốc task. Server là bên quyết định task nào được chạy, runtime nào được cấp, worker nào đang sở hữu task nào.
 
-**Giải pháp:** Bạn viết yêu cầu vào file `.md` → bỏ vào thư mục `plan/pending/` → hệ thống **tự động** phân tích, chia task, phân phối cho AI Agents, và thu kết quả.
+## Dùng để làm gì?
 
----
+Bạn dùng Agent Orchestrator khi muốn AI làm việc theo quy trình rõ ràng hơn:
 
-## ✨ Tính năng chính
+- Viết feature nhỏ hoặc vừa.
+- Sửa bug có nhiều bước.
+- Refactor nhiều file.
+- Tách một yêu cầu lớn thành danh sách task có thứ tự.
+- Cho AI làm từng phần và ghi lại kết quả.
+- Tự phục hồi khi task lỗi, task kẹt, hoặc phiên chạy bị mất.
 
-| Tính năng | Mô tả |
-|-----------|-------|
-| 🔄 **Auto-Tasking Engine** | Tự phân tách plan → task, sắp xếp phụ thuộc (DAG), phân phối cho AI |
-| 📡 **MCP Server** | Giao tiếp real-time với AI Agent qua Model Context Protocol |
-| 🧠 **Multi-Session** | Nhiều AI Agent chạy song song trên cùng 1 máy |
-| 📁 **File-based State** | State machine qua filesystem: `pending/` → `processing/` → `done/` |
-| 💾 **Checkpoint & Recovery** | Auto-save trạng thái, tự phục hồi khi crash |
-| ⚡ **Long Polling** | Server giữ kết nối, push ngay khi có task mới |
-| 🔄 **Dynamic Role Switching** | Agent tự chuyển vai trò Planner ↔ Worker theo chỉ thị server |
-| 🔔 **Brain Watcher** | Monitor background, gửi desktop notification khi agent bị stuck |
-| 🩺 **Session Checkpoint v2** | Lưu error diagnosis cho intelligent retry |
+Ví dụ:
 
----
+- "Thêm màn hình đăng nhập."
+- "Sửa lỗi validate form checkout."
+- "Tách module thanh toán ra service riêng."
+- "Viết tài liệu cho API hiện tại."
 
-## 🏗️ Kiến trúc
+Bạn không cần hiểu hết kỹ thuật bên trong. Điều quan trọng là biết cách chạy server, đặt file kế hoạch vào đúng thư mục, và xem kết quả.
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                      MÁY TÍNH CỦA BẠN                        │
-│                                                                │
-│  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐      │
-│  │  Antigravity  │   │  Antigravity  │   │  Antigravity  │      │
-│  │  Cửa sổ 1     │   │  Cửa sổ 2     │   │  Cửa sổ 3     │      │
-│  │  (Agent A)    │   │  (Agent B)    │   │  (Agent C)    │      │
-│  └──────┬────────┘   └──────┬────────┘   └──────┬────────┘      │
-│         │ MCP                │ MCP                │ MCP           │
-│         ▼                    ▼                    ▼                │
-│  ┌──────────────────────────────────────────────────────┐       │
-│  │        ORCHESTRATOR SERVER (http://127.0.0.1:3847)    │       │
-│  │                                                       │       │
-│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌────────┐  │       │
-│  │  │Task Queue│ │  State   │ │ Recovery │ │ Brain  │  │       │
-│  │  │  (DAG)   │ │ Manager  │ │  Module  │ │Watcher │  │       │
-│  │  └──────────┘ └──────────┘ └──────────┘ └────────┘  │       │
-│  └──────────────────────────────────────────────────────┘       │
-│                            ▼                                     │
-│  ┌──────────────────────────────────────────────────────┐       │
-│  │                 FILE SYSTEM (IPC)                      │       │
-│  │  exchange/   plan/   tasks/   .agent/session.json     │       │
-│  └──────────────────────────────────────────────────────┘       │
-└──────────────────────────────────────────────────────────────────┘
+## Cách hệ thống hoạt động
+
+Luồng hiện tại của Phase 2:
+
+```text
+Bạn viết plan
+  -> bỏ vào <workspace>/.orchestrator/plans/pending/
+  -> Plan Watcher phát hiện file mới
+  -> State Manager chuyển plan sang processing
+  -> Planner chia plan thành task
+  -> Task Queue xếp task theo thứ tự phụ thuộc
+  -> Dispatch Loop chọn task có thể chạy
+  -> Runtime Manager tạo runtime lease
+  -> Runtime Service mở backend/runtime phù hợp
+  -> Harness nhận payload và chạy AI
+  -> Harness gửi ready/progress/complete callback về server
+  -> Server xác nhận đúng lease rồi lưu kết quả
 ```
 
-### Cách hoạt động (5 bước)
+Nói ngắn gọn:
 
-1. **Bạn** viết yêu cầu → bỏ file `.md` vào `plan/pending/`
-2. **Server** phát hiện file mới → giao cho Agent đóng vai **Planner**
-3. **Planner** chia nhỏ plan thành task với DAG dependency → đẩy vào queue
-4. **Workers** tự bốc task → thực thi → báo cáo kết quả
-5. **Kết quả** lưu tại `exchange/outbox/` và log tại `exchange/logs/`
+- `server` điều phối mọi thứ.
+- `plan watcher` canh thư mục plan mới.
+- `task queue` giữ danh sách task và thứ tự chạy.
+- `runtime lease` là "vé làm việc" cho một task cụ thể.
+- `harness` là lớp bọc chạy AI và báo trạng thái về server.
+- `callback` là tín hiệu harness gửi về server.
 
----
+Một task hợp lệ trong Phase 2 thường đi theo nguyên tắc:
 
-## 🚀 Cài đặt
+```text
+1 active task -> 1 runtime lease -> 1 backend runtime/session -> 1 point reservation
+```
 
-### Yêu cầu
+Nhờ vậy server biết chính xác ai đang làm việc gì. Callback trễ, callback sai task, hoặc callback không khớp lease sẽ bị từ chối.
 
-| Phần mềm | Phiên bản | Tải về |
-|-----------|-----------|--------|
-| Node.js   | ≥ 18      | https://nodejs.org |
-| Git       | Bất kỳ    | https://git-scm.com |
-| Antigravity IDE | Mới nhất | Cài sẵn |
+## Chuẩn bị trước khi dùng
 
-### Bước 1: Clone và cài đặt
+Bạn cần có:
+
+| Thứ cần có | Dùng để làm gì | Ghi chú |
+| --- | --- | --- |
+| Node.js | Chạy server | Nên dùng Node.js 18 trở lên |
+| Git | Tải source code và quản lý thay đổi | Bản mới nào cũng được |
+| Terminal | Gõ lệnh chạy server | Windows dùng PowerShell được |
+| Workspace | Project bạn muốn AI làm việc | Ví dụ một repo web/app/API |
+| Ollama | Chạy model local | Nên có nếu dùng backend local |
+| Codex CLI hoặc Antigravity CLI | Chạy backend cloud/CLI | Tùy cấu hình |
+
+Có hai thư mục cần phân biệt:
+
+- `agent-orchestrator`: thư mục chứa server này.
+- `workspace`: project bạn muốn AI chỉnh sửa.
+
+Nếu bạn muốn AI làm việc ngay trên chính repo `agent-orchestrator`, hai thư mục này là một. Nếu bạn muốn AI làm việc trên project khác, khi chạy server hãy chọn `custom` và nhập đường dẫn tuyệt đối tới project đó.
+
+Ví dụ đường dẫn workspace trên Windows:
+
+```text
+D:\workspace\my-app
+```
+
+Ví dụ đường dẫn workspace trên macOS/Linux:
+
+```text
+/Users/you/workspace/my-app
+```
+
+## Cài đặt lần đầu
+
+### 1. Tải source code
+
+Mở Terminal tại nơi bạn muốn đặt server, rồi chạy:
 
 ```bash
 git clone https://github.com/qthan1004/agent-orchestrator.git
 cd agent-orchestrator
+```
+
+Nếu bạn đã có thư mục này rồi, chỉ cần mở Terminal trong thư mục `agent-orchestrator`.
+
+### 2. Cài thư viện
+
+Chạy:
+
+```bash
 npm install
 ```
 
-### Bước 2: Build TypeScript
+Việc này tải các thư viện cần thiết cho server.
+
+### 3. Build server
+
+Chạy:
 
 ```bash
 npm run build
 ```
 
-> Project đã chuyển sang TypeScript (v0.2.0). Source code nằm trong `src/`, build output nằm trong `dist/`.
+Lệnh này tạo bản chạy được trong thư mục `dist/`.
 
-### Bước 3: Khởi động Server
+### 4. Chạy server
+
+Chạy:
 
 ```bash
 npm run serve
 ```
 
-Server hỏi cấu hình — nhấn **Enter** để dùng mặc định (khuyến nghị):
+Server sẽ hỏi cấu hình:
 
-```
-🚀 MCP Orchestrator Setup
-────────────────────────
+```text
 ? Configuration (default/custom) [default]:
 ```
 
-**Cấu hình mặc định:**
+Chọn theo trường hợp của bạn:
 
-| Tham số | Giá trị | Ý nghĩa |
-|---------|---------|---------|
-| Port | `3847` | Cổng server |
-| Stale threshold | `90s` | Worker treo > 90s = stale |
-| Long poll timeout | `30s` | Chờ task tối đa 30s |
-| Plan watcher | `30s` | Quét `plan/pending/` mỗi 30s |
+| Bạn muốn làm gì | Chọn gì |
+| --- | --- |
+| Dùng chính thư mục hiện tại làm workspace | Nhấn Enter để dùng `default` |
+| Dùng project khác làm workspace | Gõ `custom`, rồi nhập đường dẫn tuyệt đối tới project đó |
 
-Khi thấy `🚀 Server is running on port 3847` → **server đã sẵn sàng**.
+Nếu chọn `default`, server dùng thư mục hiện tại làm workspace. Nếu bạn đang đứng trong `agent-orchestrator`, AI sẽ làm việc trên repo này.
 
-> [!IMPORTANT]
-> **Đừng tắt Terminal này!** Server phải chạy liên tục. Nếu tắt → tất cả Agent mất kết nối.
+Nếu chọn `custom`, server sẽ hỏi:
 
-### Chế độ Development (tùy chọn)
-
-Nếu bạn đang phát triển orchestrator, dùng `npm run dev` thay cho `npm run build && npm run serve`. Nó chạy TypeScript trực tiếp bằng `tsx`, không cần build.
-
----
-
-## 🔗 Kết nối Antigravity IDE
-
-### Bước 1: Mở file cấu hình MCP
-
-Tìm file `mcp_config.json` tại:
-
-| OS | Đường dẫn |
-|----|-----------|
-| **Windows** | `C:\Users\<TenBan>\.gemini\antigravity\mcp_config.json` |
-| **Linux/macOS** | `~/.gemini/antigravity/mcp_config.json` |
-
-### Bước 2: Thêm cấu hình Orchestrator
-
-**Nếu file chưa tồn tại** → tạo mới:
-
-```json
-{
-  "mcpServers": {
-    "orchestrator": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "mcp-remote",
-        "http://127.0.0.1:3847/mcp",
-        "--transport",
-        "http-first"
-      ]
-    }
-  }
-}
+```text
+Workspace root (REQUIRED - absolute path):
 ```
 
-**Nếu file đã có** `mcpServers` → thêm key `"orchestrator"` vào bên trong.
+Hãy nhập đường dẫn đầy đủ tới project bạn muốn AI làm việc.
 
-> [!IMPORTANT]
-> File `mcp_config.json` dùng chung cho **tất cả cửa sổ Antigravity**. Chỉ cần cấu hình **1 lần**.
+Ví dụ:
 
-### Bước 3: Restart Antigravity
+```text
+D:\workspace\my-app
+```
 
-Đóng **tất cả cửa sổ** Antigravity rồi mở lại (hoặc Ctrl+Shift+P → "Reload Window").
+Sau khi chạy thành công, server lắng nghe tại:
 
----
+```text
+http://127.0.0.1:3847
+```
 
-## ✅ Kiểm tra kết nối
+Endpoint chính:
 
-### Cách 1: Health Check script
+```text
+http://127.0.0.1:3847/mcp
+```
+
+Trang kiểm tra sức khỏe:
+
+```text
+http://127.0.0.1:3847/health
+```
+
+Không đóng Terminal đang chạy server. Nếu đóng, hệ thống dừng điều phối.
+
+## Chạy hằng ngày
+
+Mỗi lần muốn dùng:
+
+1. Mở Terminal trong thư mục `agent-orchestrator`.
+2. Chạy server:
 
 ```bash
-node reference/tools/health-check.mjs
+npm run serve
 ```
 
-Kết quả ghi vào `exchange/.tmp/health.md` — ✅ Running = OK.
+3. Chọn workspace đúng project bạn muốn AI làm việc.
+4. Đợi server hiện trạng thái đang lắng nghe port `3847`.
+5. Tạo file plan trong workspace.
+6. Theo dõi tiến độ trong Terminal hoặc thư mục `.orchestrator`.
 
-### Cách 2: Hỏi AI trong Antigravity
+Nếu bạn vừa kéo code mới về từ Git, nên chạy lại:
 
-Mở chat Antigravity và nhắn:
-
-> "Gọi `hello_world` với name 'test' cho tôi"
-
-Nếu AI trả lời `"Hello, test! MCP Orchestrator is running."` → **Kết nối thành công** ✅
-
----
-
-## 📝 Cách sử dụng
-
-### Quick Start — Mỗi lần làm việc
-
-```
-1. Mở Terminal → npm run serve               ← Server chạy nền
-2. Mở Antigravity → paste prompt             ← Agent khởi động
-3. Bỏ file .md vào plan/pending/             ← GIAO VIỆC
-4. Đi uống cà phê ☕                          ← Agent tự làm
+```bash
+npm install
+npm run build
 ```
 
-### Bước 1: Khởi động Agent
+Sau đó mới chạy:
 
-Mở chat AI trong Antigravity, nhắn:
-
-```
-Bạn hãy đọc file prompts/agent-prompt.md trong project này và làm theo hướng dẫn trong đó.
-Bắt đầu bằng việc gọi register_worker().
+```bash
+npm run serve
 ```
 
-Agent sẽ tự đăng ký, nhận vai trò (Planner/Worker/Idle), và bắt đầu loop.
+## Giao việc cho AI
 
-### Bước 2: Tạo plan (yêu cầu công việc)
+Bạn giao việc bằng cách tạo file Markdown trong workspace:
 
-Tạo file `.md` trong `plan/pending/`:
+```text
+<workspace>/.orchestrator/plans/pending/
+```
+
+Ví dụ workspace là:
+
+```text
+D:\workspace\my-app
+```
+
+Thì thư mục giao việc là:
+
+```text
+D:\workspace\my-app\.orchestrator\plans\pending
+```
+
+Nếu chưa thấy thư mục `.orchestrator`, hãy chạy server một lần. Server sẽ tự tạo cấu trúc này.
+
+### Cách đặt tên file plan
+
+Nên đặt tên dễ đọc, có ngày hoặc số thứ tự:
+
+```text
+2026-05-23_login-page.md
+2026-05-23_fix-checkout-validation.md
+001_update-readme.md
+```
+
+### Mẫu plan đơn giản
+
+Tạo file:
+
+```text
+<workspace>/.orchestrator/plans/pending/2026-05-23_login-page.md
+```
+
+Nội dung:
 
 ```markdown
-# Tính năng đăng nhập
+# Thêm trang đăng nhập
+
+## Mục tiêu
+Tạo trang đăng nhập cho người dùng.
 
 ## Yêu cầu
-- Tạo trang login với form email/password
-- Validate input
-- Kết nối API backend
+- Có ô email.
+- Có ô mật khẩu.
+- Có nút đăng nhập.
+- Validate email không được rỗng.
+- Validate mật khẩu không được rỗng.
+- Hiển thị thông báo lỗi dễ hiểu.
 
-## Chi tiết
-- File frontend: src/pages/Login.vue
-- Cần viết unit test
+## File có thể cần sửa
+- src/pages/Login.tsx
+- src/routes.ts
+- src/api/auth.ts
+
+## Kết quả mong muốn
+- Người dùng mở được trang đăng nhập.
+- Form báo lỗi khi nhập thiếu.
+- Code rõ ràng, dễ đọc.
 ```
 
-> [!TIP]
-> Đặt tên file có timestamp để đảm bảo thứ tự FIFO: `2026-05-01_feature-login.md`
+### Viết plan tốt hơn
 
-### Bước 3: Không có bước 3
+Plan càng rõ, AI càng ít đoán sai.
 
-Hệ thống **tự động**:
-- Planner phát hiện plan → phân tích → chia task → đẩy vào queue
-- Worker(s) tự bốc task → thực thi → hoàn thành → bốc tiếp
+Nên ghi:
 
-### Flow tổng thể
+- Mục tiêu cuối cùng.
+- File hoặc khu vực liên quan.
+- Điều kiện hoàn thành.
+- Điều gì không được làm.
+- Cách bạn muốn kiểm tra kết quả.
 
-```
-plan/pending/xxx.md                          ← Bạn bỏ file vào đây
-       │
-       ▼ Server phát hiện
-plan/processing/xxx.md
-       │
-       ▼ Planner decompose → submit_decomposition()
-plan/done/xxx.md  +  Tasks vào exchange/inbox/
-                            │
-                            ▼ Worker(s) bốc task
-                       exchange/active/task-XX.json
-                            │
-                            ▼ Worker hoàn thành
-                       exchange/outbox/result-XX.json  ← KẾT QUẢ
-```
+Ví dụ:
 
-### Multi-Session (nhiều Agent song song)
+```markdown
+## Không được làm
+- Không đổi framework.
+- Không sửa database schema.
+- Không đổi giao diện các trang khác.
 
-> [!WARNING]
-> **Khuyến nghị dùng 1 Agent** cho ổn định nhất. Multi-session có thể bị rate limit.
-
-Mở **thêm cửa sổ Antigravity** (Ctrl+Shift+N) → paste cùng prompt → Agent mới sẽ tự đăng ký với `worker_id` riêng.
-
-Server **tự phân vai**:
-- Agent đầu tiên có plan pending → **Planner**
-- Agent tiếp theo có task trong queue → **Worker**
-- Không có gì → **Idle** (chờ long-poll)
-
-Khi Planner xong tất cả plan → tự chuyển sang Worker → tất cả Agent làm song song.
-
-### Xem kết quả
-
-| Nơi xem | Đường dẫn | Nội dung |
-|---------|-----------|----------|
-| Kết quả task | `exchange/outbox/result-<id>.json` | Status, summary, worker_id, timestamp |
-| Log hàng ngày | `exchange/logs/YYYY-MM-DD.md` | Timeline sự kiện (assigned, progress, completed) |
-| Queue status | Gọi `get_queue_status()` trong chat | Số task pending/active/done |
-
----
-
-## 🛠️ MCP Tools Reference
-
-### Tools chung (mọi Agent)
-
-| Tool | Chức năng | Tham số |
-|------|----------|---------|
-| `hello_world` | Test kết nối | `name` |
-| `register_worker` | Đăng ký Agent, nhận `worker_id` + `role` | `workspace_path?` |
-| `get_status` | Xem server info (version, uptime, workers) | — |
-| `get_queue_status` | Xem tổng quan queue | — |
-| `get_checkpoint` | Lưu checkpoint queue | — |
-| `get_template` | Lấy template chuẩn | `template_name` |
-| `ping` | Heartbeat giữ session alive | `worker_id` |
-| `scan_workspace` | Quét workspace → tạo workspace-memory.md | `force_update?` |
-| `session_checkpoint` | Save/Load/Clear session state (v2: có error_context) | `action`, `task_id?`, `phase?`, `files_changed?`, `done_criteria_status?`, `last_action?`, `error_context?` |
-
-### Tools Worker
-
-| Tool | Chức năng | Tham số |
-|------|----------|---------|
-| `get_next_task` | Long-poll lấy task (chờ tối đa 30s) | `worker_id` |
-| `complete_task` | Báo hoàn thành task | `task_id`, `status`, `summary`, `worker_id`, `auto_pickup?` |
-| `report_progress` | Báo tiến độ | `task_id`, `step`, `percentage`, `worker_id` |
-
-### Tools Planner
-
-| Tool | Chức năng | Tham số |
-|------|----------|---------|
-| `check_plans` | Long-poll quét plan/pending/ (chờ 60s) | — |
-| `submit_decomposition` | Nộp task list + DAG graph | `tasks[]`, `graph`, `reasoning`, `source_plan`, `worker_id?` |
-
-### Tools quản trị
-
-| Tool | Chức năng | Tham số |
-|------|----------|---------|
-| `request_retry` | Requeue task bị lỗi (max 3 lần) | `task_id`, `reason`, `attempt` |
-| `force_release_task` | Giải phóng task bị kẹt | `task_id`, `reason` |
-
-### Task format khi submit
-
-```json
-{
-  "id": "01-create-login",
-  "module": "src/pages",
-  "action": "Tạo trang login với form email/password",
-  "verification": "npm test -- --grep login"
-}
+## Cách kiểm tra
+- Mở trang /login.
+- Thử bấm đăng nhập khi email trống.
+- Thử bấm đăng nhập khi mật khẩu trống.
 ```
 
-### DAG Graph format
+Sau khi bạn lưu file vào `pending`, server sẽ tự phát hiện. Bạn không cần bấm thêm gì trong thư mục đó.
 
-```json
-{
-  "groups": [
-    { "group_id": 1, "tasks": ["01-create-login"], "depends_on": [] },
-    { "group_id": 2, "tasks": ["02-add-validation"], "depends_on": [1] },
-    { "group_id": 3, "tasks": ["03-write-tests"], "depends_on": [2] }
-  ]
-}
+## Theo dõi tiến độ
+
+Có nhiều nơi để xem hệ thống đang làm gì.
+
+### 1. Terminal đang chạy server
+
+Đây là nơi dễ xem nhất. Bạn sẽ thấy các dòng như:
+
+- Server đã khởi động.
+- Plan watcher phát hiện plan.
+- Dispatch loop đang giao task.
+- Runtime/harness được spawn.
+- Harness gửi ready/progress/complete callback.
+- Task thành công, lỗi, hoặc bị requeue.
+
+Nếu Terminal không có dòng mới trong thời gian dài, xem phần [Xử lý lỗi thường gặp](#xử-lý-lỗi-thường-gặp).
+
+### 2. Health URL
+
+Mở trình duyệt:
+
+```text
+http://127.0.0.1:3847/health
 ```
 
-- Task cùng group → **song song**
-- Group phải hoàn thành trước group phụ thuộc
-- **Tối đa 20 task** mỗi lần submit
+Bạn có thể xem:
 
----
+- Server còn sống không.
+- Uptime.
+- Version.
+- Plan watcher status.
+- Số worker đang kết nối.
+- Dispatch loop đang chạy không.
+- Ollama có sẵn không.
+- Tài nguyên runtime hiện tại.
 
-## 📂 Cấu trúc thư mục
+Nếu trang này không mở được, server chưa chạy hoặc port bị sai.
 
-```
-agent-orchestrator/
-├── src/                          ← 🔧 Source code (TypeScript)
-│   ├── index.ts                  ← CLI entry point
-│   ├── config.ts                 ← Config + paths
-│   ├── constants.ts              ← Hằng số hệ thống
-│   ├── models/                   ← Type definitions
-│   ├── mcp-server/               ← MCP Server core
-│   │   ├── tools.ts              ← Tool definitions
-│   │   ├── tools/                ← Modular tool handlers
-│   │   │   ├── scan-workspace.ts
-│   │   │   └── session-checkpoint.ts
-│   │   ├── state-manager.ts      ← File state machine
-│   │   ├── task-queue.ts         ← DAG-based queue
-│   │   ├── recovery.ts          ← Auto-recovery module
-│   │   ├── plan-watcher.ts       ← Quét plan/pending/
-│   │   ├── poll-helpers.ts       ← Long polling logic
-│   │   ├── idle-resolver.ts      ← Idle/promote decisions
-│   │   ├── transport.ts          ← Streamable HTTP
-│   │   └── server.ts             ← Express server
-│   ├── agents/                   ← Agent-specific modules
-│   │   └── antigravity/          ← Antigravity IDE integration
-│   │       ├── brain-watcher.ts  ← Monitor stuck sessions
-│   │       ├── notifications.ts  ← Desktop notifications
-│   │       ├── config-resolver.ts
-│   │       └── constants.ts
-│   └── utils/                    ← Helpers (logger, file-backend, etc.)
-│
-├── dist/                         ← 📦 Build output (npm run build)
-├── prompts/                      ← 📋 Agent prompt templates
-│   └── agent-prompt.md           ← Prompt chuẩn cho Agent
-│
-├── plan/                         ← 📝 Kế hoạch của bạn
-│   ├── pending/                  ← ⬜ BỎ FILE .MD VÀO ĐÂY
-│   ├── processing/               ← 🔄 Đang decompose (tối đa 1)
-│   └── done/                     ← ✅ Đã xong
-│
-├── exchange/                     ← 📁 File IPC
-│   ├── inbox/                    ← 📥 Task chờ
-│   ├── active/                   ← 🔄 Task đang làm
-│   ├── outbox/                   ← 📤 KẾT QUẢ
-│   ├── logs/                     ← 📋 Nhật ký (YYYY-MM-DD.md)
-│   ├── checkpoints/              ← 💾 Backup tự động
-│   ├── _queue.json               ← DAG structure
-│   └── workers.json              ← Worker registry
-│
-├── reference/                    ← 📦 Đi kèm product
-│   ├── tools/                    ← Health check, queue status scripts
-│   ├── skills/                   ← Skills cho agent (planner-protocol, etc.)
-│   └── context/                  ← Tài liệu context
-│
-├── templates/                    ← 📄 JSON/MD templates chuẩn
-├── tests/                        ← 🧪 E2E tests
-├── dev-docs/                     ← 📝 Tài liệu dev (không ship)
-├── tasks/                        ← 🔧 Dev task board (không ship)
-├── tsconfig.json                 ← TypeScript config
-└── package.json
+### 3. Thư mục `.orchestrator`
+
+Trong workspace, server tạo thư mục:
+
+```text
+<workspace>/.orchestrator/
 ```
 
----
+Cấu trúc quan trọng:
 
-## 🔔 Brain Watcher (Desktop Notifications)
+```text
+.orchestrator/
+  plans/
+    pending/       nơi bạn bỏ plan mới
+    processing/    plan đang được xử lý
+    done/          plan đã xử lý xong
+  exchange/
+    inbox/         task đang chờ chạy
+    active/        task đang chạy
+    outbox/        kết quả task
+    checkpoints/   bản lưu trạng thái
+    logs/          log theo ngày
+    signals/       tín hiệu nội bộ
+    _queue.json    hàng đợi task
+  registry/
+    workspace.json thông tin workspace
+    workers.json   worker/runtime đã đăng ký
+    tasks.json     task registry
+  results/         kết quả đồng bộ theo workspace
+  context/         ngữ cảnh workspace
+  skills/          skill workspace-local nếu có
+```
 
-Brain Watcher là service chạy nền, theo dõi file trạng thái conversation của Antigravity. Khi phát hiện agent bị "stuck" (không hoạt động quá lâu), nó gửi **desktop notification** để bạn biết.
+Bạn chủ yếu cần xem:
 
-### Khởi động
+- `.orchestrator/plans/pending`
+- `.orchestrator/plans/processing`
+- `.orchestrator/plans/done`
+- `.orchestrator/exchange/outbox`
+- `.orchestrator/exchange/logs`
+- `.orchestrator/results`
+
+## Xem kết quả
+
+Kết quả task nằm trong:
+
+```text
+<workspace>/.orchestrator/exchange/outbox/
+```
+
+Kết quả đồng bộ dễ đọc hơn có thể nằm trong:
+
+```text
+<workspace>/.orchestrator/results/
+```
+
+Log theo ngày nằm trong:
+
+```text
+<workspace>/.orchestrator/exchange/logs/
+```
+
+Tên file log thường theo ngày. Mở file mới nhất để xem timeline.
+
+Task trong `outbox` thường kết thúc với các trạng thái:
+
+| Trạng thái | Nghĩa là gì |
+| --- | --- |
+| `done` | Task đã xong |
+| `failed` | Task lỗi |
+| `blocked` | Task bị chặn, cần người xem lại |
+
+Riêng callback từ harness có thêm trạng thái `handover_required`. Trạng thái này nghĩa là AI hết ngữ cảnh hoặc cần chuyển tiếp cho phiên khác; server sẽ requeue task kèm `handover_context` thay vì xem như một kết quả cuối bình thường.
+
+Với Phase 2, server chỉ chấp nhận kết quả khi callback khớp đúng:
+
+- `worker_id`
+- `task_id`
+- `runtime_id`
+- `lease_generation`
+
+Nếu không khớp, server từ chối để tránh ghi nhầm kết quả.
+
+## Xử lý lỗi thường gặp
+
+### Server không chạy
+
+Dấu hiệu:
+
+- Không mở được `http://127.0.0.1:3847/health`.
+- Terminal báo lỗi ngay khi chạy `npm run serve`.
+
+Cách xử lý:
+
+1. Kiểm tra bạn đang ở đúng thư mục `agent-orchestrator`.
+2. Chạy:
 
 ```bash
-npm run watch:ag
-```
-
-Service sẽ:
-- Monitor thư mục brain data của Antigravity
-- Phát hiện conversation files không thay đổi quá threshold
-- Gửi desktop notification qua `node-notifier`
-- Graceful shutdown với Ctrl+C
-
-> [!TIP]
-> Chạy `watch:ag` song song với `npm run serve` trong terminal riêng.
-
----
-
-## 🔧 Xử lý lỗi & Recovery
-
-### Lỗi thường gặp
-
-#### ❌ `EADDRINUSE: address already in use`
-
-Port 3847 đang bị chiếm. Giải pháp:
-
-```bash
-# Đổi port
-node dist/index.js serve --port 4000
-
-# Hoặc tắt process đang chiếm (Windows PowerShell)
-netstat -ano | findstr :3847
-taskkill /PID <PID> /F
-```
-
-> Nếu đổi port → cập nhật URL trong `mcp_config.json` → restart Antigravity.
-
-#### ❌ Antigravity không thấy tool nào
-
-Kiểm tra theo thứ tự:
-1. Server đang chạy? → Terminal phải hiện `🚀 Server is running`
-2. `mcp_config.json` đúng path?
-3. URL đúng? → `http://127.0.0.1:3847/mcp` (phải có `/mcp`)
-4. JSON hợp lệ? → Không thiếu dấu phẩy, ngoặc
-5. Đã restart Antigravity?
-
-#### ❌ Task bị kẹt trong `exchange/active/`
-
-Nhắn AI: *"Gọi `force_release_task` với task_id: 'XX', reason: 'Worker crashed'"*
-
-### Retry task bị lỗi
-
-Nhắn AI: *"Task XX bị lỗi, gọi `request_retry` với task_id, reason, attempt"*
-
-> [!WARNING]
-> Mỗi task retry tối đa **3 lần**. Vượt quá → permanently failed.
-
-### Recovery tự động
-
-| Tình huống | Xử lý |
-|------------|--------|
-| Server crash → restart | Quét orphan task trong `active/` → requeue |
-| Worker treo > 90s | Đánh dấu stale, requeue cho worker khác |
-| Tắt đột ngột | Phát hiện unclean shutdown → full recovery scan |
-| Task failed/blocked | Auto-requeue với retry count + error_context |
-
-### Session Checkpoint (v2)
-
-Khi task fail, hệ thống lưu `error_context` vào `.agent/session.json`:
-
-```json
-{
-  "error_context": {
-    "error": "Cannot find module 'xyz'",
-    "hypothesis": "Missing dependency",
-    "attempted_fix": "Added import statement",
-    "retry_count": 1
-  }
-}
-```
-
-Agent mới nhận retry sẽ đọc diagnosis này → tránh lặp lại cùng fix → thử approach khác.
-
----
-
-## 💻 CLI & Utility Scripts
-
-### Server commands
-
-```bash
-# Production (cần build trước)
+npm install
 npm run build
 npm run serve
+```
 
-# Development (TypeScript trực tiếp)
+3. Nếu vẫn lỗi, đọc dòng lỗi trong Terminal.
+
+### Port 3847 bị chiếm
+
+Dấu hiệu:
+
+```text
+EADDRINUSE
+```
+
+Nghĩa là đã có chương trình khác dùng port `3847`.
+
+Cách xử lý nhanh:
+
+- Đóng Terminal server cũ nếu còn mở.
+- Hoặc chạy server bằng port khác:
+
+```bash
+node dist/index.js serve --port 4000
+```
+
+Khi đổi port, URL health sẽ là:
+
+```text
+http://127.0.0.1:4000/health
+```
+
+MCP endpoint sẽ là:
+
+```text
+http://127.0.0.1:4000/mcp
+```
+
+### Không thấy thư mục `.orchestrator`
+
+Dấu hiệu:
+
+- Trong workspace không có `.orchestrator`.
+
+Cách xử lý:
+
+1. Chạy server.
+2. Khi được hỏi workspace, chọn đúng project.
+3. Server sẽ tự tạo `.orchestrator`.
+
+Nếu bạn chọn nhầm workspace, hãy dừng server bằng `Ctrl+C`, chạy lại, rồi chọn đúng đường dẫn.
+
+### Bỏ plan vào nhưng không chạy
+
+Kiểm tra:
+
+1. File có nằm đúng thư mục không?
+
+```text
+<workspace>/.orchestrator/plans/pending/
+```
+
+2. File có đuôi `.md` không?
+3. Server có đang chạy không?
+4. Bạn có chọn đúng workspace lúc khởi động server không?
+5. Plan watcher có hiện trong `http://127.0.0.1:3847/health` không?
+
+Nếu file bị chuyển sang `processing`, nghĩa là server đã nhận plan.
+
+Nếu task nằm trong `inbox` nhưng không chạy, có thể backend runtime chưa sẵn sàng.
+
+### Ollama không sẵn sàng
+
+Dấu hiệu:
+
+- Terminal báo `Ollama not available`.
+- Task không được dispatch cho backend local.
+
+Cách xử lý:
+
+1. Mở Ollama.
+2. Kiểm tra Ollama chạy ở:
+
+```text
+http://localhost:11434
+```
+
+3. Nếu dùng model local, đảm bảo model đã được tải.
+
+Ví dụ:
+
+```bash
+ollama pull qwen3.5:4b-q4_k_m
+```
+
+Hoặc dùng model fallback đã có trên máy.
+
+### Task bị kẹt trong `active`
+
+Dấu hiệu:
+
+- File task nằm lâu trong:
+
+```text
+<workspace>/.orchestrator/exchange/active/
+```
+
+- Không thấy callback hoàn tất.
+
+Cách xử lý an toàn:
+
+1. Xem Terminal server có báo runtime/harness lỗi không.
+2. Mở health URL để xem dispatch loop và active worker.
+3. Nếu chắc task đã kẹt, dùng tool quản trị `force_release_task` qua MCP client/agent.
+
+Không nên tự kéo file từ `active` về `inbox` nếu bạn chưa hiểu rõ trạng thái queue.
+
+### Callback bị từ chối
+
+Dấu hiệu:
+
+- Terminal báo lease mismatch.
+- Server trả `accepted: false`.
+
+Nghĩa là harness gửi callback không khớp runtime lease hiện tại. Thường do callback trễ, task đã được requeue, hoặc runtime cũ đã hết quyền.
+
+Cách xử lý:
+
+- Để server tự recovery nếu task còn retry.
+- Xem outbox/logs để biết task đã được xử lý lại chưa.
+- Nếu task kẹt lâu, dùng `force_release_task`.
+
+### Task failed nhiều lần
+
+Mặc định task retry tối đa 3 lần. Sau đó task có thể bị đánh dấu failed vĩnh viễn.
+
+Cách xử lý:
+
+1. Mở kết quả trong `exchange/outbox`.
+2. Đọc `summary` và `error_context`.
+3. Sửa lại plan hoặc tạo plan mới rõ hơn.
+4. Nếu cần chạy lại task, dùng tool `request_retry` qua MCP client/agent.
+
+## Điều không nên làm
+
+Không nên:
+
+- Đóng Terminal server khi task đang chạy.
+- Đổi tên hoặc di chuyển `.orchestrator` khi server đang chạy.
+- Tự sửa file trong `.orchestrator/exchange/active`.
+- Tự sửa `_queue.json` nếu chưa hiểu queue.
+- Bỏ nhiều plan lớn cùng lúc khi máy yếu.
+- Chạy quá nhiều worker/runtime nếu dùng Ollama local.
+- Sửa cùng một file bằng tay trong lúc AI đang làm task liên quan.
+- Xóa `registry/`, `checkpoints/`, hoặc `logs/` khi đang chạy.
+
+Nên:
+
+- Giao plan nhỏ, rõ, có tiêu chí hoàn thành.
+- Chạy xong một nhóm việc rồi mới giao nhóm tiếp theo.
+- Đọc log khi có lỗi.
+- Dừng server bằng `Ctrl+C` để server shutdown sạch.
+
+## Phần kỹ thuật ngắn
+
+Phần này dành cho người biết kỹ thuật hoặc người cần debug nhanh.
+
+### Lệnh thường dùng
+
+```bash
+npm install
+npm run build
+npm run serve
+```
+
+Chạy TypeScript trực tiếp khi phát triển:
+
+```bash
 npm run dev
+```
 
-# Brain Watcher
+Theo dõi Antigravity watcher nếu cần:
+
+```bash
 npm run watch:ag
+```
 
-# Type check
+Typecheck:
+
+```bash
 npm run typecheck
 ```
 
-### Utility Scripts
+### Endpoint
 
-Chạy từ project root:
+| Endpoint | Tác dụng |
+| --- | --- |
+| `GET /health` | Kiểm tra server, queue, runtime, Ollama, resource |
+| `/mcp` | MCP Streamable HTTP endpoint |
+| `POST /api/worker/ready` | Harness báo đã sẵn sàng |
+| `POST /api/worker/progress` | Harness báo tiến độ |
+| `POST /api/worker/complete` | Harness báo hoàn tất/thất bại/handover |
 
-| Script | Chức năng | Output |
-|--------|----------|--------|
-| `node reference/tools/health-check.mjs` | Check server status | `exchange/.tmp/health.md` |
-| `node reference/tools/queue-status.mjs` | Đếm tasks | `exchange/.tmp/queue-status.md` |
-| `node reference/tools/task-scanner.mjs` | Chi tiết metadata tasks | `exchange/.tmp/task-scan.md` |
-| `node reference/tools/init-exchange.mjs` | Tạo cấu trúc exchange/ | Console |
-| `node reference/tools/reset-exchange.mjs` | Xoá data exchange/ (giữ cấu trúc) | Console |
+### MCP tools chính
 
----
+| Tool | Tác dụng |
+| --- | --- |
+| `register_workspace` | Đăng ký workspace đã cấu hình |
+| `register_worker` | Đăng ký worker theo contract assignment-first |
+| `submit_task` | Nộp task payload để server materialize |
+| `submit_decomposition` | Planner nộp danh sách task và DAG |
+| `get_status` | Xem trạng thái server |
+| `get_queue_status` | Xem số task pending/active/done |
+| `report_progress` | Báo tiến độ task đang sở hữu |
+| `complete_task` | Tool hoàn tất task kiểu MCP cũ, vẫn có kiểm tra ownership |
+| `request_retry` | Requeue task lỗi |
+| `force_release_task` | Gỡ task kẹt khỏi active |
+| `scan_workspace` | Quét workspace tạo context |
+| `session_checkpoint` | Lưu/tải/xóa checkpoint phiên |
+| `close_workspace` | Đóng workspace nếu không còn active task |
+| `reopen_workspace` | Mở lại workspace đã đóng |
 
-## 📦 Tech Stack
+### Runtime backend
 
-| Thành phần | Công nghệ |
-|-----------|----------|
-| Language | TypeScript 5.8 (strict mode) |
-| Runtime | Node.js ≥ 18 (Pure ESM) |
-| Protocol | MCP — Streamable HTTP |
-| Framework | Express 5 |
-| Validation | Zod 4 |
-| MCP SDK | `@modelcontextprotocol/sdk` |
-| Transport | `mcp-remote` (npx → HTTP bridge) |
-| Notifications | `node-notifier` |
-| Dev runner | `tsx` (TypeScript execution) |
+Hệ thống hiện hỗ trợ các backend:
 
----
+| Backend | Ý nghĩa |
+| --- | --- |
+| `ollama` | Chạy model local qua Ollama |
+| `codex-cli` | Chạy qua Codex CLI |
+| `ag-cli` | Chạy qua Antigravity CLI |
 
-## 💡 Mẹo cho người mới
+Model selector chọn profile dựa trên độ khó task:
 
-> [!TIP]
-> - **Ban đầu**: Thử plan đơn giản (2-3 task nhỏ) để làm quen
-> - **Kiểm tra**: Gọi `get_queue_status()` trước khi giao task mới
-> - **Đọc log**: `exchange/logs/YYYY-MM-DD.md` để hiểu chuyện gì đang xảy ra
-> - **1 cửa sổ là đủ** cho hầu hết trường hợp
-> - Nếu "im lặng" quá lâu → `get_status()` kiểm tra server
+- `lite`: task nhỏ, ít file.
+- `standard`: task vừa.
+- `cloud`: task phức tạp hoặc cần context lớn.
 
----
+Các biến môi trường hữu ích:
 
-## 📄 License
+| Biến | Tác dụng |
+| --- | --- |
+| `OLLAMA_BASE_URL` | URL Ollama, mặc định thường là `http://localhost:11434` |
+| `ORCHESTRATOR_MODEL_LITE` | Model local nhẹ |
+| `ORCHESTRATOR_MODEL_STANDARD` | Model local chuẩn |
+| `ORCHESTRATOR_MODEL_CLOUD` | Model cloud/CLI |
+| `ORCHESTRATOR_MODEL_FALLBACK` | Model dự phòng nếu model chính chưa cài |
+| `ORCHESTRATOR_CLI_BACKEND` | Chọn `codex-cli` hoặc `ag-cli` |
+| `ORCHESTRATOR_CLI_COMMAND` | Command CLI custom |
+| `ORCHESTRATOR_CLI_ARGS` | Tham số CLI custom |
+| `ORCHESTRATOR_MAX_WORKERS` | Số worker tối đa |
+
+### Nguyên tắc Phase 2
+
+- Server là nguồn sự thật chính.
+- Task được dispatch theo queue, không phải worker tự chọn.
+- Mỗi task active có runtime lease riêng.
+- Harness phải gửi `ready` trước khi chạy chính thức.
+- `progress` dùng để quan sát, terminal callback mới là tín hiệu quyết định.
+- `complete`, `failed`, `handover_required` là các trạng thái terminal quan trọng.
+- Callback phải khớp `runtime_id` và `lease_generation`.
+- Runtime được cleanup sau khi task xong hoặc lỗi.
+- Model có thể được giữ ấm trong warm cache nếu policy cho phép.
+
+## License
 
 MIT
