@@ -1,6 +1,29 @@
+import { spawn } from 'child_process';
+import fs from 'fs';
+import path from 'path';
 import { RESOURCE_TABLE_COLUMNS, RESOURCE_TABLE_TEXT } from './constants.js';
 import type { InfraResourceSnapshot } from '../infra/index.js';
 import type { VisibilityResourceTableRow } from './models.js';
+
+interface InfraResourceTablePrinterOptions {
+  workspaceRoot?: string;
+  title?: string;
+}
+
+function psSingleQuote(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`;
+}
+
+function psArray(values: string[]): string {
+  return `@(${values.map(psSingleQuote).join(', ')})`;
+}
+
+function managerTerminalEnabled(): boolean {
+  const raw = process.env.ORCHESTRATOR_MANAGER_TERMINAL;
+  if (raw === '0' || raw?.toLowerCase() === 'false') return false;
+  if (raw === '1' || raw?.toLowerCase() === 'true') return true;
+  return process.platform === 'win32';
+}
 
 export function renderInfraResourceTable(snapshot: InfraResourceSnapshot): string {
   const workerRows = snapshot.active_workers.length === 0
@@ -78,7 +101,11 @@ export function renderInfraResourceTable(snapshot: InfraResourceSnapshot): strin
   ].join('\n');
 }
 
-export function createInfraResourceTablePrinter(): (snapshot: InfraResourceSnapshot) => void {
+export function createInfraResourceTablePrinter(options: InfraResourceTablePrinterOptions = {}): (snapshot: InfraResourceSnapshot) => void {
+  if (managerTerminalEnabled() && process.platform === 'win32' && options.workspaceRoot) {
+    return createInfraResourceTableTerminalPrinter(options.workspaceRoot, options.title);
+  }
+
   let lastLineCount = 0;
   return (snapshot: InfraResourceSnapshot) => {
     const table = renderInfraResourceTable(snapshot);
@@ -92,6 +119,54 @@ export function createInfraResourceTablePrinter(): (snapshot: InfraResourceSnaps
     }
     process.stdout.write(`${table}\n`);
     lastLineCount = table.split('\n').length;
+  };
+}
+
+function createInfraResourceTableTerminalPrinter(workspaceRoot: string, title: string = 'AO Manager'): (snapshot: InfraResourceSnapshot) => void {
+  const terminalRoot = path.join(workspaceRoot, '.orchestrator', 'exchange', 'manager-terminal');
+  fs.mkdirSync(terminalRoot, { recursive: true });
+
+  const tableFile = path.join(terminalRoot, 'resources.txt');
+  const scriptFile = path.join(terminalRoot, 'manager-terminal.ps1');
+  const escapedTitle = title.replace(/[\r\n]/g, ' ').trim() || 'AO Manager';
+  fs.writeFileSync(tableFile, `${RESOURCE_TABLE_TEXT.TITLE}\nwaiting for first snapshot...\n`, 'utf-8');
+
+  const script = [
+    '$ErrorActionPreference = "Continue"',
+    `$Host.UI.RawUI.WindowTitle = ${psSingleQuote(escapedTitle)}`,
+    `$serverPid = ${process.pid}`,
+    `$tableFile = ${psSingleQuote(tableFile)}`,
+    'while (Get-Process -Id $serverPid -ErrorAction SilentlyContinue) {',
+    '  Clear-Host',
+    '  if (Test-Path -LiteralPath $tableFile) {',
+    '    Write-Host (Get-Content -Raw -LiteralPath $tableFile) -NoNewline',
+    '  } else {',
+    '    Write-Host "Waiting for manager snapshot..."',
+    '  }',
+    '  Start-Sleep -Milliseconds 1000',
+    '}',
+    'Clear-Host',
+    'Write-Host "Agent Orchestrator server exited."',
+    'if ($env:ORCHESTRATOR_MANAGER_TERMINAL_KEEP_OPEN -ne "0") {',
+    '  Write-Host "Press Enter to close this manager terminal."',
+    '  [void][Console]::ReadLine()',
+    '}',
+    '',
+  ].join('\r\n');
+  fs.writeFileSync(scriptFile, script, 'utf-8');
+
+  const launchCommand = [
+    `$p = Start-Process -FilePath ${psSingleQuote('powershell.exe')} -ArgumentList ${psArray(['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptFile])} -WindowStyle Normal -PassThru`,
+  ].join('; ');
+  const child = spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', launchCommand], {
+    stdio: 'ignore',
+    windowsHide: true,
+  });
+  child.unref();
+  console.log(`[Visibility] Manager terminal started: ${scriptFile}`);
+
+  return (snapshot: InfraResourceSnapshot) => {
+    fs.writeFileSync(tableFile, `${renderInfraResourceTable(snapshot)}\n`, 'utf-8');
   };
 }
 

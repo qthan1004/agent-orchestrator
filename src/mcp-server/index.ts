@@ -188,7 +188,10 @@ export async function startServer(config: AppConfig): Promise<void> {
 
   // Start resource monitoring
   vramManager.startMonitoring();
-  const printResourceTable = createInfraResourceTablePrinter();
+  const printResourceTable = createInfraResourceTablePrinter({
+    workspaceRoot: config.workspace.workspaceRoot,
+    title: `AO Manager ${primaryWorkspace.name}`,
+  });
   resourceMonitor.start(
     resolveInfraResourceMonitorIntervalMs(process.env[INFRA_RESOURCE_MONITOR_ENV.TABLE_INTERVAL_MS]),
     snapshot => printResourceTable(snapshot)
