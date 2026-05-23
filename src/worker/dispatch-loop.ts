@@ -5,7 +5,7 @@ import type { StateManager } from '../mcp-server/state-manager.js';
 import type { WorkerRegistry } from '../utils/worker-registry.js';
 import { ModelSelector, type ModelProfile } from './model-selector.js';
 import type { WorkerProcessOutcome } from './process-manager.js';
-import { FILE_PREFIXES, RECOVERY_DEFAULTS, SERVER_PROFILES, SYSTEM_MESSAGE, TASK_STATUS } from '../constants.js';
+import { RECOVERY_DEFAULTS, SERVER_PROFILES, SYSTEM_MESSAGE, TASK_STATUS } from '../constants.js';
 import type { CapacityStore } from '../infra/index.js';
 import {
   RUNTIME_BACKEND,
@@ -22,6 +22,7 @@ import {
 } from '../runtime/index.js';
 import { isSharedOllamaDevFallback, OLLAMA_RUNTIME_DEFAULTS } from '../runtime-adapters/ollama/index.js';
 import { DISPATCH_LOOP_DEFAULTS, DISPATCH_LOOP_TEXT } from '../scheduler/index.js';
+import { taskFilePath as buildTaskFilePath } from '../utils/task-file-names.js';
 
 export interface DispatchLoopConfig {
   queue: TaskQueue;
@@ -248,7 +249,7 @@ export class TaskDispatchLoop {
       this.stateManager.moveToActive(task.id);
       movedToActive = true;
 
-      const activeTaskPath = path.join(this.stateManager.config.exchange.active, `${FILE_PREFIXES.TASK}${task.id}.json`);
+      const activeTaskPath = buildTaskFilePath(this.stateManager.config.exchange.active, task.id);
       const taskFilePath = path.relative(this.workspaceRoot, activeTaskPath).replace(/\\/g, '/');
       if (taskFilePath.startsWith('..')) {
         throw new Error(DISPATCH_LOOP_TEXT.ACTIVE_TASK_PATH_ESCAPES(activeTaskPath));

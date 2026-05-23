@@ -94,8 +94,14 @@ Server bat buoc co `workspaceRoot`. Runtime state chinh nam trong workspace:
 <workspace>/.orchestrator/
   registry/
     workspace.json
+    planners.json
     workers.json
     tasks.json
+  planner/
+    preflight.md
+    workflows/
+      create-plan.md
+      create-tasks.md
   exchange/
     inbox/
     active/
@@ -125,8 +131,11 @@ Y nghia:
 - `exchange/logs`: daily markdown logs.
 - `exchange/signals`: recovery signals.
 - `registry/workspace.json`: metadata workspace.
+- `registry/planners.json`: planner identity registry, rieng voi worker.
 - `registry/workers.json`: worker/harness registry.
 - `registry/tasks.json`: task identity registry, khong chua task body.
+- `planner/preflight.md`: preflight server nap cho planner khi `register_planner`.
+- `planner/workflows/*`: workflow copy tu `reference/planner-workflows`.
 - `skills/`, `context/`: file tinh duoc Harness load khi task khai bao.
 - `results/`: result sync cho workspace.
 
@@ -459,6 +468,10 @@ Dang ky MCP tools:
 |---|---|---|
 | `hello_world` | `name` | Health/greeting nho. |
 | `register_workspace` | `workspace_path` | Connect/register workspace, bootstrap `.orchestrator`, verify match configured workspace. |
+| `register_planner` | `workspace_path?` | Tao planner identity rieng, sync preflight/workflows tu `reference/planner-workflows/` sang workspace. Khong dung `workerRegistry`. |
+| `create_plan` | `planner_id`, `title`, `conversation_summary`, `analysis`, `plan_markdown` | Tao plan markdown trong `plans/pending`, status `pending_user_approval`. |
+| `create_tasks` | `planner_id`, `user_approved`, `tasks`, `graph`, `reasoning`, `source_plan` | Chi chay khi `user_approved=true`; tao queue task tu plan da approve, complete plan. |
+| `planner_task_ready` | `planner_id`, `source_plan?`, `message?` | Planner bao server tasks da san sang dispatch. |
 | `register_worker` | `workspace_path` | Tao worker id trong workspace registry, tra queue summary. |
 | `get_status` | none | Tra server/version/uptime/connected_workers. |
 | `submit_task` | `task_id`, `workspace_id`, `task_payload?`, `task_content_path?` | Materialize task markdown hoac doc legacy task file; register queue. |
@@ -480,6 +493,55 @@ Dang ky MCP tools:
 
 - Neu params co `worker_id`, goi `workerRegistry.updateHeartbeat(worker_id)`.
 - Dung cho cac tool legacy worker/planner can keepalive.
+
+### Planner workflow bootstrap
+
+Planner khong con dung prompt template dan tay. Flow moi:
+
+1. Planner goi `register_planner`.
+2. Server copy source workflow:
+   - `reference/planner-workflows/preflight.md`
+   - `reference/planner-workflows/workflows/create-plan.md`
+   - `reference/planner-workflows/workflows/create-tasks.md`
+3. Server ghi sang workspace:
+   - `.orchestrator/planner/preflight.md`
+   - `.orchestrator/planner/workflows/create-plan.md`
+   - `.orchestrator/planner/workflows/create-tasks.md`
+4. Server tao record trong `registry/planners.json`.
+5. Server tra `planner_id`, workspace identity, preflight content, workflow paths, required tools.
+
+`PlannerRegistry`
+
+File: `src/utils/planner-registry.ts`
+
+- `register(workspaceId, workflowPaths)`: tao `p-xxxxxxxx`.
+- `updateHeartbeat(plannerId)`: refresh heartbeat.
+- `recordPlanCreated(plannerId, planFile)`: tang counter plan.
+- `recordTasksCreated(plannerId, taskCount, planFile)`: tang counter task.
+- `recordTaskReady(plannerId)`: mark planner da bao server ready.
+
+Plan approval contract:
+
+- `create_plan` chi tao file plan pending approval.
+- `PlanWatcher` bo qua file co frontmatter `approval_status: pending_user_approval`.
+- Planner phai bao user doc plan.
+- Neu reject, user/planner sua plan file truc tiep; server khong mutate noi dung reject.
+- Neu approve, planner moi duoc goi `create_tasks(user_approved=true)`.
+- Sau khi `create_tasks` thanh cong, planner goi `planner_task_ready`.
+
+Server van la owner cua dispatch. Planner khong goi worker execution tool.
+
+### Task filename safety
+
+Task id co the chua URL hoac ky tu Windows khong cho phep. Phase nay tach task id va filename:
+
+- `src/utils/task-file-names.ts`
+- `safeTaskFileStem(taskId)`: tao slug + hash deterministic.
+- `taskFilePath(dir, taskId)`: filename an toan cho `task-*.json`.
+- `resultFilePath(dir, taskId)`: filename an toan cho `result-*.json`.
+- `findTaskFilePath(dir, taskId)`: doc ca filename moi va legacy filename cu.
+
+JSON van giu `id/task_id` goc; chi filename duoc sanitize. Viec nay tranh bug queue co task nhung inbox file khong duoc tao khi task id chua `https://.../?...`.
 
 Luu y compatibility:
 
@@ -757,10 +819,11 @@ Private `_poll(): void`
 - Neu co workspace registry:
   - Scan tat ca registered workspace.
   - Tim `.orchestrator/plans/pending/*.md`.
+  - Bo qua plan co frontmatter `approval_status: pending_user_approval`.
   - Move file cu nhat sang `processing`.
   - Log `PLAN_DETECTED`.
 - Neu khong co workspace:
-  - Fallback `stateManager.checkPlans()`.
+  - Chi fallback `stateManager.checkPlans()` khi co pending plan khong phai pending approval.
 
 ### `RecoveryManager`
 

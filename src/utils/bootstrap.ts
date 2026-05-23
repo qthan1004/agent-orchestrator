@@ -91,6 +91,8 @@ export function bootstrapWorkspace(
     join(plansDir, 'pending'),
     join(plansDir, 'processing'),
     join(plansDir, 'done'),
+    join(orchestratorDir, DIR_NAMES.PLANNER),
+    join(orchestratorDir, DIR_NAMES.PLANNER, 'workflows'),
     join(orchestratorDir, DIR_NAMES.SKILLS),
     join(orchestratorDir, DIR_NAMES.CONTEXT),
     join(orchestratorDir, DIR_NAMES.RESULTS),
@@ -131,6 +133,7 @@ export function bootstrapWorkspace(
 
   const registryFiles: Array<{ path: string; value: unknown }> = [
     { path: join(registryDir, 'workspace.json'), value: defaultWorkspace },
+    { path: join(registryDir, 'planners.json'), value: [] },
     { path: join(registryDir, 'workers.json'), value: [] },
     { path: join(registryDir, 'tasks.json'), value: [] },
     { path: join(exchangeDir, FILE_PREFIXES.QUEUE), value: { groups: [] } },

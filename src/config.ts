@@ -76,6 +76,7 @@ export function loadConfig(overrides: ConfigOverrides = {}): AppConfig {
       registry: {
         base: workspaceRegistryBase,
         workspace: join(workspaceRegistryBase, 'workspace.json'),
+        planners: join(workspaceRegistryBase, 'planners.json'),
         workers: join(workspaceRegistryBase, 'workers.json'),
         tasks: join(workspaceRegistryBase, 'tasks.json'),
       },

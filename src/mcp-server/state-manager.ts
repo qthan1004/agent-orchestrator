@@ -7,6 +7,7 @@ import type { WorkspaceConfig } from '../models/index.js';
 import type { TaskDef, TaskGraph, TaskIdentityRecord, TaskResult, WorkerServiceHandoverRecord } from '../task/index.js';
 import type { Logger } from '../utils/logger.js';
 import { TaskIdentityRegistry } from '../utils/task-identity-registry.js';
+import { findTaskFilePath, resultFilePath, taskFilePath } from '../utils/task-file-names.js';
 
 const MAX_CHECKPOINTS = 10;
 
@@ -178,8 +179,10 @@ export class StateManager {
         status: TASK_STATUS.PENDING,
         retry_count: task.retry_count,
       });
-      const filePath = path.join(this.config.exchange.inbox, `${FILE_PREFIXES.TASK}${task.id}.json`);
-      writeJSON(filePath, { ...task, status: TASK_STATUS.PENDING });
+      const filePath = taskFilePath(this.config.exchange.inbox, task.id);
+      if (!writeJSON(filePath, { ...task, status: TASK_STATUS.PENDING })) {
+        throw new Error(`Failed to write task file for ${task.id}`);
+      }
     }
 
     // Write graph metadata to exchange/_queue.json
@@ -192,8 +195,8 @@ export class StateManager {
   }
 
   moveToActive(taskId: string): void {
-    const src = path.join(this.config.exchange.inbox, `${FILE_PREFIXES.TASK}${taskId}.json`);
-    const dest = path.join(this.config.exchange.active, `${FILE_PREFIXES.TASK}${taskId}.json`);
+    const src = findTaskFilePath(this.config.exchange.inbox, taskId);
+    const dest = taskFilePath(this.config.exchange.active, taskId);
 
     const moved = moveFile(src, dest);
     if (!moved) {
@@ -216,8 +219,8 @@ export class StateManager {
   }
 
   moveToOutbox(taskId: string, result: TaskResult): void {
-    const src = path.join(this.config.exchange.active, `${FILE_PREFIXES.TASK}${taskId}.json`);
-    const dest = path.join(this.config.exchange.outbox, `${FILE_PREFIXES.TASK}${taskId}.json`);
+    const src = findTaskFilePath(this.config.exchange.active, taskId);
+    const dest = taskFilePath(this.config.exchange.outbox, taskId);
 
     const moved = moveFile(src, dest);
     if (!moved) {
@@ -231,7 +234,7 @@ export class StateManager {
       writeJSON(dest, taskData);
     }
 
-    const resultPath = path.join(this.config.exchange.outbox, `${FILE_PREFIXES.RESULT}${taskId}.json`);
+    const resultPath = resultFilePath(this.config.exchange.outbox, taskId);
     writeJSON(resultPath, result);
 
     this.queue.updateTaskStatus(taskId, result.status);
@@ -254,14 +257,14 @@ export class StateManager {
    * Used by recovery to guard against race conditions.
    */
   isTaskInActive(taskId: string): boolean {
-    const activePath = path.join(this.config.exchange.active, `${FILE_PREFIXES.TASK}${taskId}.json`);
+    const activePath = findTaskFilePath(this.config.exchange.active, taskId);
     return fs.existsSync(activePath);
   }
 
   moveToInbox(taskId: string): void {
-    const activePath = path.join(this.config.exchange.active, `${FILE_PREFIXES.TASK}${taskId}.json`);
-    const outboxPath = path.join(this.config.exchange.outbox, `${FILE_PREFIXES.TASK}${taskId}.json`);
-    const dest = path.join(this.config.exchange.inbox, `${FILE_PREFIXES.TASK}${taskId}.json`);
+    const activePath = findTaskFilePath(this.config.exchange.active, taskId);
+    const outboxPath = findTaskFilePath(this.config.exchange.outbox, taskId);
+    const dest = taskFilePath(this.config.exchange.inbox, taskId);
 
     let found = moveFile(activePath, dest);
     if (!found) {
@@ -292,7 +295,7 @@ export class StateManager {
   getTaskRetryCount(taskId: string): number {
     const dirs = [this.config.exchange.active, this.config.exchange.outbox, this.config.exchange.inbox];
     for (const dir of dirs) {
-      const filePath = path.join(dir, `${FILE_PREFIXES.TASK}${taskId}.json`);
+      const filePath = findTaskFilePath(dir, taskId);
       const data = readJSON<TaskDef>(filePath);
       if (data) return data.retry_count || 0;
     }
@@ -312,7 +315,7 @@ export class StateManager {
     let newRetryCount = 1;
 
     for (const dir of dirs) {
-      const filePath = path.join(dir, `${FILE_PREFIXES.TASK}${taskId}.json`);
+      const filePath = findTaskFilePath(dir, taskId);
       const data = readJSON<TaskDef>(filePath);
       if (data) {
         newRetryCount = (data.retry_count || 0) + 1;
@@ -360,7 +363,7 @@ export class StateManager {
   }
 
   requeueWithHandover(taskId: string, handover: WorkerServiceHandoverRecord, workspaceRoot?: string): number {
-    const activePath = path.join(this.config.exchange.active, `${FILE_PREFIXES.TASK}${taskId}.json`);
+    const activePath = findTaskFilePath(this.config.exchange.active, taskId);
     const taskData = readJSON<TaskDef>(activePath);
     if (!taskData) return 0;
 
@@ -436,8 +439,8 @@ export class StateManager {
     }
 
     for (const taskId of failedTasks) {
-      const srcTask = path.join(this.config.exchange.outbox, `${FILE_PREFIXES.TASK}${taskId}.json`);
-      const destTask = path.join(this.config.exchange.inbox, `${FILE_PREFIXES.TASK}${taskId}.json`);
+      const srcTask = findTaskFilePath(this.config.exchange.outbox, taskId);
+      const destTask = taskFilePath(this.config.exchange.inbox, taskId);
 
       // Move task file from outbox → inbox
       if (moveFile(srcTask, destTask)) {

@@ -18,6 +18,7 @@ export interface DirConfig {
 export interface WorkspaceRegistryConfig {
   base: string;
   workspace: string;
+  planners: string;
   workers: string;
   tasks: string;
 }

@@ -35,8 +35,13 @@ function psSingleQuote(value: string): string {
   return `'${value.replace(/'/g, "''")}'`;
 }
 
-function psArray(values: string[]): string {
-  return `@(${values.map(psSingleQuote).join(', ')})`;
+function windowsCommandArg(value: string): string {
+  if (!/[\s"]/.test(value)) return value;
+  return `"${value.replace(/"/g, '\\"')}"`;
+}
+
+function windowsCommandLine(values: string[]): string {
+  return values.map(windowsCommandArg).join(' ');
 }
 
 function payloadWorkspaceRoot(payload: WorkerPayload): string {
@@ -271,8 +276,13 @@ export class WorkerProcessManager extends EventEmitter {
     ].join('\r\n');
     fs.writeFileSync(runnerFile, runnerScript, 'utf-8');
 
+    const runnerArgs = ['-NoProfile', '-ExecutionPolicy', 'Bypass'];
+    if (process.env.ORCHESTRATOR_HARNESS_TERMINAL_KEEP_OPEN !== '0') {
+      runnerArgs.push('-NoExit');
+    }
+    runnerArgs.push('-File', runnerFile);
     const launchCommand = [
-      `$p = Start-Process -FilePath ${psSingleQuote('powershell.exe')} -ArgumentList ${psArray(['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', runnerFile])} -WindowStyle Normal -PassThru`,
+      `$p = Start-Process -FilePath ${psSingleQuote('powershell.exe')} -ArgumentList ${psSingleQuote(windowsCommandLine(runnerArgs))} -WindowStyle Normal -PassThru`,
       `$p.Id | Set-Content -LiteralPath ${psSingleQuote(pidFile)} -Encoding UTF8`,
     ].join('; ');
     const child = spawnProcess('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', launchCommand], {

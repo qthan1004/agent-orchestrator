@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import {
   TOOL_NAMES, STATE_EVENTS, TASK_STATUS, AGENT_ACTION,
-  WORKER_STATUS, FILE_PREFIXES, VERSION, DIR_NAMES
+  WORKER_STATUS, VERSION, DIR_NAMES
 } from '../constants.js';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
@@ -14,12 +14,12 @@ import { executeSessionCheckpoint } from './tools/session-checkpoint.js';
 import type { SessionCheckpointInput } from './tools/session-checkpoint.js';
 import { connectWorkspace } from '../server-tools/workspace-connector.js';
 import { submitWorkspaceTask } from '../server-tools/task-submitter.js';
+import { createPlannerPlan, syncPlannerWorkflows } from '../server-tools/planner-workflows.js';
 import { WorkspaceRegistry } from '../utils/workspace-registry.js';
 import { bootstrapWorkspace } from '../utils/bootstrap.js';
-import { ensureDir, writeJSON } from '../utils/file-backend.js';
+import { ensureDir, moveFile, writeJSON } from '../utils/file-backend.js';
 import { assertActiveWorkspace, getWorkerCurrentTaskId } from '../utils/identity-invariants.js';
-
-const STRIP_FIELDS = ['status', 'assigned_to', 'priority', 'metadata', 'dependencies', 'done_criteria'];
+import { findTaskFilePath, resultFilePath } from '../utils/task-file-names.js';
 
 type ToolResponse = CallToolResult;
 type ToolHandler<TParams extends Record<string, any> = Record<string, any>> = (params: TParams) => Promise<ToolResponse>;
@@ -35,15 +35,6 @@ const TaskPayloadSchema = z.object({
   skill_paths: z.array(z.string()).optional().describe('Workspace-local skill paths under .orchestrator/skills/.'),
   context_paths: z.array(z.string()).optional().describe('Workspace-local context paths under .orchestrator/context/.'),
 });
-
-function compactTask(task: TaskDef | null): Partial<TaskDef> | null {
-  if (!task) return task;
-  const clone = { ...task };
-  for (const field of STRIP_FIELDS) {
-    delete clone[field];
-  }
-  return clone;
-}
 
 function formatError(err: any): ToolResponse {
   return {
@@ -70,13 +61,112 @@ function withHeartbeat<TParams extends Record<string, any>>(
 }
 
 export function registerTools(server: McpServer, context: ServerContext): void {
-  const { stateManager, workerRegistry, logger } = context;
+  const { stateManager, workerRegistry, plannerRegistry, logger } = context;
 
-  function findGroupForTask(taskId: string): string | number | null {
-    for (const group of stateManager.queue.groups) {
-      if (group.tasks.includes(taskId)) return group.group_id;
+  function requirePlanner(plannerId: string): void {
+    const planner = plannerRegistry.getPlanner(plannerId);
+    if (!planner) {
+      throw new Error(`Invalid planner_id: ${plannerId}`);
     }
-    return null;
+    if (planner.workspace_id !== context.config.workspace.workspaceId) {
+      throw new Error(`Planner ${plannerId} is not registered for workspace ${context.config.workspace.workspaceId}.`);
+    }
+    plannerRegistry.updateHeartbeat(plannerId);
+  }
+
+  function safeTaskPrefix(sourcePlan: string): string {
+    const base = path.basename(sourcePlan).replace(/\.md$/i, '');
+    const safe = base
+      .toLowerCase()
+      .replace(/[^a-z0-9-]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 80)
+      .replace(/^-+|-+$/g, '');
+    return `${safe || 'plan'}-`;
+  }
+
+  function ensurePlanInProcessing(sourcePlan: string): string {
+    const filename = path.basename(sourcePlan);
+    const processingPath = path.join(context.config.workspace.plans.processing, filename);
+    if (fs.existsSync(processingPath)) return filename;
+
+    const pendingPath = path.join(context.config.workspace.plans.pending, filename);
+    if (fs.existsSync(pendingPath) && moveFile(pendingPath, processingPath)) {
+      return filename;
+    }
+
+    const donePath = path.join(context.config.workspace.plans.done, filename);
+    if (fs.existsSync(donePath)) {
+      throw new Error(`Plan ${filename} is already done.`);
+    }
+    throw new Error(`Plan ${filename} not found in pending/ or processing/.`);
+  }
+
+  function prefixTaskId(prefix: string, id: string): string {
+    return id.startsWith(prefix) ? id : `${prefix}${id}`;
+  }
+
+  async function createTasksFromPlan(params: {
+    tasks: TaskDef[];
+    graph: TaskGraph;
+    reasoning: string;
+    source_plan: string;
+    planner_id?: string;
+    user_approved?: boolean;
+    require_approval?: boolean;
+  }) {
+    if (params.require_approval && params.user_approved !== true) {
+      throw new Error('create_tasks requires explicit user_approved: true.');
+    }
+    if (params.planner_id) {
+      requirePlanner(params.planner_id);
+    }
+
+    const sourcePlan = ensurePlanInProcessing(params.source_plan);
+    const registry = new WorkspaceRegistry(context.config.runtimeRoot);
+    assertActiveWorkspace(
+      registry.getById(context.config.workspace.workspaceId),
+      context.config.workspace.workspaceId
+    );
+
+    const planPrefix = safeTaskPrefix(sourcePlan);
+    const mutableTasks = params.tasks as TaskDef[];
+    const mutableGraph = params.graph as TaskGraph;
+
+    for (const task of mutableTasks) {
+      task.id = prefixTaskId(planPrefix, task.id);
+      if (Array.isArray((task as any).dependencies)) {
+        (task as any).dependencies = (task as any).dependencies.map((id: string) => prefixTaskId(planPrefix, id));
+      }
+      if (Array.isArray((task as any).depends_on)) {
+        (task as any).depends_on = (task as any).depends_on.map((id: string) => prefixTaskId(planPrefix, id));
+      }
+    }
+    if (mutableGraph && mutableGraph.groups) {
+      for (const group of mutableGraph.groups) {
+        group.group_id = prefixTaskId(planPrefix, String(group.group_id));
+        if (group.depends_on) {
+          group.depends_on = group.depends_on.map(id => prefixTaskId(planPrefix, String(id)));
+        }
+        if (group.tasks) {
+          group.tasks = group.tasks.map(id => prefixTaskId(planPrefix, id));
+        }
+      }
+    }
+
+    stateManager.storeTasks(mutableTasks, mutableGraph);
+    stateManager.completePlan(sourcePlan);
+    if (params.planner_id) {
+      plannerRegistry.recordTasksCreated(params.planner_id, mutableTasks.length, sourcePlan);
+    }
+
+    return {
+      accepted: true,
+      plan_completed: sourcePlan,
+      tasks_created: mutableTasks.length,
+      reasoning: params.reasoning,
+    };
   }
 
   server.registerTool(
@@ -121,6 +211,103 @@ export function registerTools(server: McpServer, context: ServerContext): void {
               server_root: context.config.root,
               contract_mode: "workspace-first"
             })
+          }]
+        };
+      } catch (err) {
+        return formatError(err);
+      }
+    }
+  );
+
+  server.registerTool(
+    TOOL_NAMES.REGISTER_PLANNER,
+    {
+      description: "Register a planner identity. Server syncs planner preflight/workflows into the workspace; no pasted prompt or manual path wiring required.",
+      inputSchema: {
+        workspace_path: z.string().optional()
+          .describe("Optional workspace path. Defaults to the workspace this server was started with.")
+      }
+    },
+    async ({ workspace_path }) => {
+      try {
+        const workspace = connectWorkspace({
+          workspacePath: workspace_path || context.config.workspace.workspaceRoot,
+          runtimeRoot: context.config.runtimeRoot,
+          configuredWorkspaceId: context.config.workspace.workspaceId
+        });
+        const workflows = syncPlannerWorkflows(context);
+        const planner = plannerRegistry.register(workspace.workspace_id, workflows.paths);
+
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              planner_id: planner.id,
+              role: "planner",
+              contract_mode: "planner-workflow",
+              server_root: context.config.root,
+              workspace_root: workspace.workspace_root,
+              workspace_id: workspace.workspace_id,
+              preflight: {
+                path: workflows.paths.preflight,
+                content: workflows.preflight
+              },
+              workflows: {
+                create_plan: workflows.paths.create_plan,
+                create_tasks: workflows.paths.create_tasks
+              },
+              required_tools: [
+                TOOL_NAMES.CREATE_PLAN,
+                TOOL_NAMES.CREATE_TASKS,
+                TOOL_NAMES.PLANNER_TASK_READY
+              ],
+              next_action: {
+                action: "wait_for_user_plan_request",
+                message: "Follow preflight. Create a plan only after the user explicitly asks."
+              }
+            })
+          }]
+        };
+      } catch (err) {
+        return formatError(err);
+      }
+    }
+  );
+
+  server.registerTool(
+    TOOL_NAMES.CREATE_PLAN,
+    {
+      description: "Create a pending user-approval plan file from planner discussion summary and analysis.",
+      inputSchema: {
+        planner_id: z.string().min(1),
+        title: z.string().min(1),
+        conversation_summary: z.string().min(1),
+        analysis: z.string().min(1),
+        plan_markdown: z.string().min(1)
+      }
+    },
+    async ({ planner_id, title, conversation_summary, analysis, plan_markdown }) => {
+      try {
+        requirePlanner(planner_id);
+        const result = createPlannerPlan(context, {
+          planner_id,
+          title,
+          conversation_summary,
+          analysis,
+          plan_markdown
+        });
+        plannerRegistry.recordPlanCreated(planner_id, result.plan_file);
+        logger.log(STATE_EVENTS.PLAN_LOADED, {
+          planner_id,
+          filename: result.plan_file,
+          status: result.status,
+          message: 'Planner created a plan pending user approval.'
+        });
+
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify(result)
           }]
         };
       } catch (err) {
@@ -302,7 +489,7 @@ export function registerTools(server: McpServer, context: ServerContext): void {
             if (wsRoot) {
               const wsResultDir = context.config.workspace.results.base;
               ensureDir(wsResultDir);
-              const wsResultPath = path.join(wsResultDir, `result-${task_id}.json`);
+              const wsResultPath = resultFilePath(wsResultDir, task_id);
               const syncResult = {
                 task_id: result.task_id,
                 status: result.status,
@@ -473,41 +660,18 @@ export function registerTools(server: McpServer, context: ServerContext): void {
     },
     withHeartbeat(async ({ tasks, graph, reasoning, source_plan, worker_id }) => {
       try {
-         // Auto-prefix task IDs with Plan name to prevent collision across multiple plans
-         const registry = new WorkspaceRegistry(context.config.runtimeRoot);
-         assertActiveWorkspace(
-           registry.getById(context.config.workspace.workspaceId),
-           context.config.workspace.workspaceId
-         );
-
-         const planPrefix = source_plan.replace(/\.md$/, '') + '-';
-         const mutableTasks = tasks as TaskDef[];
-         const mutableGraph = graph as unknown as TaskGraph;
-
-         for (const task of mutableTasks) {
-           task.id = planPrefix + task.id;
-         }
-         if (mutableGraph && mutableGraph.groups) {
-           for (const group of mutableGraph.groups) {
-             group.group_id = planPrefix + group.group_id;
-             if (group.depends_on) {
-               group.depends_on = group.depends_on.map(id => planPrefix + id);
-             }
-             if (group.tasks) {
-               group.tasks = group.tasks.map(id => planPrefix + id);
-             }
-           }
-         }
-
-         // Throws if circular deps
-         stateManager.storeTasks(mutableTasks, mutableGraph);
-         stateManager.completePlan(source_plan);
+         const result = await createTasksFromPlan({
+           tasks: tasks as TaskDef[],
+           graph: graph as unknown as TaskGraph,
+           reasoning,
+           source_plan,
+         });
          
          return {
            content: [{ type: "text", text: JSON.stringify({
-             accepted: true,
-             plan_completed: source_plan,
-             tasks_created: mutableTasks.length
+             accepted: result.accepted,
+             plan_completed: result.plan_completed,
+             tasks_created: result.tasks_created
            }) }]
          };
       } catch (err: any) {
@@ -516,6 +680,97 @@ export function registerTools(server: McpServer, context: ServerContext): void {
         };
       }
     }, context)
+  );
+
+  server.registerTool(
+    TOOL_NAMES.CREATE_TASKS,
+    {
+      description: "Planner-only approved task creation. Requires user_approved=true, then stores tasks and marks source plan done.",
+      inputSchema: {
+        planner_id: z.string().min(1),
+        user_approved: z.boolean().describe("Must be true after explicit user approval."),
+        tasks: z.array(TaskDefSchema).max(20).describe("List of tasks"),
+        graph: z.object({
+            groups: z.array(z.object({
+                group_id: z.number(),
+                tasks: z.array(z.string()),
+                depends_on: z.array(z.number()).optional()
+            }))
+        }).describe("DAG constraint groups"),
+        reasoning: z.string().describe("Justification for the breakdown"),
+        source_plan: z.string().describe("Filename of the approved plan")
+      }
+    },
+    async ({ planner_id, user_approved, tasks, graph, reasoning, source_plan }) => {
+      try {
+        const result = await createTasksFromPlan({
+          tasks: tasks as TaskDef[],
+          graph: graph as unknown as TaskGraph,
+          reasoning,
+          source_plan,
+          planner_id,
+          user_approved,
+          require_approval: true,
+        });
+
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              accepted: result.accepted,
+              plan_completed: result.plan_completed,
+              tasks_created: result.tasks_created,
+              next_action: {
+                action: "call_planner_task_ready",
+                tool: TOOL_NAMES.PLANNER_TASK_READY
+              }
+            })
+          }]
+        };
+      } catch (err: any) {
+        return {
+          content: [{ type: "text", text: JSON.stringify({ accepted: false, errors: [err.message] }) }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  server.registerTool(
+    TOOL_NAMES.PLANNER_TASK_READY,
+    {
+      description: "Planner notifies the server that approved tasks were created and are ready for dispatch.",
+      inputSchema: {
+        planner_id: z.string().min(1),
+        source_plan: z.string().optional(),
+        message: z.string().optional()
+      }
+    },
+    async ({ planner_id, source_plan, message }) => {
+      try {
+        requirePlanner(planner_id);
+        plannerRegistry.recordTaskReady(planner_id);
+        logger.log('PLANNER_TASK_READY', {
+          planner_id,
+          source_plan,
+          message: message || 'Planner task creation completed.'
+        });
+
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              accepted: true,
+              planner_id,
+              source_plan,
+              queue_summary: stateManager.getStatus()
+            })
+          }]
+        };
+      } catch (err) {
+        return formatError(err);
+      }
+    }
   );
 
   server.registerTool(
@@ -539,7 +794,7 @@ export function registerTools(server: McpServer, context: ServerContext): void {
         return {
            content: [{ type: "text", text: JSON.stringify({
              approved: true,
-             file_path: `inbox/task-${task_id}.json`,
+             file_path: `inbox/${path.basename(findTaskFilePath(context.config.workspace.exchange.inbox, task_id))}`,
              retry_count: newRetryCount
            }) }]
         };
@@ -561,10 +816,7 @@ export function registerTools(server: McpServer, context: ServerContext): void {
     async ({ task_id, reason }) => {
       try {
         // Check task exists in active/
-        const activePath = path.join(
-          context.config.workspace.exchange.active, 
-          `${FILE_PREFIXES.TASK}${task_id}.json`
-        );
+        const activePath = findTaskFilePath(context.config.workspace.exchange.active, task_id);
         
         if (!fs.existsSync(activePath)) {
           throw new Error(`Task ${task_id} not found in active/ directory`);

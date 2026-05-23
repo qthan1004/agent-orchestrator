@@ -31,6 +31,11 @@ export interface PlanWatcherStatus extends PlanWatcherStats {
   interval_ms: number;
 }
 
+function isPendingApprovalPlan(filePath: string): boolean {
+  const content = readFile(filePath);
+  return Boolean(content && /^approval_status:\s*pending_user_approval\s*$/m.test(content));
+}
+
 /**
  * PlanWatcher — Auto-polls plan/pending/ directory on a configurable interval.
  * When a new plan is detected, it moves the plan to processing/ and logs the event.
@@ -131,7 +136,9 @@ export class PlanWatcher {
       for (const ws of workspaces) {
         const wsPendingDir = path.join(ws.path, '.orchestrator', 'plans', 'pending');
         if (fs.existsSync(wsPendingDir)) {
-          const files = listFiles(wsPendingDir, '.md').sort();
+          const files = listFiles(wsPendingDir, '.md')
+            .sort()
+            .filter(file => !isPendingApprovalPlan(path.join(wsPendingDir, file)));
           if (files.length > 0) {
             // Pick oldest
             const nextFile = files[0];
@@ -164,6 +171,10 @@ export class PlanWatcher {
       // 2. Backward compatibility: if no workspaces registered, fall back to stateManager checkPlans
       // Wait, checkPlans will scan the config.plans.pending (which could be the root one)
       if (workspaces.length === 0) {
+        const files = listFiles(this.stateManager.config.plans.pending, '.md')
+          .sort()
+          .filter(file => !isPendingApprovalPlan(path.join(this.stateManager.config.plans.pending, file)));
+        if (files.length === 0) return;
         const result = this.stateManager.checkPlans();
 
         if (result.status === 'ready') {

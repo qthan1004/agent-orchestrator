@@ -6,6 +6,7 @@ import type { TaskMetadata } from '../models/task-metadata.js';
 import { parseTaskMetadata } from '../models/task-metadata.js';
 import { assertActiveWorkspace } from '../utils/identity-invariants.js';
 import { atomicWrite, writeJSON } from '../utils/file-backend.js';
+import { taskFilePath } from '../utils/task-file-names.js';
 import { WorkspaceRegistry } from '../utils/workspace-registry.js';
 
 export interface TaskPayload {
@@ -84,14 +85,15 @@ export function submitWorkspaceTask(
   });
   context.stateManager.queue.registerTaskMetadata(resolved.metadata);
 
-  const taskFilePath = path.join(
-    context.config.workspace.exchange.inbox,
-    `${FILE_PREFIXES.TASK}${resolved.metadata.task_id}.json`
-  );
-  writeJSON(taskFilePath, resolved.metadata);
+  const inboxTaskPath = taskFilePath(context.config.workspace.exchange.inbox, resolved.metadata.task_id);
+  if (!writeJSON(inboxTaskPath, resolved.metadata)) {
+    throw new Error(`Failed to write task file for ${resolved.metadata.task_id}`);
+  }
 
   const queuePath = path.join(context.config.workspace.exchange.base, FILE_PREFIXES.QUEUE);
-  writeJSON(queuePath, { groups: context.stateManager.queue.groups });
+  if (!writeJSON(queuePath, { groups: context.stateManager.queue.groups })) {
+    throw new Error('Failed to write queue metadata.');
+  }
 
   return {
     status: 'registered',

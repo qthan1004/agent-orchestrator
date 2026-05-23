@@ -402,8 +402,14 @@ Cấu trúc quan trọng:
     _queue.json    hàng đợi task
   registry/
     workspace.json thông tin workspace
+    planners.json  planner đã đăng ký và workflow đã nạp
     workers.json   worker/runtime đã đăng ký
     tasks.json     task registry
+  planner/
+    preflight.md   luật ngắn planner phải tuân theo
+    workflows/
+      create-plan.md
+      create-tasks.md
   results/         kết quả đồng bộ theo workspace
   context/         ngữ cảnh workspace
   skills/          skill workspace-local nếu có
@@ -417,6 +423,33 @@ Bạn chủ yếu cần xem:
 - `.orchestrator/exchange/outbox`
 - `.orchestrator/exchange/logs`
 - `.orchestrator/results`
+
+## Planner workflow mới
+
+Không cần dán prompt dài cho planner.
+
+Planner chỉ cần gọi MCP tool `register_planner`. Server sẽ:
+
+- tạo `planner_id` riêng, không dùng chung worker;
+- copy workflow gốc từ `reference/planner-workflows/` sang workspace;
+- tạo sẵn `.orchestrator/planner/preflight.md`;
+- tạo sẵn `.orchestrator/planner/workflows/create-plan.md`;
+- tạo sẵn `.orchestrator/planner/workflows/create-tasks.md`;
+- trả về preflight và các path cần dùng.
+
+Sau đó planner phải tuân theo flow này:
+
+1. User thảo luận xong và bảo tạo plan.
+2. Planner tóm tắt nội dung đã trao đổi, phân tích scope/rủi ro, rồi gọi `create_plan`.
+3. Server tạo file plan trong `.orchestrator/plans/pending`.
+4. Plan watcher bỏ qua plan có trạng thái `pending_user_approval`, nên file nằm đó để user đọc.
+5. Planner báo user đọc plan và chờ approve/reject.
+6. Nếu user reject, user và planner tự sửa plan file; server không can thiệp.
+7. Nếu user approve, planner gọi `create_tasks` với `user_approved: true`.
+8. Planner gọi `planner_task_ready`.
+9. Server tự pull queue và chia task cho worker/runtime.
+
+Planner không tự chạy code, không gọi tool worker, và không tự tạo task khi chưa có approve.
 
 ## Xem kết quả
 
@@ -682,6 +715,10 @@ npm run typecheck
 | Tool | Tác dụng |
 | --- | --- |
 | `register_workspace` | Đăng ký workspace đã cấu hình |
+| `register_planner` | Đăng ký planner riêng, copy preflight/workflows vào workspace |
+| `create_plan` | Planner tạo plan pending để user đọc và approve/reject |
+| `create_tasks` | Planner tạo task sau khi user approve plan |
+| `planner_task_ready` | Planner báo server task đã sẵn sàng dispatch |
 | `register_worker` | Đăng ký worker theo contract assignment-first |
 | `submit_task` | Nộp task payload để server materialize |
 | `submit_decomposition` | Planner nộp danh sách task và DAG |

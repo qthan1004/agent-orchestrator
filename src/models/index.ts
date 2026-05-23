@@ -4,6 +4,7 @@ export * from './task-metadata.js';
 export * from './assignment.js';
 export * from './config.js';
 export * from './plan.js';
+export * from './planner.js';
 export * from './mcp.js';
 export * from './bootstrap.js';
 export * from './checkpoint.js';

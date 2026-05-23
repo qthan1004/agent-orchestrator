@@ -14,8 +14,13 @@ function psSingleQuote(value: string): string {
   return `'${value.replace(/'/g, "''")}'`;
 }
 
-function psArray(values: string[]): string {
-  return `@(${values.map(psSingleQuote).join(', ')})`;
+function windowsCommandArg(value: string): string {
+  if (!/[\s"]/.test(value)) return value;
+  return `"${value.replace(/"/g, '\\"')}"`;
+}
+
+function windowsCommandLine(values: string[]): string {
+  return values.map(windowsCommandArg).join(' ');
 }
 
 function managerTerminalEnabled(): boolean {
@@ -155,8 +160,13 @@ function createInfraResourceTableTerminalPrinter(workspaceRoot: string, title: s
   ].join('\r\n');
   fs.writeFileSync(scriptFile, script, 'utf-8');
 
+  const managerArgs = ['-NoProfile', '-ExecutionPolicy', 'Bypass'];
+  if (process.env.ORCHESTRATOR_MANAGER_TERMINAL_KEEP_OPEN !== '0') {
+    managerArgs.push('-NoExit');
+  }
+  managerArgs.push('-File', scriptFile);
   const launchCommand = [
-    `$p = Start-Process -FilePath ${psSingleQuote('powershell.exe')} -ArgumentList ${psArray(['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptFile])} -WindowStyle Normal -PassThru`,
+    `$p = Start-Process -FilePath ${psSingleQuote('powershell.exe')} -ArgumentList ${psSingleQuote(windowsCommandLine(managerArgs))} -WindowStyle Normal -PassThru`,
   ].join('; ');
   const child = spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', launchCommand], {
     stdio: 'ignore',

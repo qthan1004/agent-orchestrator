@@ -6,6 +6,7 @@ import { StateManager } from './state-manager.js';
 import { RecoveryManager } from './recovery.js';
 import { PlanWatcher } from './plan-watcher.js';
 import { workerRegistry } from '../utils/worker-registry.js';
+import { plannerRegistry } from '../utils/planner-registry.js';
 import { Logger } from '../utils/logger.js';
 import { bootstrapDirectories, bootstrapWorkspace } from '../utils/bootstrap.js';
 import type { AppConfig } from '../models/index.js';
@@ -63,6 +64,7 @@ export async function startServer(config: AppConfig): Promise<void> {
 
   // Initialize worker registry with config-derived path
   workerRegistry.setRegistryPath(config.workspace.registry.workers);
+  plannerRegistry.setRegistryPath(config.workspace.registry.planners);
 
   // Cleanup disconnected workers from previous runs
   const cleanedWorkers = workerRegistry.cleanupDisconnected();
@@ -98,8 +100,8 @@ export async function startServer(config: AppConfig): Promise<void> {
   });
   planWatcher.start();
 
-  // Pass workerRegistry via context for DI (tools.ts uses it from here)
-  const context: ServerContext = { stateManager, workerRegistry, logger, config, recoveryManager, planWatcher };
+  // Pass registries via context for DI (tools.ts uses them from here)
+  const context: ServerContext = { stateManager, workerRegistry, plannerRegistry, logger, config, recoveryManager, planWatcher };
 
   // Ensure Ollama is running before initializing LLM components
   const ollamaBaseUrl = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';

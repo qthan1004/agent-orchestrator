@@ -13,6 +13,8 @@
     "plans/pending",
     "plans/processing",
     "plans/done",
+    "planner",
+    "planner/workflows",
     "skills",
     "context",
     "results"
@@ -25,6 +27,7 @@
       "status": "active",
       "registered_at": ""
     },
+    "registry/planners.json": [],
     "registry/workers.json": [],
     "registry/tasks.json": [],
     "exchange/_queue.json": {
