@@ -1,6 +1,6 @@
 import { spawn } from 'child_process';
 import { RUNTIME_BACKEND } from '../../runtime/constants.js';
-import { AG_CLI_RUNTIME_DEFAULTS } from './constants.js';
+import { AG_CLI_RUNTIME_DEFAULTS, AG_CLI_RUNTIME_LOG } from './constants.js';
 import type { AgCliRuntimeSession, AgCliStartInput } from './models.js';
 
 export class AgCliRuntime {
@@ -16,6 +16,17 @@ export class AgCliRuntime {
     if (child.pid === undefined) {
       throw new Error('Failed to spawn AG CLI runtime.');
     }
+
+    child.stdout?.on('data', data => {
+      for (const line of data.toString().trim().split('\n').filter(Boolean)) {
+        console.log(AG_CLI_RUNTIME_LOG.STDOUT(input.identity.runtime_id, line));
+      }
+    });
+    child.stderr?.on('data', data => {
+      for (const line of data.toString().trim().split('\n').filter(Boolean)) {
+        console.warn(AG_CLI_RUNTIME_LOG.STDERR(input.identity.runtime_id, line));
+      }
+    });
 
     const session: AgCliRuntimeSession = {
       ...input.identity,

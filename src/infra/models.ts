@@ -36,6 +36,19 @@ export interface InfraOllamaSnapshot {
   error?: string;
 }
 
+export interface InfraWarmModelCacheSnapshot {
+  key: {
+    backend: string;
+    model: string;
+    endpoint_url?: string;
+  };
+  runtime_id?: string;
+  loaded_at: string;
+  last_used_at: string;
+  expires_at: string;
+  retained: boolean;
+}
+
 export interface InfraWorkerSnapshot {
   worker_id: string;
   task_id?: string;
@@ -50,6 +63,7 @@ export interface InfraResourceSnapshot {
   queue: InfraQueueSnapshot;
   active_workers: InfraWorkerSnapshot[];
   capacity?: VerifiedInfraCapacity;
+  warm_model_cache?: InfraWarmModelCacheSnapshot[];
   ollama: InfraOllamaSnapshot;
   vram: InfraVramSnapshot;
   ram: InfraMemorySnapshot;
@@ -65,6 +79,7 @@ export interface InfraResourceMonitorDeps {
   checkOllamaHealth(): Promise<boolean>;
   listOllamaModels(): Promise<string[]>;
   verifyCapacity?(): VerifiedInfraCapacity;
+  getWarmModelCache?(): InfraWarmModelCacheSnapshot[];
 }
 
 export interface InfraCapacityResourceEstimate {

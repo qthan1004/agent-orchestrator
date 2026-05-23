@@ -18,6 +18,7 @@ export const RESOURCE_TABLE_TEXT = {
   RESOURCE_VRAM: 'VRAM',
   RESOURCE_RAM: 'RAM',
   RESOURCE_CPU: 'CPU',
+  RESOURCE_WARM_CACHE: 'WarmCache',
   UNAVAILABLE: 'unavailable',
   NONE: 'none',
   ONLINE: 'online',
@@ -40,4 +41,14 @@ export const RESOURCE_TABLE_TEXT = {
   MINUTE: 'm',
   SECOND: 's',
   QUEUE_PREFIX: 'p/a/d/f/b/t',
+} as const;
+
+export const LIFECYCLE_TERMINAL_TEXT = {
+  PREFIX: (event: {
+    task_id: string;
+    runtime_id: string;
+    lease_generation: number;
+    backend: string;
+    phase: string;
+  }) => `[task=${event.task_id} runtime=${event.runtime_id} lease=${event.lease_generation} backend=${event.backend} phase=${event.phase}]`,
 } as const;

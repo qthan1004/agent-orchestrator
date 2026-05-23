@@ -57,6 +57,10 @@ export class WorkerProcessManager extends EventEmitter {
     const task_id = payload.task_id;
     const runtime_identity = payload.runtime_identity;
     const startedAt = new Date().toISOString();
+    const taskIdForLog = task_id || RUNTIME_PROCESS_TEXT.NO_TASK;
+    const runtimePrefix = runtime_identity
+      ? RUNTIME_PROCESS_TEXT.RUNTIME_PREFIX(worker_id, taskIdForLog, runtime_identity.runtime_id, runtime_identity.lease_generation)
+      : `[${worker_id}]`;
 
     let completionSettled = false;
     let settleCompletion: (result: WorkerProcessOutcome) => void = () => {};
@@ -73,7 +77,9 @@ export class WorkerProcessManager extends EventEmitter {
       const lines = data.toString().trim();
       if (lines) {
         for (const line of lines.split('\n')) {
-          console.log(RUNTIME_PROCESS_TEXT.STDOUT_LINE(worker_id, line));
+          console.log(runtime_identity
+            ? RUNTIME_PROCESS_TEXT.STDOUT_RUNTIME_LINE(runtimePrefix, line)
+            : RUNTIME_PROCESS_TEXT.STDOUT_LINE(worker_id, line));
         }
       }
     });
@@ -82,7 +88,9 @@ export class WorkerProcessManager extends EventEmitter {
       const lines = data.toString().trim();
       if (lines) {
         for (const line of lines.split('\n')) {
-          console.error(RUNTIME_PROCESS_TEXT.STDERR_LINE(worker_id, line));
+          console.error(runtime_identity
+            ? RUNTIME_PROCESS_TEXT.STDERR_RUNTIME_LINE(runtimePrefix, line)
+            : RUNTIME_PROCESS_TEXT.STDERR_LINE(worker_id, line));
         }
       }
     });
@@ -102,7 +110,9 @@ export class WorkerProcessManager extends EventEmitter {
         elapsed_ms: elapsedMs,
         heartbeat_at: new Date(lastHealthCheckAt).toISOString(),
       });
-      console.log(RUNTIME_PROCESS_TEXT.STILL_RUNNING(worker_id, elapsedSeconds, task_id || RUNTIME_PROCESS_TEXT.NO_TASK));
+      console.log(runtime_identity
+        ? RUNTIME_PROCESS_TEXT.STILL_RUNNING_RUNTIME(runtimePrefix, elapsedSeconds)
+        : RUNTIME_PROCESS_TEXT.STILL_RUNNING(worker_id, elapsedSeconds, task_id || RUNTIME_PROCESS_TEXT.NO_TASK));
       scheduleHealthCheck();
     };
 
@@ -141,7 +151,9 @@ export class WorkerProcessManager extends EventEmitter {
       if (healthCheckTimer) clearTimeout(healthCheckTimer);
       this.activeWorkers.delete(pid);
       const exitInfo = signal ? `signal=${signal}` : `code=${code}`;
-      console.log(RUNTIME_PROCESS_TEXT.EXITED(worker_id, exitInfo, pid));
+      console.log(runtime_identity
+        ? RUNTIME_PROCESS_TEXT.EXITED_RUNTIME(runtimePrefix, exitInfo, pid)
+        : RUNTIME_PROCESS_TEXT.EXITED(worker_id, exitInfo, pid));
       this.emit('worker:exit', { pid, worker_id, task_id, code, signal });
       settleCompletion({ type: 'exit', code, signal });
     });
@@ -150,7 +162,9 @@ export class WorkerProcessManager extends EventEmitter {
       console.error(SYSTEM_MESSAGE.PROCESS_ERROR(worker_id, pid), err.message);
     });
 
-    console.log(RUNTIME_PROCESS_TEXT.SPAWNED(worker_id, pid, task_id || RUNTIME_PROCESS_TEXT.NO_TASK));
+    console.log(runtime_identity
+      ? RUNTIME_PROCESS_TEXT.SPAWNED_RUNTIME(runtimePrefix, pid)
+      : RUNTIME_PROCESS_TEXT.SPAWNED(worker_id, pid, task_id || RUNTIME_PROCESS_TEXT.NO_TASK));
     // Send payload after lifecycle listeners are attached.
     if (child.stdin) {
       child.stdin.write(JSON.stringify(payload) + '\n');

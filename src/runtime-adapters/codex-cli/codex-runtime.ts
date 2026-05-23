@@ -1,6 +1,6 @@
 import { spawn } from 'child_process';
 import { RUNTIME_BACKEND } from '../../runtime/constants.js';
-import { CODEX_CLI_RUNTIME_DEFAULTS } from './constants.js';
+import { CODEX_CLI_RUNTIME_DEFAULTS, CODEX_CLI_RUNTIME_LOG } from './constants.js';
 import type { CodexCliRuntimeSession, CodexCliStartInput } from './models.js';
 
 export class CodexCliRuntime {
@@ -16,6 +16,17 @@ export class CodexCliRuntime {
     if (child.pid === undefined) {
       throw new Error('Failed to spawn Codex CLI runtime.');
     }
+
+    child.stdout?.on('data', data => {
+      for (const line of data.toString().trim().split('\n').filter(Boolean)) {
+        console.log(CODEX_CLI_RUNTIME_LOG.STDOUT(input.identity.runtime_id, line));
+      }
+    });
+    child.stderr?.on('data', data => {
+      for (const line of data.toString().trim().split('\n').filter(Boolean)) {
+        console.warn(CODEX_CLI_RUNTIME_LOG.STDERR(input.identity.runtime_id, line));
+      }
+    });
 
     const session: CodexCliRuntimeSession = {
       ...input.identity,

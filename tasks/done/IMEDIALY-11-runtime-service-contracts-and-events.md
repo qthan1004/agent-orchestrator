@@ -1,4 +1,4 @@
-# Task IMEDIALY-11: Runtime Service Contracts And Events
+﻿# Task IMEDIALY-11: Runtime Service Contracts And Events
 
 ## Info
 - **ID:** IMEDIALY-11-runtime-service-contracts-and-events
@@ -49,13 +49,13 @@ npm run build
 
 ## Done Criteria
 
-- [ ] Contracts express `Worker = Harness instance`
-- [ ] Runtime service exists only under active runtime lease
-- [ ] Ready event is a workflow result, not a boolean
-- [ ] Context succession and warm cache have explicit types
-- [ ] No duplicated identity interface added
-- [ ] `npm run typecheck` passes
-- [ ] `npm run build` passes
+- [x] Contracts express `Worker = Harness instance`
+- [x] Runtime service exists only under active runtime lease
+- [x] Ready event is a workflow result, not a boolean
+- [x] Context succession and warm cache have explicit types
+- [x] No duplicated identity interface added
+- [x] `npm run typecheck` passes
+- [x] `npm run build` passes
 
 ### Plan Continuation
 
@@ -64,3 +64,4 @@ After this task is completed and moved to `tasks/done/`, call `/pick-task` again
 Expected next task in this plan: `IMEDIALY-12-non-silent-harness-terminal-stream.md`.
 
 Do not pick tasks outside `Plan-ID: IMEDIALY-worker-harness-service-correction` until this plan reaches `STOP`.
+

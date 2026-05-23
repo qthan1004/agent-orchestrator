@@ -12,3 +12,17 @@ export interface VisibilityResourceTableRow {
   status: string;
   details: string;
 }
+
+export type RuntimeLifecycleStream = 'stdout' | 'stderr' | 'wrapper';
+
+export interface RuntimeLifecycleTerminalEvent {
+  task_id: string;
+  worker_id: string;
+  runtime_id: string;
+  lease_generation: number;
+  backend: string;
+  phase: string;
+  message: string;
+  stream: RuntimeLifecycleStream;
+  created_at: string;
+}

@@ -2,7 +2,7 @@
 
 > Date: 2026-05-22
 > Scope: technical mindset, module boundaries, runtime isolation, scheduler points, hybrid local/CLI workers
-> Implementation status: IMEDIALY-00 through IMEDIALY-08 implemented as structure/runtime boundary refactor; IMEDIALY-09 closes docs/task-board alignment and stops this plan.
+> Implementation status: IMEDIALY-00 through IMEDIALY-09 completed the structure/runtime boundary refactor and documentation alignment. Follow-up work continues in the worker/harness runtime-service correction chain.
 
 ## Implementation Addendum
 
@@ -554,4 +554,14 @@ Parallelism = multiple valid runtime leases, not multiple requests to shared bac
 
 Shared Ollama may remain as a dev-only single-worker fallback, but it cannot be used for production parallel scheduling or point-based isolation.
 
-Update the core Phase 2 plan with this addendum before adapter expansion, so future tasks do not continue the shared-backend mindset.
+The core Phase 2 plan now carries this addendum before adapter expansion, so future tasks do not continue the shared-backend mindset.
+
+## Plan Continuation
+
+This plan ends at `IMEDIALY-09-mindset-docs-and-task-board-alignment.md`.
+
+Next plan: `Plan-ID: IMEDIALY-worker-harness-service-correction`.
+
+Expected next task: `IMEDIALY-10-audit-worker-harness-runtime-service-gaps.md`.
+
+That next chain must audit the current code before behavior changes, then add contracts, terminal visibility, ready workflow, runtime service adapters, strict callback/recovery predicates, context succession, warm cache policy, CLI service adapters, and E2E/doc alignment.

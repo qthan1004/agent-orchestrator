@@ -34,6 +34,7 @@ export class InfraResourceMonitor {
       queue: this.deps.getQueueStatus(),
       active_workers: this.deps.getActiveWorkers(),
       capacity: this.deps.verifyCapacity?.(),
+      warm_model_cache: this.deps.getWarmModelCache?.(),
       ollama,
       vram,
       ram: this.collectRam(),

@@ -1,4 +1,4 @@
-# Task IMEDIALY-18: Context Succession Server Respawn
+﻿# Task IMEDIALY-18: Context Succession Server Respawn
 
 ## Info
 - **ID:** IMEDIALY-18-context-succession-server-respawn
@@ -50,14 +50,14 @@ npm run build
 
 ## Done Criteria
 
-- [ ] Harness emits `handover_required` before context exhaustion
-- [ ] Succession note has goal, progress, touched files, next action, risks, checks run
-- [ ] Server stores handover only after lease validation
-- [ ] Successor harness receives only matching handover payload
-- [ ] Old lease cannot mutate task after successor starts
-- [ ] `handover_required` is tracked separately from failed
-- [ ] `npm run typecheck` passes
-- [ ] `npm run build` passes
+- [x] Harness emits `handover_required` before context exhaustion
+- [x] Succession note has goal, progress, touched files, next action, risks, checks run
+- [x] Server stores handover only after lease validation
+- [x] Successor harness receives only matching handover payload
+- [x] Old lease cannot mutate task after successor starts
+- [x] `handover_required` is tracked separately from failed
+- [x] `npm run typecheck` passes
+- [x] `npm run build` passes
 
 ### Plan Continuation
 
@@ -66,3 +66,4 @@ After this task is completed and moved to `tasks/done/`, call `/pick-task` again
 Expected next task in this plan: `IMEDIALY-19-warm-model-cache-policy.md`.
 
 Do not pick tasks outside `Plan-ID: IMEDIALY-worker-harness-service-correction` until this plan reaches `STOP`.
+

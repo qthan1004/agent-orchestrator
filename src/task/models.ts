@@ -49,9 +49,14 @@ export interface WorkerServiceHandoverRecord {
   attempt: number;
   order: number;
   summary: string;
+  goal?: string;
+  progress?: string;
   open_questions: string[];
   modified_files: string[];
+  touched_files?: string[];
   next_action: string;
+  risks?: string[];
+  checks_run?: string[];
   content: string;
   created_at: string;
 }

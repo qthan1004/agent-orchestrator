@@ -1,4 +1,4 @@
-# Task IMEDIALY-16: Backend Routing And Harness Payload
+﻿# Task IMEDIALY-16: Backend Routing And Harness Payload
 
 ## Info
 - **ID:** IMEDIALY-16-backend-routing-and-harness-payload
@@ -47,13 +47,13 @@ npm run build
 
 ## Done Criteria
 
-- [ ] Dispatch no longer blocks all work on Ollama health before routing
-- [ ] Harness no longer hardcodes `adapter: 'ollama'`
-- [ ] Backend/model are selected by scheduler decision
-- [ ] Verified capacity is used before local lease allocation
-- [ ] Ollama path remains working through backend payload
-- [ ] `npm run typecheck` passes
-- [ ] `npm run build` passes
+- [x] Dispatch no longer blocks all work on Ollama health before routing
+- [x] Harness no longer hardcodes `adapter: 'ollama'`
+- [x] Backend/model are selected by scheduler decision
+- [x] Verified capacity is used before local lease allocation
+- [x] Ollama path remains working through backend payload
+- [x] `npm run typecheck` passes
+- [x] `npm run build` passes
 
 ### Plan Continuation
 
@@ -62,3 +62,4 @@ After this task is completed and moved to `tasks/done/`, call `/pick-task` again
 Expected next task in this plan: `IMEDIALY-17-strict-callback-and-recovery-predicate.md`.
 
 Do not pick tasks outside `Plan-ID: IMEDIALY-worker-harness-service-correction` until this plan reaches `STOP`.
+

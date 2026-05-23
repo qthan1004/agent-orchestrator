@@ -1,4 +1,4 @@
-# Task IMEDIALY-14: Runtime Service Adapter Boundary
+﻿# Task IMEDIALY-14: Runtime Service Adapter Boundary
 
 ## Info
 - **ID:** IMEDIALY-14-runtime-service-adapter-boundary
@@ -47,12 +47,12 @@ npm run build
 
 ## Done Criteria
 
-- [ ] Runtime service adapter interface exists
-- [ ] Current Ollama path works through adapter boundary
-- [ ] `RuntimeManager` owns lease orchestration, not backend internals
-- [ ] No new `WorkerManager` owns task/runtime/backend together
-- [ ] `npm run typecheck` passes
-- [ ] `npm run build` passes
+- [x] Runtime service adapter interface exists
+- [x] Current Ollama path works through adapter boundary
+- [x] `RuntimeManager` owns lease orchestration, not backend internals
+- [x] No new `WorkerManager` owns task/runtime/backend together
+- [x] `npm run typecheck` passes
+- [x] `npm run build` passes
 
 ### Plan Continuation
 
@@ -61,3 +61,4 @@ After this task is completed and moved to `tasks/done/`, call `/pick-task` again
 Expected next task in this plan: `IMEDIALY-15-dispatch-through-runtime-service-manager.md`.
 
 Do not pick tasks outside `Plan-ID: IMEDIALY-worker-harness-service-correction` until this plan reaches `STOP`.
+

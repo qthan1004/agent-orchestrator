@@ -1,6 +1,7 @@
 import type { TaskDef } from '../task/index.js';
 import type { TaskQueueStatus } from '../mcp-server/task-queue.js';
 import type { CapacityStore } from '../infra/index.js';
+import { RUNTIME_BACKEND, type RuntimeBackendKind } from '../runtime/index.js';
 import { OllamaAdapter } from './adapters/ollama-adapter.js';
 import { SYSTEM_MESSAGE } from '../constants.js';
 
@@ -10,6 +11,10 @@ export interface ModelProfile {
   num_ctx: number;
   max_workers: number;
   estimated_vram_gb: number;
+  backend: RuntimeBackendKind;
+  command?: string;
+  args?: string[];
+  points_required: number;
 }
 
 export interface DifficultySignals {
@@ -26,6 +31,8 @@ const PROFILES = {
     num_ctx: 16384,
     max_workers: 2,
     estimated_vram_gb: 4,
+    backend: RUNTIME_BACKEND.OLLAMA,
+    points_required: 1,
   },
   standard: {
     mode: 'standard' as const,
@@ -33,6 +40,8 @@ const PROFILES = {
     num_ctx: 32768,
     max_workers: 1,
     estimated_vram_gb: 10,
+    backend: RUNTIME_BACKEND.OLLAMA,
+    points_required: 2,
   },
   cloud: {
     mode: 'cloud' as const,
@@ -40,6 +49,12 @@ const PROFILES = {
     num_ctx: 131072,
     max_workers: 1,
     estimated_vram_gb: 0,
+    backend: (process.env.ORCHESTRATOR_CLI_BACKEND === RUNTIME_BACKEND.AG_CLI
+      ? RUNTIME_BACKEND.AG_CLI
+      : RUNTIME_BACKEND.CODEX_CLI) as RuntimeBackendKind,
+    command: process.env.ORCHESTRATOR_CLI_COMMAND,
+    args: process.env.ORCHESTRATOR_CLI_ARGS ? process.env.ORCHESTRATOR_CLI_ARGS.split(' ').filter(Boolean) : [],
+    points_required: 3,
   }
 };
 
@@ -98,12 +113,12 @@ export class ModelSelector {
 
     await this.checkVRAM(profile);
 
-    console.log(`  [ModelSelector] Task ${task.id}: difficulty=${difficulty} -> ${profile.mode} (${profile.model})`);
+    console.log(`  [ModelSelector] Task ${task.id}: difficulty=${difficulty} -> ${profile.mode}/${profile.backend} (${profile.model})`);
     return profile;
   }
 
   private async resolveAvailableProfile(profile: ModelProfile): Promise<ModelProfile> {
-    if (profile.mode === 'cloud') return profile;
+    if (profile.backend !== RUNTIME_BACKEND.OLLAMA) return profile;
 
     try {
       const models = await this.ollamaAdapter.listModels();
@@ -144,6 +159,7 @@ export class ModelSelector {
    * Checks VRAM availability via Ollama /api/ps.
    */
   private async checkVRAM(profile: ModelProfile): Promise<void> {
+    if (profile.backend !== RUNTIME_BACKEND.OLLAMA) return;
     try {
       const capacity = this.capacityStore?.getVerifiedCapacity() ?? null;
       if (typeof capacity?.available_vram_mb === 'number') {

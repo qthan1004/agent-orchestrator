@@ -10,6 +10,7 @@
 > **2026 Review:** See `2026-05-02_review_phase2-vs-2026-industry.md`
 > **2026-05-22 Correction:** See `2026-05-22_plan_runtime-lease-refactor.md`
 > **Implementation note:** IMEDIALY runtime lease refactor supersedes older worker-count and shared-Ollama assumptions in this document.
+> **IMEDIALY handoff:** IMEDIALY-09 closed this mindset alignment. IMEDIALY-10..21 owns the worker/harness runtime service correction chain; older P2 ordering stays paused unless restated there.
 
 ---
 
@@ -41,6 +42,7 @@ Implications:
 - Scheduler points are reserved and released by runtime lease.
 - Local capacity comes from infra verification, not hardcoded VRAM/GPU assumptions.
 - Recovery may reclaim only after heartbeat expiry, runtime death, and matching `runtime_id + lease_generation`.
+- Worker-service handover is per-service and per-lease (`task_id + worker_id + runtime_id + lease_generation`), not global shared memory.
 - User-facing lifecycle visibility must show runtime spawn, backend start, model/tool progress, callback send/accept, health checks, retry, reclaim, and infra resource snapshots.
 - Resource monitoring visibility is terminal table first. UI is deferred.
 
@@ -120,8 +122,8 @@ The Phase 2 architecture directly addresses critical pain points observed in ear
 
 Workers are designed as single-use (ephemeral), one-shot instances. **They do NOT loop.**
 
-*   **Mechanism:** Server spawns a worker subprocess, injects task data via `stdin`. The worker executes using local tools (workspace filesystem only), calls `complete_task()` to notify the server, and exits. Server then unloads the model from VRAM and spawns the next worker for the next task.
-*   **Benefit:** Wipes out VRAM bloat and resets the context window at the start of every task. 0% context leakage guaranteed.
+*   **Mechanism:** Server allocates one runtime lease, starts one backend runtime/session for that lease, injects task data via `stdin`, and releases the point reservation when the lease ends. Ollama VRAM unload is one local-adapter cleanup path, not a global architecture assumption.
+*   **Benefit:** Resets the backend/session boundary at the start of every task. Local VRAM cleanup applies only to local runtimes that use VRAM.
 
 ### 3.2. File-based IPC (Inter-Process Communication)
 
@@ -139,13 +141,14 @@ To accommodate limited model context lengths across different local hardware:
 **3-Layer Checkpoint Mechanism:**
 
 ```
-Layer 1 — Ollama Hard Limit (Inference Guard):
+Layer 1 — Backend Context Guard (adapter-specific):
   num_ctx: set from verified capacity profile
-  → Ollama auto-truncates if exceeded
-  → keep_alive: 0 → free VRAM immediately after response
+  → adapter enforces or reports context exhaustion
+  → Ollama may use keep_alive: 0 to free local VRAM after response
 
 Layer 2 — Agent Runner Token Monitor (PRIMARY MECHANISM):
-  Ollama response returns: prompt_eval_count + eval_count each turn
+  adapter returns token usage where available
+  Ollama response returns: prompt_eval_count + eval_count
   → Agent Runner tracks cumulative: total_tokens += each turn
   → If total_tokens > num_ctx * 0.80:
     → Agent Runner calls notifyServer(status: 'checkpoint',
@@ -154,7 +157,7 @@ Layer 2 — Agent Runner Token Monitor (PRIMARY MECHANISM):
     → Server requeues task with checkpoint summary as initial context
 
 Layer 3 — Server Timeout (Safety Net):
-  Hard timeout: 5 minutes per task
+  Timeout comes from runtime lease heartbeat policy
   → Server kills worker process if exceeded
   → Requeues task automatically
 ```
@@ -164,10 +167,10 @@ Layer 3 — Server Timeout (Safety Net):
 The Server governs the specific tools provided to each Worker and assigns identity.
 
 **Worker ID Assignment:**
-*   Server generates a `worker_id` at spawn time and injects it via `stdin` along with task data
-*   Worker uses `worker_id` in every notification: `complete_task(worker_id, ...)`, `report_progress(worker_id, ...)`
+*   Server generates `worker_id`, `runtime_id`, and `lease_generation` at lease allocation time and injects them via `stdin` along with task data
+*   Worker uses `task_id`, `worker_id`, `runtime_id`, and `lease_generation` in every notification: `complete_task(...)`, `report_progress(...)`
 *   **No `register_worker()` needed** — ID is assigned server-side
-*   Server tracks `worker_id → task_id → PID` mapping for monitoring
+*   Server tracks `task_id → worker_id → runtime_id → lease_generation → PID/session` mapping for monitoring and stale callback rejection
 
 **Tool Provisioning:**
 *   Server determines `allowed_tools` based on task `action` type before spawning
@@ -179,6 +182,8 @@ The Server governs the specific tools provided to each Worker and assigns identi
 {
   worker_id: 'w-abc123',
   task_id: 'task-001',
+  runtime_id: 'rt-local-001',
+  lease_generation: 7,
   task_details: { action: 'implement', ... },
   workspace_root: '/path/to/project',
   server_url: 'http://localhost:3847/mcp',

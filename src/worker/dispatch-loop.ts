@@ -11,10 +11,12 @@ import {
   RUNTIME_BACKEND,
   RUNTIME_ISOLATION,
   RUNTIME_LEASE_STATUS,
+  RUNTIME_TERMINAL_CALLBACK_STATUS,
   LeaseValidator,
   RuntimeManager,
   type RuntimeIdentity,
   type RuntimeLeaseStatus,
+  type RuntimeTerminalCallbackStatus,
 } from '../runtime/index.js';
 import { isSharedOllamaDevFallback, OLLAMA_RUNTIME_DEFAULTS } from '../runtime-adapters/ollama/index.js';
 import { DISPATCH_LOOP_DEFAULTS, DISPATCH_LOOP_TEXT } from '../scheduler/index.js';
@@ -39,6 +41,8 @@ interface ActiveHarness {
   model: string;
   runtimeIdentity: RuntimeIdentity;
   completionAccepted: boolean;
+  readyAccepted: boolean;
+  terminalStatus?: RuntimeTerminalCallbackStatus;
 }
 
 function resolveMaxConcurrentWorkers(configured?: number): number {
@@ -116,16 +120,58 @@ export class TaskDispatchLoop {
   }
 
   public acknowledgeHarnessCompletion(workerId: string, taskId: string, runtimeIdentity: RuntimeIdentity): boolean {
-    const activeHarness = this.activeHarnesses.get(workerId);
+    const activeHarness = this.activeHarnesses.get(runtimeIdentity.runtime_id);
     if (!activeHarness || activeHarness.taskId !== taskId) {
+      return false;
+    }
+    if (activeHarness.workerId !== workerId || activeHarness.completionAccepted) {
       return false;
     }
     if (!LeaseValidator.identityMatches(activeHarness.runtimeIdentity, runtimeIdentity)) {
       return false;
     }
 
+    if (!this.runtimeManager.acceptTerminalCallback(runtimeIdentity, activeHarness.terminalStatus ?? RUNTIME_TERMINAL_CALLBACK_STATUS.COMPLETE)) {
+      return false;
+    }
     activeHarness.completionAccepted = true;
     return true;
+  }
+
+  public acknowledgeHarnessReady(workerId: string, taskId: string, runtimeIdentity: RuntimeIdentity, ready: boolean): boolean {
+    const activeHarness = this.activeHarnesses.get(runtimeIdentity.runtime_id);
+    if (!activeHarness || activeHarness.workerId !== workerId || activeHarness.taskId !== taskId) {
+      return false;
+    }
+    if (!LeaseValidator.identityMatches(activeHarness.runtimeIdentity, runtimeIdentity)) {
+      return false;
+    }
+    if (!ready) return false;
+    activeHarness.readyAccepted = true;
+    this.runtimeManager.markReady(runtimeIdentity);
+    this.runtimeManager.markRunning(runtimeIdentity);
+    return true;
+  }
+
+  public recordHarnessProgress(workerId: string, taskId: string, runtimeIdentity: RuntimeIdentity): boolean {
+    const activeHarness = this.activeHarnesses.get(runtimeIdentity.runtime_id);
+    return Boolean(
+      activeHarness &&
+      activeHarness.workerId === workerId &&
+      activeHarness.taskId === taskId &&
+      LeaseValidator.identityMatches(activeHarness.runtimeIdentity, runtimeIdentity)
+    );
+  }
+
+  public setHarnessTerminalStatus(runtimeIdentity: RuntimeIdentity, status: RuntimeTerminalCallbackStatus): void {
+    const activeHarness = this.activeHarnesses.get(runtimeIdentity.runtime_id);
+    if (activeHarness) activeHarness.terminalStatus = status;
+  }
+
+  public rollbackHarnessCompletion(runtimeIdentity: RuntimeIdentity): void {
+    const activeHarness = this.activeHarnesses.get(runtimeIdentity.runtime_id);
+    if (!activeHarness) return;
+    activeHarness.completionAccepted = false;
   }
 
   private async loop(): Promise<void> {
@@ -148,12 +194,6 @@ export class TaskDispatchLoop {
     while (this.running && this.getActiveWorkers().length < this.maxConcurrentWorkers) {
       const task = this.queue.getDispatchableTasks()[0] || null;
       if (!task) break;
-
-      const ollamaAvailable = await this.runtimeManager.isBackendHealthy({ backend: RUNTIME_BACKEND.OLLAMA });
-      if (!ollamaAvailable) {
-        this.logOllamaUnavailable();
-        break;
-      }
 
       await this.dispatchTask(task, this.queue.getStatus());
       dispatched++;
@@ -204,12 +244,20 @@ export class TaskDispatchLoop {
         lease_generation: leaseGeneration,
       };
       const runtimeBackend = {
-        backend: RUNTIME_BACKEND.OLLAMA,
+        backend: profile.backend,
         model: profile.model,
+        command: profile.command,
+        args: profile.args,
         endpoint_url: process.env.OLLAMA_BASE_URL,
       };
+      const backendAvailable = await this.runtimeManager.isBackendHealthy(runtimeBackend);
+      if (!backendAvailable) {
+        this.logBackendUnavailable(profile.backend);
+        this.requeueOrFailActiveTask(task.id, workerId, `backend unavailable: ${profile.backend}`);
+        return;
+      }
       const runtimeIsolation = {
-        mode: RUNTIME_ISOLATION.SHARED_DEV,
+        mode: profile.backend === RUNTIME_BACKEND.OLLAMA ? RUNTIME_ISOLATION.SHARED_DEV : RUNTIME_ISOLATION.CLI_SESSION,
         workspace_root: this.workspaceRoot,
       };
 
@@ -239,10 +287,18 @@ export class TaskDispatchLoop {
         task_file_path: taskFilePath,
         tool_bundle: typeof (task as any).tool_bundle === 'string' ? (task as any).tool_bundle : 'generic-file',
         callback_url: `${this.serverUrl}/api/worker/complete`,
+        ready_url: `${this.serverUrl}/api/worker/ready`,
+        progress_url: `${this.serverUrl}/api/worker/progress`,
         target_files: Array.isArray((task as any).target_files) ? (task as any).target_files : [],
         skill_paths: Array.isArray((task as any).skill_paths) ? (task as any).skill_paths : [],
         context_paths: Array.isArray((task as any).context_paths) ? (task as any).context_paths : [],
         model: profile.model,
+        context_threshold: 0.8,
+        warm_cache_policy: {
+          ttl_ms: 10 * 60 * 1000,
+          retain_on_release: true,
+          evict_on_pressure: true,
+        },
         workspace_root: this.workspaceRoot,
         allowed_tools: this.allowedTools,
         action: 'implement',
@@ -255,32 +311,35 @@ export class TaskDispatchLoop {
         taskId: task.id,
         model: profile.model,
         runtimeIdentity,
-        completionAccepted: false
+        completionAccepted: false,
+        readyAccepted: false,
       };
-      this.activeHarnesses.set(workerId, activeHarness);
+      this.activeHarnesses.set(runtimeIdentity.runtime_id, activeHarness);
 
-      const spawned = this.runtimeManager.spawn({
+      const spawned = await this.runtimeManager.spawn({
         worker_id: workerId,
         task_id: task.id,
         lease_generation: leaseGeneration,
         backend: runtimeBackend,
         isolation: runtimeIsolation,
-        reserved_points: DISPATCH_LOOP_DEFAULTS.DEFAULT_POINTS_REQUIRED,
+        reserved_points: profile.points_required,
         capacity_request: {
           worker_slots: 1,
-          estimated_vram_mb: Math.round(profile.estimated_vram_gb * 1024),
+          estimated_vram_mb: profile.backend === RUNTIME_BACKEND.OLLAMA ? Math.round(profile.estimated_vram_gb * 1024) : undefined,
         },
         payload,
       });
       runtimeIdentity = spawned.runtimeIdentity;
+      this.activeHarnesses.delete(activeHarness.runtimeIdentity.runtime_id);
       activeHarness.runtimeIdentity = spawned.runtimeIdentity;
+      this.activeHarnesses.set(spawned.runtimeIdentity.runtime_id, activeHarness);
       console.log(DISPATCH_LOOP_TEXT.MONITORING_HARNESS(workerId, task.id));
       void this.monitorHarness(activeHarness, spawned.completion);
     } catch (err: any) {
       if (runtimeIdentity) {
         await this.releaseRuntimeLease(runtimeIdentity, RUNTIME_LEASE_STATUS.FAILED);
       }
-      this.activeHarnesses.delete(workerId);
+      if (runtimeIdentity) this.activeHarnesses.delete(runtimeIdentity.runtime_id);
       this.workerRegistry.clearAssignment(workerId, this.stateManager.taskRegistry);
       if (movedToActive && this.stateManager.isTaskInActive(task.id)) {
         this.requeueOrFailActiveTask(task.id, workerId, `dispatch failed: ${err.message}`);
@@ -336,6 +395,7 @@ export class TaskDispatchLoop {
       routing: {
         mode: profile.mode,
         model: profile.model,
+        backend: profile.backend,
         max_workers: profile.max_workers,
         estimated_vram_gb: profile.estimated_vram_gb,
       },
@@ -346,9 +406,9 @@ export class TaskDispatchLoop {
   private async monitorHarness(activeHarness: ActiveHarness, completion: Promise<WorkerProcessOutcome>): Promise<void> {
     try {
       const result = await completion;
-      const latest = this.activeHarnesses.get(activeHarness.workerId);
+      const latest = this.activeHarnesses.get(activeHarness.runtimeIdentity.runtime_id);
       const completionAccepted = latest?.completionAccepted || activeHarness.completionAccepted;
-      this.activeHarnesses.delete(activeHarness.workerId);
+      this.activeHarnesses.delete(activeHarness.runtimeIdentity.runtime_id);
 
       if (completionAccepted) {
         if (result.type === 'exit' && result.code === 0) {
@@ -420,6 +480,14 @@ export class TaskDispatchLoop {
 
     console.warn(DISPATCH_LOOP_TEXT.OLLAMA_UNAVAILABLE);
     this.lastOllamaUnavailableLogAt = now;
+  }
+
+  private logBackendUnavailable(backend: string): void {
+    if (backend === RUNTIME_BACKEND.OLLAMA) {
+      this.logOllamaUnavailable();
+      return;
+    }
+    console.warn(`[DispatchLoop] Backend unavailable: ${backend}.`);
   }
 
   private sleep(ms: number): Promise<void> {

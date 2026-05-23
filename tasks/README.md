@@ -2,12 +2,12 @@
 
 | Status | Count |
 |--------|-------|
-| Pending | 30 |
+| Pending | 18 |
 | Processing | 0 |
-| Done | 49 |
+| Done | 61 |
 | **Total** | **79** |
 
-Progress: 49/79 (62%)
+Progress: 61/79 (77%)
 
 ---
 
@@ -44,6 +44,18 @@ Progress: 49/79 (62%)
 - `P2-26-head-submit-task-api.md`
 - `P2-27-deprecate-pull-apis.md`
 - `P2-28-orchestrator-owned-dispatch.md`
+- `IMEDIALY-09-mindset-docs-and-task-board-alignment.md`
+- `IMEDIALY-10-audit-worker-harness-runtime-service-gaps.md`
+- `IMEDIALY-11-runtime-service-contracts-and-events.md`
+- `IMEDIALY-12-non-silent-harness-terminal-stream.md`
+- `IMEDIALY-13-harness-ready-mini-workflow.md`
+- `IMEDIALY-14-runtime-service-adapter-boundary.md`
+- `IMEDIALY-15-dispatch-through-runtime-service-manager.md`
+- `IMEDIALY-16-backend-routing-and-harness-payload.md`
+- `IMEDIALY-17-strict-callback-and-recovery-predicate.md`
+- `IMEDIALY-18-context-succession-server-respawn.md`
+- `IMEDIALY-19-warm-model-cache-policy.md`
+- `IMEDIALY-20-cli-runtime-service-adapters.md`
 
 ## Pending — Re-prioritized (2026-05-22)
 
@@ -52,7 +64,7 @@ Progress: 49/79 (62%)
 
 ### Tier -1: IMEDIALY Runtime Lease Refactor
 
-Status: **IMEDIALY-00 through IMEDIALY-08 completed 2026-05-22**. IMEDIALY-09 remains the handoff task into the next immediate worker/harness service correction chain.
+Status: **IMEDIALY-00 through IMEDIALY-09 completed 2026-05-23**. This runtime lease refactor chain is closed; the next active chain is the immediate worker/harness runtime-service correction plan.
 
 | # | Task | What | Relation |
 |---|------|------|----------|
@@ -65,25 +77,25 @@ Status: **IMEDIALY-00 through IMEDIALY-08 completed 2026-05-22**. IMEDIALY-09 re
 | 6 | `IMEDIALY-06-refactor-local-ollama-isolation.md` | Isolated Ollama runtime endpoint per lease | done |
 | 7 | `IMEDIALY-07-refactor-cli-runtime-adapters.md` | Codex CLI + AG CLI runtime adapter boundaries | done |
 | 8 | `IMEDIALY-08-worker-service-handover-pipeline.md` | Worker service handover pipeline between runtime leases | done |
-| 9 | `IMEDIALY-09-mindset-docs-and-task-board-alignment.md` | Docs/skill/task board alignment after structure refactor | next: IMEDIALY-10 |
+| 9 | `IMEDIALY-09-mindset-docs-and-task-board-alignment.md` | Docs/skill/task board alignment after structure refactor | done |
 
 ### Tier -0: IMEDIALY Worker/Harness Runtime Service Correction
 
-These tasks break `dev-docs/2026-05-22_analysis_worker-harness-runtime-service-architecture.md` into small implementation steps. Do not skip ahead; each task should leave the system buildable before the next task starts.
+These tasks break `dev-docs/2026-05-22_analysis_worker-harness-runtime-service-architecture.md` into small implementation steps. Do not skip ahead; each task should leave the system buildable before the next task starts. Current next task: `IMEDIALY-21-runtime-service-e2e-and-doc-alignment.md`.
 
 | # | Task | What | Relation |
 |---|------|------|----------|
-| 10 | `IMEDIALY-10-audit-worker-harness-runtime-service-gaps.md` | Audit actual code gaps before behavior changes | next: IMEDIALY-11 |
-| 11 | `IMEDIALY-11-runtime-service-contracts-and-events.md` | Add runtime service, ready, succession, warm-cache contracts | next: IMEDIALY-12 |
-| 12 | `IMEDIALY-12-non-silent-harness-terminal-stream.md` | CLI-like harness terminal stream and wrapper progress | next: IMEDIALY-13 |
-| 13 | `IMEDIALY-13-harness-ready-mini-workflow.md` | Ready workflow before lease can run | next: IMEDIALY-14 |
-| 14 | `IMEDIALY-14-runtime-service-adapter-boundary.md` | Runtime service adapter boundary without god WorkerManager | next: IMEDIALY-15 |
-| 15 | `IMEDIALY-15-dispatch-through-runtime-service-manager.md` | Dispatch delegates to runtime service manager | next: IMEDIALY-16 |
-| 16 | `IMEDIALY-16-backend-routing-and-harness-payload.md` | Backend routing and payload-driven harness adapter | next: IMEDIALY-17 |
-| 17 | `IMEDIALY-17-strict-callback-and-recovery-predicate.md` | Callback and recovery lease proof predicates | next: IMEDIALY-18 |
-| 18 | `IMEDIALY-18-context-succession-server-respawn.md` | Planned near-context handover and successor lease | next: IMEDIALY-19 |
-| 19 | `IMEDIALY-19-warm-model-cache-policy.md` | Separate warm cache from task/lease ownership | next: IMEDIALY-20 |
-| 20 | `IMEDIALY-20-cli-runtime-service-adapters.md` | Codex/AG CLI as harness-wrapped runtime services | next: IMEDIALY-21 |
+| 10 | `IMEDIALY-10-audit-worker-harness-runtime-service-gaps.md` | Audit actual code gaps before behavior changes | done |
+| 11 | `IMEDIALY-11-runtime-service-contracts-and-events.md` | Add runtime service, ready, succession, warm-cache contracts | done |
+| 12 | `IMEDIALY-12-non-silent-harness-terminal-stream.md` | CLI-like harness terminal stream and wrapper progress | done |
+| 13 | `IMEDIALY-13-harness-ready-mini-workflow.md` | Ready workflow before lease can run | done |
+| 14 | `IMEDIALY-14-runtime-service-adapter-boundary.md` | Runtime service adapter boundary without god WorkerManager | done |
+| 15 | `IMEDIALY-15-dispatch-through-runtime-service-manager.md` | Dispatch delegates to runtime service manager | done |
+| 16 | `IMEDIALY-16-backend-routing-and-harness-payload.md` | Backend routing and payload-driven harness adapter | done |
+| 17 | `IMEDIALY-17-strict-callback-and-recovery-predicate.md` | Callback and recovery lease proof predicates | done |
+| 18 | `IMEDIALY-18-context-succession-server-respawn.md` | Planned near-context handover and successor lease | done |
+| 19 | `IMEDIALY-19-warm-model-cache-policy.md` | Separate warm cache from task/lease ownership | done |
+| 20 | `IMEDIALY-20-cli-runtime-service-adapters.md` | Codex/AG CLI as harness-wrapped runtime services | done |
 | 21 | `IMEDIALY-21-runtime-service-e2e-and-doc-alignment.md` | E2E/smoke verification and doc alignment | STOP |
 
 ### Tier 0: Core Architecture Alignment (Paused Until IMEDIALY Plans End)

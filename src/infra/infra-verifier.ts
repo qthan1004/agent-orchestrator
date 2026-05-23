@@ -23,7 +23,7 @@ export class InfraVerifier {
       total_ram_mb: totalRamMb,
       available_ram_mb: availableRamMb,
       max_local_runtimes: Math.max(1, cpuCores),
-      supported_backends: ['ollama'],
+      supported_backends: ['ollama', 'codex-cli', 'ag-cli'],
       checked_at: new Date().toISOString(),
     };
   }

@@ -45,13 +45,13 @@ npm run build
 
 ## Done Criteria
 
-- [ ] Docs describe implemented architecture, not desired architecture
-- [ ] Task board shows immediate chain completed
-- [ ] Final `### Plan Continuation` section hands off to the worker/harness service correction plan
-- [ ] No hardcoded local VRAM/GPU assumptions remain in active docs
-- [ ] Worker-service handover pipeline is documented as per-service, not shared memory
-- [ ] `npm run typecheck` passes
-- [ ] `npm run build` passes
+- [x] Docs describe implemented architecture, not desired architecture
+- [x] Task board shows immediate chain completed
+- [x] Final `### Plan Continuation` section hands off to the worker/harness service correction plan
+- [x] No hardcoded local VRAM/GPU assumptions remain in active docs
+- [x] Worker-service handover pipeline is documented as per-service, not shared memory
+- [x] `npm run typecheck` passes
+- [x] `npm run build` passes
 
 ### Plan Continuation
 

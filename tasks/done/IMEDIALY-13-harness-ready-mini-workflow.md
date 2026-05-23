@@ -1,4 +1,4 @@
-# Task IMEDIALY-13: Harness Ready Mini Workflow
+﻿# Task IMEDIALY-13: Harness Ready Mini Workflow
 
 ## Info
 - **ID:** IMEDIALY-13-harness-ready-mini-workflow
@@ -57,13 +57,13 @@ npm run build
 
 ## Done Criteria
 
-- [ ] Ready is represented as ordered checks
-- [ ] Lease can reach `ready` only after checks pass
-- [ ] Lease can reach `running` only after ready accepted
-- [ ] Ready failure requeues task without accepting completion
-- [ ] Terminal stream shows ready step progress
-- [ ] `npm run typecheck` passes
-- [ ] `npm run build` passes
+- [x] Ready is represented as ordered checks
+- [x] Lease can reach `ready` only after checks pass
+- [x] Lease can reach `running` only after ready accepted
+- [x] Ready failure requeues task without accepting completion
+- [x] Terminal stream shows ready step progress
+- [x] `npm run typecheck` passes
+- [x] `npm run build` passes
 
 ### Plan Continuation
 
@@ -72,3 +72,4 @@ After this task is completed and moved to `tasks/done/`, call `/pick-task` again
 Expected next task in this plan: `IMEDIALY-14-runtime-service-adapter-boundary.md`.
 
 Do not pick tasks outside `Plan-ID: IMEDIALY-worker-harness-service-correction` until this plan reaches `STOP`.
+

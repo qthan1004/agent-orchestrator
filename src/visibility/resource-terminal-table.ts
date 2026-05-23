@@ -39,6 +39,11 @@ export function renderInfraResourceTable(snapshot: InfraResourceSnapshot): strin
       details: formatOllama(snapshot),
     },
     {
+      resource: RESOURCE_TABLE_TEXT.RESOURCE_WARM_CACHE,
+      status: snapshot.warm_model_cache && snapshot.warm_model_cache.length > 0 ? RESOURCE_TABLE_TEXT.ACTIVE : RESOURCE_TABLE_TEXT.IDLE,
+      details: formatWarmCache(snapshot),
+    },
+    {
       resource: RESOURCE_TABLE_TEXT.RESOURCE_VRAM,
       status: formatVramStatus(snapshot),
       details: formatVramDetails(snapshot),
@@ -63,6 +68,14 @@ export function renderInfraResourceTable(snapshot: InfraResourceSnapshot): strin
     ...rows.map(item => row(item.resource, item.status, item.details)),
     separator(),
   ].join('\n');
+}
+
+function formatWarmCache(snapshot: InfraResourceSnapshot): string {
+  const cache = snapshot.warm_model_cache ?? [];
+  if (cache.length === 0) return RESOURCE_TABLE_TEXT.NONE;
+  return cache
+    .map(entry => `${entry.key.backend}:${entry.key.model}`)
+    .join(', ');
 }
 
 function formatCapacity(snapshot: InfraResourceSnapshot): string {

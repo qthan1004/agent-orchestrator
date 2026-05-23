@@ -1,16 +1,13 @@
 import { EventEmitter } from 'events';
 import type { InfraCapacityRequest } from '../infra/index.js';
 import { CapacityStore } from '../infra/index.js';
-import { OllamaAdapter } from '../worker/adapters/ollama-adapter.js';
 import { WorkerProcessManager, type SpawnedWorker, type WorkerPayload } from '../worker/process-manager.js';
-import { AgCliRuntime } from '../runtime-adapters/ag-cli/index.js';
-import { CodexCliRuntime } from '../runtime-adapters/codex-cli/index.js';
-import { OllamaRuntime } from '../runtime-adapters/ollama/index.js';
 import {
-  RUNTIME_BACKEND,
   RUNTIME_HEARTBEAT_STATUS,
   RUNTIME_ISOLATION,
   RUNTIME_LEASE_STATUS,
+  RUNTIME_TERMINAL_CALLBACK_STATUS,
+  WARM_MODEL_CACHE_DEFAULTS,
 } from './constants.js';
 import type {
   RuntimeBackendProfile,
@@ -18,10 +15,13 @@ import type {
   RuntimeIdentity,
   RuntimeIsolationProfile,
   RuntimeLeaseStatus,
+  RuntimeTerminalCallbackStatus,
+  WarmModelCachePolicy,
 } from './models.js';
 import { HeartbeatStore } from './heartbeat-store.js';
 import { PointAllocator } from './point-allocator.js';
 import { RuntimeRegistry } from './runtime-registry.js';
+import { RuntimeServiceManager } from './runtime-service-manager.js';
 
 export interface RuntimeManagerOptions {
   staleWorkerThresholdMs: number;
@@ -39,6 +39,7 @@ export interface RuntimeSpawnInput {
   isolation?: RuntimeIsolationProfile;
   reserved_points: number;
   capacity_request: InfraCapacityRequest;
+  warm_cache_policy?: WarmModelCachePolicy;
 }
 
 export interface RuntimeSpawnResult extends SpawnedWorker {
@@ -57,10 +58,7 @@ export class RuntimeManager extends EventEmitter {
   private readonly heartbeatStore = new HeartbeatStore();
   private readonly capacityStore: CapacityStore;
   private readonly pointAllocator: PointAllocator;
-  private readonly ollamaAdapter: OllamaAdapter;
-  private readonly ollamaRuntime: OllamaRuntime;
-  private readonly codexCliRuntime = new CodexCliRuntime();
-  private readonly agCliRuntime = new AgCliRuntime();
+  private readonly serviceManager: RuntimeServiceManager;
   private readonly staleWorkerThresholdMs: number;
   private readonly workspaceRoot: string;
 
@@ -70,8 +68,11 @@ export class RuntimeManager extends EventEmitter {
     this.workspaceRoot = options.workspaceRoot;
     this.capacityStore = options.capacityStore ?? new CapacityStore();
     this.pointAllocator = new PointAllocator(this.capacityStore);
-    this.ollamaAdapter = new OllamaAdapter(options.ollamaBaseUrl);
-    this.ollamaRuntime = new OllamaRuntime(options.ollamaBaseUrl);
+    this.serviceManager = new RuntimeServiceManager({
+      workspaceRoot: options.workspaceRoot,
+      ollamaBaseUrl: options.ollamaBaseUrl,
+      capacityStore: this.capacityStore,
+    });
     this.processManager = new WorkerProcessManager({
       staleWorkerThresholdMs: options.staleWorkerThresholdMs,
     });
@@ -84,26 +85,26 @@ export class RuntimeManager extends EventEmitter {
   }
 
   async isBackendHealthy(backend: RuntimeBackendProfile): Promise<boolean> {
-    if (backend.backend === RUNTIME_BACKEND.OLLAMA) {
-      return await this.ollamaAdapter.health();
-    }
-    return true;
+    return await this.serviceManager.isBackendHealthy(backend);
   }
 
-  spawn(input: RuntimeSpawnInput): RuntimeSpawnResult {
+  async spawn(input: RuntimeSpawnInput): Promise<RuntimeSpawnResult> {
     const runtimeIdentity = this.createRuntimeIdentity(input.worker_id, input.task_id, input.lease_generation);
-    const ollamaLease = input.backend.backend === RUNTIME_BACKEND.OLLAMA
-      ? this.ollamaRuntime.prepareLease(runtimeIdentity, input.backend, this.workspaceRoot)
-      : null;
-    const backend = ollamaLease?.backend ?? input.backend;
-    const isolation = input.isolation ?? ollamaLease?.isolation ?? {
+    const baseIsolation = input.isolation ?? {
       mode: RUNTIME_ISOLATION.SHARED_DEV,
       workspace_root: this.workspaceRoot,
     };
+    const service = await this.serviceManager.start({
+      identity: runtimeIdentity,
+      backend: input.backend,
+      isolation: baseIsolation,
+      workspace_root: this.workspaceRoot,
+      warm_cache_policy: input.warm_cache_policy,
+    });
     const lease = this.registry.createLease({
       identity: runtimeIdentity,
-      backend,
-      isolation,
+      backend: service.backend,
+      isolation: service.isolation,
       reserved_points: input.reserved_points,
     });
     this.pointAllocator.reserve(lease, input.capacity_request);
@@ -111,7 +112,8 @@ export class RuntimeManager extends EventEmitter {
 
     const spawned = this.processManager.spawn({
       ...input.payload,
-      ollama_base_url: ollamaLease?.ollama_base_url,
+      ...service.payload_patch,
+      backend: service.backend,
       runtime_identity: runtimeIdentity,
     });
 
@@ -130,8 +132,7 @@ export class RuntimeManager extends EventEmitter {
   }
 
   isRuntimeSessionAlive(identity: RuntimeIdentity): boolean {
-    if (this.codexCliRuntime.isAlive(identity.runtime_id)) return true;
-    if (this.agCliRuntime.isAlive(identity.runtime_id)) return true;
+    if (this.serviceManager.isAlive(identity)) return true;
     return this.getActiveWorkers().some(worker => worker.worker_id === identity.worker_id);
   }
 
@@ -144,21 +145,39 @@ export class RuntimeManager extends EventEmitter {
     this.pointAllocator.release(identity);
     this.heartbeatStore.remove(identity.runtime_id);
     this.registry.release(identity.runtime_id, status);
-    this.ollamaRuntime.releaseLease(identity);
-    this.codexCliRuntime.kill(identity.runtime_id);
-    this.agCliRuntime.kill(identity.runtime_id);
+    await this.serviceManager.cleanup({
+      identity,
+      terminal_status: lease?.terminal_callback_status ?? RUNTIME_TERMINAL_CALLBACK_STATUS.COMPLETE,
+      warm_cache_policy: {
+        ttl_ms: WARM_MODEL_CACHE_DEFAULTS.TTL_MS,
+        retain_on_release: WARM_MODEL_CACHE_DEFAULTS.RETAIN_ON_RELEASE,
+        evict_on_pressure: true,
+      },
+    });
+  }
 
-    if (lease?.backend.backend === RUNTIME_BACKEND.OLLAMA && lease.backend.model) {
-      const modelStillActiveOnEndpoint = this.registry.getActiveLeases()
-        .some(activeLease =>
-          activeLease.backend.model === lease.backend.model &&
-          activeLease.backend.endpoint_url === lease.backend.endpoint_url
-        );
-      if (!modelStillActiveOnEndpoint) {
-        const adapter = new OllamaAdapter(lease.backend.endpoint_url);
-        await adapter.unload(lease.backend.model);
-      }
-    }
+  markReady(identity: RuntimeIdentity): boolean {
+    const lease = this.registry.markStatus(identity.runtime_id, RUNTIME_LEASE_STATUS.READY);
+    return Boolean(lease);
+  }
+
+  markRunning(identity: RuntimeIdentity): boolean {
+    const lease = this.registry.markStatus(identity.runtime_id, RUNTIME_LEASE_STATUS.RUNNING);
+    return Boolean(lease);
+  }
+
+  acceptTerminalCallback(identity: RuntimeIdentity, status: RuntimeTerminalCallbackStatus): boolean {
+    return Boolean(this.registry.acceptTerminalCallback(identity.runtime_id, status));
+  }
+
+  async probeRuntime(identity: RuntimeIdentity): Promise<boolean> {
+    const ok = await this.serviceManager.probe(identity);
+    this.heartbeatStore.markProbe(identity, ok);
+    return ok;
+  }
+
+  getWarmModelCache() {
+    return this.serviceManager.getWarmModelCache();
   }
 
   getHeartbeat(runtimeId: string): RuntimeHeartbeat | null {

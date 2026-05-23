@@ -18,6 +18,22 @@ export const HARNESS_STATUS = {
   MAX_ITERATIONS: 'max_iterations',
 } as const;
 
+export const HARNESS_CALLBACK_STATUS = {
+  COMPLETE: 'complete',
+  FAILED: 'failed',
+  HANDOVER_REQUIRED: 'handover_required',
+} as const;
+
+export const HARNESS_PHASE = {
+  BOOT: 'boot',
+  READY: 'ready',
+  LOAD_WORKSPACE: 'load_workspace',
+  ADAPTER_INIT: 'adapter_init',
+  MODEL_LOOP: 'model_loop',
+  CALLBACK: 'callback',
+  CLEANUP: 'cleanup',
+} as const;
+
 export const HARNESS_SUMMARY = {
   DEFAULT_COMPLETE: 'Task completed',
   NO_TOOL_CALLS: 'Failed: No tool calls for 3 consecutive turns',
@@ -45,6 +61,8 @@ export const HANDOVER_PROMPT = [
   '## Next Steps',
   '- Where should the next worker start?',
   '- Any important notes or caveats?',
+  '',
+  'Required fields to cover: goal, progress, touched files, next action, risks, checks run.',
   '',
   'DO NOT call any tools. Write text report only.',
 ] as const;
@@ -111,6 +129,9 @@ export const RUNNER_TEXT = {
 
 export const RUNNER_LOG = {
   STARTING_TASK: (taskId: string, workspaceId: string) => `[Harness] Starting task ${taskId} in workspace ${workspaceId}.`,
+  PHASE: (phase: string, taskId: string, runtimeId: string, leaseGeneration: number, backend: string, message: string) =>
+    `[Harness phase=${phase} task=${taskId} runtime=${runtimeId} lease=${leaseGeneration} backend=${backend}] ${message}`,
+  READY_STEP: (step: string, ok: boolean, message: string) => `[Harness ready:${step}] ${ok ? 'ok' : 'failed'} - ${message}`,
   MODEL_SELECTED: (model: string, toolBundle: string) => `[Harness] Model=${model}, tool_bundle=${toolBundle}.`,
   LOADED_TASK: (taskLength: number, skillCount: number, contextCount: number) => `[Harness] Loaded task body (${taskLength} chars), skills=${skillCount}, context=${contextCount}.`,
   TOOLS_ENABLED: (tools: string) => `[Harness] Tools enabled: ${tools}.`,
@@ -124,6 +145,8 @@ export const CALLBACK_TEXT = {
   EMPTY_RESPONSE: 'empty response',
   REJECTED: 'completion callback rejected',
   MISSING_ACCEPTED: 'completion callback missing accepted=true',
+  READY_REJECTED: 'ready callback rejected',
+  PROGRESS_REJECTED: 'progress callback rejected',
 } as const;
 
 export const PAYLOAD_TEXT = {

@@ -1,4 +1,4 @@
-# Task IMEDIALY-20: CLI Runtime Service Adapters
+﻿# Task IMEDIALY-20: CLI Runtime Service Adapters
 
 ## Info
 - **ID:** IMEDIALY-20-cli-runtime-service-adapters
@@ -47,14 +47,14 @@ npm run build
 
 ## Done Criteria
 
-- [ ] Codex CLI route creates isolated service/session per lease
-- [ ] AG CLI route creates isolated service/session per lease
-- [ ] CLI backends never call server directly
-- [ ] Harness wrapper sends callback/heartbeat/progress
-- [ ] Quiet CLI sessions still show alive/progress terminal lines
-- [ ] Cleanup kills only matching CLI session
-- [ ] `npm run typecheck` passes
-- [ ] `npm run build` passes
+- [x] Codex CLI route creates isolated service/session per lease
+- [x] AG CLI route creates isolated service/session per lease
+- [x] CLI backends never call server directly
+- [x] Harness wrapper sends callback/heartbeat/progress
+- [x] Quiet CLI sessions still show alive/progress terminal lines
+- [x] Cleanup kills only matching CLI session
+- [x] `npm run typecheck` passes
+- [x] `npm run build` passes
 
 ### Plan Continuation
 
@@ -63,3 +63,4 @@ After this task is completed and moved to `tasks/done/`, call `/pick-task` again
 Expected next task in this plan: `IMEDIALY-21-runtime-service-e2e-and-doc-alignment.md`.
 
 Do not pick tasks outside `Plan-ID: IMEDIALY-worker-harness-service-correction` until this plan reaches `STOP`.
+

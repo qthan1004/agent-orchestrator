@@ -1,4 +1,4 @@
-# Task IMEDIALY-15: Dispatch Through Runtime Service Manager
+﻿# Task IMEDIALY-15: Dispatch Through Runtime Service Manager
 
 ## Info
 - **ID:** IMEDIALY-15-dispatch-through-runtime-service-manager
@@ -45,13 +45,13 @@ npm run build
 
 ## Done Criteria
 
-- [ ] Dispatch loop does not directly own process/backend details
-- [ ] Active runtime tracking uses `runtime_id + lease_generation`
-- [ ] Runtime service cleanup is called through runtime owner
-- [ ] Process exit without accepted terminal callback requeues/fails safely
-- [ ] Existing single Ollama dispatch still works
-- [ ] `npm run typecheck` passes
-- [ ] `npm run build` passes
+- [x] Dispatch loop does not directly own process/backend details
+- [x] Active runtime tracking uses `runtime_id + lease_generation`
+- [x] Runtime service cleanup is called through runtime owner
+- [x] Process exit without accepted terminal callback requeues/fails safely
+- [x] Existing single Ollama dispatch still works
+- [x] `npm run typecheck` passes
+- [x] `npm run build` passes
 
 ### Plan Continuation
 
@@ -60,3 +60,4 @@ After this task is completed and moved to `tasks/done/`, call `/pick-task` again
 Expected next task in this plan: `IMEDIALY-16-backend-routing-and-harness-payload.md`.
 
 Do not pick tasks outside `Plan-ID: IMEDIALY-worker-harness-service-correction` until this plan reaches `STOP`.
+

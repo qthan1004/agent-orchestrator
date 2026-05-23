@@ -1,4 +1,4 @@
-# Task IMEDIALY-12: Non Silent Harness Terminal Stream
+﻿# Task IMEDIALY-12: Non Silent Harness Terminal Stream
 
 ## Info
 - **ID:** IMEDIALY-12-non-silent-harness-terminal-stream
@@ -46,13 +46,13 @@ npm run build
 
 ## Done Criteria
 
-- [ ] User can see a CLI-like stream while harness runs
-- [ ] Harness phases are visible before model call, during model call, and during cleanup
-- [ ] Quiet CLI backend gets periodic wrapper progress
-- [ ] Output is prefixed by worker/runtime identity
-- [ ] Visibility code does not mutate task/runtime state
-- [ ] `npm run typecheck` passes
-- [ ] `npm run build` passes
+- [x] User can see a CLI-like stream while harness runs
+- [x] Harness phases are visible before model call, during model call, and during cleanup
+- [x] Quiet CLI backend gets periodic wrapper progress
+- [x] Output is prefixed by worker/runtime identity
+- [x] Visibility code does not mutate task/runtime state
+- [x] `npm run typecheck` passes
+- [x] `npm run build` passes
 
 ### Plan Continuation
 
@@ -61,3 +61,4 @@ After this task is completed and moved to `tasks/done/`, call `/pick-task` again
 Expected next task in this plan: `IMEDIALY-13-harness-ready-mini-workflow.md`.
 
 Do not pick tasks outside `Plan-ID: IMEDIALY-worker-harness-service-correction` until this plan reaches `STOP`.
+

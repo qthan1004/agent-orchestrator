@@ -5,7 +5,7 @@
 > **Status**: DRAFT — awaiting approval
 > **Input**: 3 research docs + review decisions
 > **Ref**: `dev-docs/plan_phase2-hybrid-architecture.md` (original Phase 2 plan)
-> **Runtime lease addendum**: IMEDIALY-00 through IMEDIALY-08 implemented the immediate runtime lease boundary refactor. Older P2 ordering is paused until this chain is closed by IMEDIALY-09.
+> **Runtime lease addendum**: IMEDIALY-00 through IMEDIALY-09 completed the immediate runtime lease boundary refactor and docs alignment. Older P2 ordering stays paused while IMEDIALY-10..21 handles worker/harness runtime-service correction.
 
 ---
 
@@ -48,7 +48,7 @@ Hệ quả:
 - Resource monitor hiển thị bằng terminal table; UI để sau.
 - Worker-service handover là bản ghi chuyển tiếp theo `task_id + runtime_id + lease_generation`, không phải shared memory toàn cục.
 
-**Impact lên tasks**: Trước khi thêm Codex/AG adapter, cần refactor runtime lease boundary theo `dev-docs/2026-05-22_plan_runtime-lease-refactor.md`.
+**Impact lên tasks**: Runtime lease boundary refactor is complete through IMEDIALY-09. Before expanding Codex/AG behavior further, continue with `IMEDIALY-10..21` worker/harness runtime-service correction.
 
 ### 1. Agent Runner Harness — Cloud + Local (MỚI)
 

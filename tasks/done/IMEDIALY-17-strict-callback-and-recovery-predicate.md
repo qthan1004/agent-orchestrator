@@ -1,4 +1,4 @@
-# Task IMEDIALY-17: Strict Callback And Recovery Predicate
+﻿# Task IMEDIALY-17: Strict Callback And Recovery Predicate
 
 ## Info
 - **ID:** IMEDIALY-17-strict-callback-and-recovery-predicate
@@ -46,13 +46,13 @@ npm run build
 
 ## Done Criteria
 
-- [ ] Late callback from old lease generation is rejected
-- [ ] Duplicate terminal callback is rejected
-- [ ] Recovery reads heartbeat and service liveness before task mutation
-- [ ] Reclaim requires same active `runtime_id + lease_generation`
-- [ ] Accepted callback releases only its own points
-- [ ] `npm run typecheck` passes
-- [ ] `npm run build` passes
+- [x] Late callback from old lease generation is rejected
+- [x] Duplicate terminal callback is rejected
+- [x] Recovery reads heartbeat and service liveness before task mutation
+- [x] Reclaim requires same active `runtime_id + lease_generation`
+- [x] Accepted callback releases only its own points
+- [x] `npm run typecheck` passes
+- [x] `npm run build` passes
 
 ### Plan Continuation
 
@@ -61,3 +61,4 @@ After this task is completed and moved to `tasks/done/`, call `/pick-task` again
 Expected next task in this plan: `IMEDIALY-18-context-succession-server-respawn.md`.
 
 Do not pick tasks outside `Plan-ID: IMEDIALY-worker-harness-service-correction` until this plan reaches `STOP`.
+

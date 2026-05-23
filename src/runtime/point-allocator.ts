@@ -10,6 +10,7 @@ export interface PointReservation {
   points_reserved: number;
   capacity_checked_at: string | null;
   created_at: string;
+  warm_cache_key?: string;
 }
 
 export class PointAllocator {

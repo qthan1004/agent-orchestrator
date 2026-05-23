@@ -21,6 +21,7 @@ import {
   resolveInfraResourceMonitorIntervalMs,
 } from '../infra/index.js';
 import { renderInfraResourceTable } from '../visibility/index.js';
+import { RUNTIME_TERMINAL_CALLBACK_STATUS, type RuntimeTerminalCallbackStatus } from '../runtime/index.js';
 
 import { TaskDispatchLoop } from '../worker/dispatch-loop.js';
 import { VramManager } from '../worker/vram-manager.js';
@@ -166,6 +167,7 @@ export async function startServer(config: AppConfig): Promise<void> {
       capacityStore.setVerifiedCapacity(capacity);
       return capacity;
     },
+    getWarmModelCache: () => capacityStore.getWarmModelCache(),
   });
 
   // Start dispatch loop
@@ -229,8 +231,64 @@ export async function startServer(config: AppConfig): Promise<void> {
     res.json(healthData);
   });
 
+  app.post('/api/worker/ready', (req: Request, res: Response) => {
+    const { worker_id, task_id, runtime_id, lease_generation, ready } = req.body || {};
+
+    if (
+      typeof worker_id !== 'string' ||
+      typeof task_id !== 'string' ||
+      typeof runtime_id !== 'string' ||
+      typeof lease_generation !== 'number' ||
+      typeof ready !== 'boolean'
+    ) {
+      res.status(400).json({ accepted: false, error: SYSTEM_MESSAGE.WORKER_COMPLETE_INVALID_PAYLOAD });
+      return;
+    }
+
+    const worker = workerRegistry.getWorker(worker_id);
+    if (!worker) {
+      res.status(404).json({ accepted: false, error: SYSTEM_MESSAGE.WORKER_COMPLETE_UNKNOWN_WORKER(worker_id) });
+      return;
+    }
+
+    if (getWorkerCurrentTaskId(worker) !== task_id) {
+      res.status(409).json({ accepted: false, error: SYSTEM_MESSAGE.WORKER_COMPLETE_NOT_ASSIGNED(worker_id, task_id) });
+      return;
+    }
+
+    const runtimeIdentity = { runtime_id, worker_id, task_id, lease_generation };
+    if (!dispatchLoop.acknowledgeHarnessReady(worker_id, task_id, runtimeIdentity, ready)) {
+      res.status(409).json({ accepted: false, error: SYSTEM_MESSAGE.WORKER_COMPLETE_LEASE_MISMATCH(worker_id, task_id, runtime_id, lease_generation) });
+      return;
+    }
+
+    res.json({ accepted: true });
+  });
+
+  app.post('/api/worker/progress', (req: Request, res: Response) => {
+    const { worker_id, task_id, runtime_id, lease_generation } = req.body || {};
+
+    if (
+      typeof worker_id !== 'string' ||
+      typeof task_id !== 'string' ||
+      typeof runtime_id !== 'string' ||
+      typeof lease_generation !== 'number'
+    ) {
+      res.status(400).json({ accepted: false, error: SYSTEM_MESSAGE.WORKER_COMPLETE_INVALID_PAYLOAD });
+      return;
+    }
+
+    const runtimeIdentity = { runtime_id, worker_id, task_id, lease_generation };
+    if (!dispatchLoop.recordHarnessProgress(worker_id, task_id, runtimeIdentity)) {
+      res.status(409).json({ accepted: false, error: SYSTEM_MESSAGE.WORKER_COMPLETE_LEASE_MISMATCH(worker_id, task_id, runtime_id, lease_generation) });
+      return;
+    }
+
+    res.json({ accepted: true });
+  });
+
   app.post('/api/worker/complete', (req: Request, res: Response) => {
-    const { worker_id, task_id, runtime_id, lease_generation, summary, success, error_context, changelog } = req.body || {};
+    const { worker_id, task_id, runtime_id, lease_generation, status, summary, success, error_context, changelog } = req.body || {};
 
     if (
       typeof worker_id !== 'string' ||
@@ -243,6 +301,8 @@ export async function startServer(config: AppConfig): Promise<void> {
       res.status(400).json({ accepted: false, error: SYSTEM_MESSAGE.WORKER_COMPLETE_INVALID_PAYLOAD });
       return;
     }
+
+    const terminalStatus = resolveTerminalCallbackStatus(status, success, error_context);
 
     const worker = workerRegistry.getWorker(worker_id);
     if (!worker) {
@@ -262,6 +322,7 @@ export async function startServer(config: AppConfig): Promise<void> {
       lease_generation,
     };
 
+    dispatchLoop.setHarnessTerminalStatus(runtimeIdentity, terminalStatus);
     if (!dispatchLoop.acknowledgeHarnessCompletion(worker_id, task_id, runtimeIdentity)) {
       res.status(409).json({ accepted: false, error: SYSTEM_MESSAGE.WORKER_COMPLETE_LEASE_MISMATCH(worker_id, task_id, runtime_id, lease_generation) });
       return;
@@ -276,8 +337,7 @@ export async function startServer(config: AppConfig): Promise<void> {
 
     try {
       if (
-        !success &&
-        error_context?.error === 'context_exceeded' &&
+        terminalStatus === RUNTIME_TERMINAL_CALLBACK_STATUS.HANDOVER_REQUIRED &&
         error_context?.handover &&
         typeof error_context.handover === 'object' &&
         !Array.isArray(error_context.handover)
@@ -332,10 +392,21 @@ export async function startServer(config: AppConfig): Promise<void> {
       stateManager.saveCheckpoint();
       res.json({ accepted: true });
     } catch (err: any) {
+      dispatchLoop.rollbackHarnessCompletion(runtimeIdentity);
       workerRegistry.clearAssignment(worker_id, stateManager.taskRegistry);
       res.status(500).json({ accepted: false, error: err.message });
     }
   });
+
+  function resolveTerminalCallbackStatus(status: unknown, success: boolean, errorContext: any): RuntimeTerminalCallbackStatus {
+    if (typeof status === 'string' && Object.values(RUNTIME_TERMINAL_CALLBACK_STATUS).includes(status as RuntimeTerminalCallbackStatus)) {
+      return status as RuntimeTerminalCallbackStatus;
+    }
+    if (!success && errorContext?.error === 'context_exceeded') {
+      return RUNTIME_TERMINAL_CALLBACK_STATUS.HANDOVER_REQUIRED;
+    }
+    return success ? RUNTIME_TERMINAL_CALLBACK_STATUS.COMPLETE : RUNTIME_TERMINAL_CALLBACK_STATUS.FAILED;
+  }
 
   // Setup MCP routes (controller)
   const transports = setupMcpRoutes(app, context);

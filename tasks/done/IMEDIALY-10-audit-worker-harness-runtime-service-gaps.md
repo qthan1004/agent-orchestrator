@@ -1,4 +1,4 @@
-# Task IMEDIALY-10: Audit Worker Harness Runtime Service Gaps
+﻿# Task IMEDIALY-10: Audit Worker Harness Runtime Service Gaps
 
 ## Info
 - **ID:** IMEDIALY-10-audit-worker-harness-runtime-service-gaps
@@ -45,11 +45,11 @@ npm run typecheck
 
 ## Done Criteria
 
-- [ ] Audit points to concrete files/functions
-- [ ] No code behavior changed
-- [ ] Later tasks can use the audit as a checklist
-- [ ] Audit confirms which existing contracts must be reused
-- [ ] `npm run typecheck` passes
+- [x] Audit points to concrete files/functions
+- [x] No code behavior changed
+- [x] Later tasks can use the audit as a checklist
+- [x] Audit confirms which existing contracts must be reused
+- [x] `npm run typecheck` passes
 
 ### Plan Continuation
 
@@ -58,3 +58,4 @@ After this task is completed and moved to `tasks/done/`, call `/pick-task` again
 Expected next task in this plan: `IMEDIALY-11-runtime-service-contracts-and-events.md`.
 
 Do not pick tasks outside `Plan-ID: IMEDIALY-worker-harness-service-correction` until this plan reaches `STOP`.
+
