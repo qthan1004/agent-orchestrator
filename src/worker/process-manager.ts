@@ -35,6 +35,10 @@ function psSingleQuote(value: string): string {
   return `'${value.replace(/'/g, "''")}'`;
 }
 
+function psArray(values: string[]): string {
+  return `@(${values.map(psSingleQuote).join(', ')})`;
+}
+
 function payloadWorkspaceRoot(payload: WorkerPayload): string {
   return typeof payload.workspace_root === 'string' && payload.workspace_root.trim()
     ? payload.workspace_root
@@ -230,10 +234,12 @@ export class WorkerProcessManager extends EventEmitter {
 
     const payloadFile = path.join(terminalRoot, 'payload.json');
     const statusFile = path.join(terminalRoot, 'status.json');
+    const pidFile = path.join(terminalRoot, 'terminal.pid');
     const runnerFile = path.join(terminalRoot, 'run-harness.ps1');
     fs.writeFileSync(payloadFile, JSON.stringify(payload, null, 2), 'utf-8');
     try {
       if (fs.existsSync(statusFile)) fs.unlinkSync(statusFile);
+      if (fs.existsSync(pidFile)) fs.unlinkSync(pidFile);
     } catch {}
 
     const title = `AO ${worker_id} ${taskIdForLog}`;
@@ -241,11 +247,12 @@ export class WorkerProcessManager extends EventEmitter {
       '$ErrorActionPreference = "Continue"',
       `$Host.UI.RawUI.WindowTitle = ${psSingleQuote(title)}`,
       '$env:ORCHESTRATOR_HARNESS_TERMINAL_CHILD = "1"',
+      `$PID | Set-Content -LiteralPath ${psSingleQuote(pidFile)} -Encoding UTF8`,
       `Write-Host ${psSingleQuote(`[HarnessTerminal] ${runtimePrefix}`)}`,
       `Write-Host ${psSingleQuote(`[HarnessTerminal] payload=${payloadFile}`)}`,
       '$exitCode = 1',
       'try {',
-      `  Get-Content -Raw -LiteralPath ${psSingleQuote(payloadFile)} | & ${psSingleQuote(process.execPath)} ${psSingleQuote(scriptPath)}`,
+      `  & ${psSingleQuote(process.execPath)} ${psSingleQuote(scriptPath)} --payload-file ${psSingleQuote(payloadFile)}`,
       '  if ($null -ne $LASTEXITCODE) { $exitCode = [int]$LASTEXITCODE } else { $exitCode = 0 }',
       '} catch {',
       '  Write-Error $_',
@@ -264,10 +271,13 @@ export class WorkerProcessManager extends EventEmitter {
     ].join('\r\n');
     fs.writeFileSync(runnerFile, runnerScript, 'utf-8');
 
-    const child = spawnProcess('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', runnerFile], {
-      detached: true,
-      stdio: 'ignore',
-      windowsHide: false,
+    const launchCommand = [
+      `$p = Start-Process -FilePath ${psSingleQuote('powershell.exe')} -ArgumentList ${psArray(['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', runnerFile])} -WindowStyle Normal -PassThru`,
+      `$p.Id | Set-Content -LiteralPath ${psSingleQuote(pidFile)} -Encoding UTF8`,
+    ].join('; ');
+    const child = spawnProcess('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', launchCommand], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
     });
 
     if (child.pid === undefined) {
@@ -372,6 +382,7 @@ export class WorkerProcessManager extends EventEmitter {
         ? (payload.backend as { backend?: any }).backend
         : undefined,
       visible_terminal: true,
+      visible_terminal_pid_file: pidFile,
       timeoutTimer,
       healthCheckTimer,
       completion
@@ -380,7 +391,7 @@ export class WorkerProcessManager extends EventEmitter {
     this.activeWorkers.set(pid, info);
 
     child.on('exit', (code, signal) => {
-      if (completionSettled) return;
+      if (completionSettled || code === 0) return;
       cleanupTrackedWorker();
       const exitInfo = signal ? `signal=${signal}` : `code=${code}`;
       console.log(runtime_identity
@@ -392,6 +403,11 @@ export class WorkerProcessManager extends EventEmitter {
 
     child.on('error', (err) => {
       console.error(SYSTEM_MESSAGE.PROCESS_ERROR(worker_id, pid), err.message);
+    });
+
+    child.stderr?.on('data', (data) => {
+      const lines = data.toString().trim();
+      if (lines) console.error(RUNTIME_PROCESS_TEXT.STDERR_RUNTIME_LINE(runtimePrefix, lines));
     });
 
     console.log(runtime_identity
@@ -414,6 +430,7 @@ export class WorkerProcessManager extends EventEmitter {
       model: info.model,
       backend: info.backend,
       visible_terminal: info.visible_terminal,
+      visible_terminal_pid_file: info.visible_terminal_pid_file,
     }));
   }
 
@@ -433,6 +450,13 @@ export class WorkerProcessManager extends EventEmitter {
     }
 
     const child = info.process;
+
+    const visiblePid = this.readVisibleTerminalPid(info);
+    if (visiblePid && visiblePid !== pid) {
+      try {
+        process.kill(visiblePid, 'SIGTERM');
+      } catch {}
+    }
 
     // Stage 1: SIGTERM
     child.kill('SIGTERM');
@@ -472,5 +496,16 @@ export class WorkerProcessManager extends EventEmitter {
     child.once('exit', () => {
       clearTimeout(forceKillTimer);
     });
+  }
+
+  private readVisibleTerminalPid(info: WorkerProcessInfo): number | null {
+    if (!info.visible_terminal_pid_file) return null;
+    try {
+      const raw = fs.readFileSync(info.visible_terminal_pid_file, 'utf-8').trim();
+      const pid = Number(raw);
+      return Number.isFinite(pid) && pid > 0 ? Math.floor(pid) : null;
+    } catch {
+      return null;
+    }
   }
 }

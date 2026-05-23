@@ -229,6 +229,7 @@ export interface RuntimeProcessInfo {
   model?: string;
   backend?: RuntimeBackendKind;
   visible_terminal?: boolean;
+  visible_terminal_pid_file?: string;
   timeoutTimer?: NodeJS.Timeout;
   healthCheckTimer?: NodeJS.Timeout;
   completion: Promise<RuntimeProcessOutcome>;
