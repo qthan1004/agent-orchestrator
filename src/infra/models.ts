@@ -54,6 +54,23 @@ export interface InfraWorkerSnapshot {
   task_id?: string;
   pid: number;
   started_at: string;
+  runtime_id?: string;
+  lease_generation?: number;
+  model?: string;
+  backend?: string;
+  ready?: boolean;
+  phase?: string;
+  message?: string;
+  current_tool?: string;
+  current_file?: string;
+  tool_call_count?: number;
+  context_usage?: {
+    used: number;
+    limit: number;
+    percent: number;
+  };
+  activity_updated_at?: string;
+  visible_terminal?: boolean;
 }
 
 export interface InfraResourceSnapshot {

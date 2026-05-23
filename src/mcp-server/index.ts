@@ -20,7 +20,7 @@ import {
   InfraResourceMonitor,
   resolveInfraResourceMonitorIntervalMs,
 } from '../infra/index.js';
-import { renderInfraResourceTable } from '../visibility/index.js';
+import { createInfraResourceTablePrinter } from '../visibility/index.js';
 import { RUNTIME_TERMINAL_CALLBACK_STATUS, type RuntimeTerminalCallbackStatus } from '../runtime/index.js';
 
 import { TaskDispatchLoop } from '../worker/dispatch-loop.js';
@@ -146,6 +146,19 @@ export async function startServer(config: AppConfig): Promise<void> {
       task_id: worker.task_id,
       pid: worker.pid,
       started_at: worker.started_at,
+      runtime_id: (worker as any).runtime_id,
+      lease_generation: (worker as any).lease_generation,
+      model: (worker as any).model,
+      backend: (worker as any).backend,
+      ready: (worker as any).ready,
+      phase: (worker as any).phase,
+      message: (worker as any).message,
+      current_tool: (worker as any).current_tool,
+      current_file: (worker as any).current_file,
+      tool_call_count: (worker as any).tool_call_count,
+      context_usage: (worker as any).context_usage,
+      activity_updated_at: (worker as any).activity_updated_at,
+      visible_terminal: (worker as any).visible_terminal,
     })),
     getVramStatus: () => {
       const status = vramManager.checkVram();
@@ -175,9 +188,10 @@ export async function startServer(config: AppConfig): Promise<void> {
 
   // Start resource monitoring
   vramManager.startMonitoring();
+  const printResourceTable = createInfraResourceTablePrinter();
   resourceMonitor.start(
     resolveInfraResourceMonitorIntervalMs(process.env[INFRA_RESOURCE_MONITOR_ENV.TABLE_INTERVAL_MS]),
-    snapshot => console.log(renderInfraResourceTable(snapshot))
+    snapshot => printResourceTable(snapshot)
   );
   console.log(SYSTEM_MESSAGE.HYBRID_ACTIVATED);
 
@@ -266,7 +280,7 @@ export async function startServer(config: AppConfig): Promise<void> {
   });
 
   app.post('/api/worker/progress', (req: Request, res: Response) => {
-    const { worker_id, task_id, runtime_id, lease_generation } = req.body || {};
+    const { worker_id, task_id, runtime_id, lease_generation, phase, message, details } = req.body || {};
 
     if (
       typeof worker_id !== 'string' ||
@@ -279,7 +293,14 @@ export async function startServer(config: AppConfig): Promise<void> {
     }
 
     const runtimeIdentity = { runtime_id, worker_id, task_id, lease_generation };
-    if (!dispatchLoop.recordHarnessProgress(worker_id, task_id, runtimeIdentity)) {
+    if (!dispatchLoop.recordHarnessProgress(
+      worker_id,
+      task_id,
+      runtimeIdentity,
+      typeof phase === 'string' ? phase : undefined,
+      typeof message === 'string' ? message : undefined,
+      details && typeof details === 'object' && !Array.isArray(details) ? details : undefined
+    )) {
       res.status(409).json({ accepted: false, error: SYSTEM_MESSAGE.WORKER_COMPLETE_LEASE_MISMATCH(worker_id, task_id, runtime_id, lease_generation) });
       return;
     }

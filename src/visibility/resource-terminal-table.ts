@@ -3,6 +3,18 @@ import type { InfraResourceSnapshot } from '../infra/index.js';
 import type { VisibilityResourceTableRow } from './models.js';
 
 export function renderInfraResourceTable(snapshot: InfraResourceSnapshot): string {
+  const workerRows = snapshot.active_workers.length === 0
+    ? [{
+        resource: RESOURCE_TABLE_TEXT.RESOURCE_WORKERS,
+        status: RESOURCE_TABLE_TEXT.IDLE,
+        details: RESOURCE_TABLE_TEXT.NONE,
+      }]
+    : snapshot.active_workers.map(worker => ({
+        resource: `${RESOURCE_TABLE_TEXT.RESOURCE_WORKER}:${shortId(worker.worker_id)}`,
+        status: worker.phase || (worker.ready ? RESOURCE_TABLE_TEXT.RUNNING : RESOURCE_TABLE_TEXT.STARTING),
+        details: formatWorkerDetails(worker),
+      }));
+
   const rows: VisibilityResourceTableRow[] = [
     {
       resource: RESOURCE_TABLE_TEXT.RESOURCE_SNAPSHOT,
@@ -23,11 +35,7 @@ export function renderInfraResourceTable(snapshot: InfraResourceSnapshot): strin
         : RESOURCE_TABLE_TEXT.IDLE,
       details: `${RESOURCE_TABLE_TEXT.QUEUE_PREFIX}=${snapshot.queue.pending}/${snapshot.queue.active}/${snapshot.queue.done}/${snapshot.queue.failed}/${snapshot.queue.blocked}/${snapshot.queue.total}`,
     },
-    {
-      resource: RESOURCE_TABLE_TEXT.RESOURCE_WORKERS,
-      status: snapshot.active_workers.length > 0 ? RESOURCE_TABLE_TEXT.ACTIVE : RESOURCE_TABLE_TEXT.IDLE,
-      details: formatWorkers(snapshot),
-    },
+    ...workerRows,
     {
       resource: RESOURCE_TABLE_TEXT.RESOURCE_CAPACITY,
       status: snapshot.capacity?.provider ?? RESOURCE_TABLE_TEXT.UNAVAILABLE,
@@ -70,6 +78,23 @@ export function renderInfraResourceTable(snapshot: InfraResourceSnapshot): strin
   ].join('\n');
 }
 
+export function createInfraResourceTablePrinter(): (snapshot: InfraResourceSnapshot) => void {
+  let lastLineCount = 0;
+  return (snapshot: InfraResourceSnapshot) => {
+    const table = renderInfraResourceTable(snapshot);
+    if (!process.stdout.isTTY || process.env.ORCHESTRATOR_RESOURCE_TABLE_REDRAW === '0') {
+      console.log(table);
+      return;
+    }
+
+    if (lastLineCount > 0) {
+      process.stdout.write(`\x1b[${lastLineCount}F\x1b[J`);
+    }
+    process.stdout.write(`${table}\n`);
+    lastLineCount = table.split('\n').length;
+  };
+}
+
 function formatWarmCache(snapshot: InfraResourceSnapshot): string {
   const cache = snapshot.warm_model_cache ?? [];
   if (cache.length === 0) return RESOURCE_TABLE_TEXT.NONE;
@@ -93,17 +118,29 @@ function formatUptime(seconds: number): string {
   return `${remainingSeconds}${RESOURCE_TABLE_TEXT.SECOND}`;
 }
 
-function formatWorkers(snapshot: InfraResourceSnapshot): string {
-  if (snapshot.active_workers.length === 0) return RESOURCE_TABLE_TEXT.NONE;
-  return snapshot.active_workers
-    .map(worker => `${worker.worker_id}:${worker.task_id ?? RESOURCE_TABLE_TEXT.NONE}`)
-    .join(', ');
-}
-
 function formatOllama(snapshot: InfraResourceSnapshot): string {
   if (snapshot.ollama.error) return snapshot.ollama.error;
   if (snapshot.ollama.loaded_models.length === 0) return `${RESOURCE_TABLE_TEXT.MODELS}=0`;
   return `${RESOURCE_TABLE_TEXT.MODELS}=${snapshot.ollama.loaded_models.join(', ')}`;
+}
+
+function formatWorkerDetails(worker: InfraResourceSnapshot['active_workers'][number]): string {
+  const parts = [
+    `pid=${worker.pid}`,
+    `task=${worker.task_id ?? RESOURCE_TABLE_TEXT.NONE}`,
+    worker.model ? `model=${worker.model}` : '',
+    worker.backend ? `backend=${worker.backend}` : '',
+    worker.current_tool ? `tool=${worker.current_tool}` : '',
+    worker.current_file ? `file=${worker.current_file}` : '',
+    worker.context_usage ? `ctx=${Math.round(worker.context_usage.percent)}%` : '',
+    worker.visible_terminal ? 'terminal=visible' : '',
+    worker.message ? `msg=${worker.message}` : '',
+  ].filter(Boolean);
+  return parts.join(' ');
+}
+
+function shortId(value: string): string {
+  return value.length > 8 ? value.slice(0, 8) : value;
 }
 
 function formatVramStatus(snapshot: InfraResourceSnapshot): string {

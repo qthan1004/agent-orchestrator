@@ -91,4 +91,6 @@ export const RUNTIME_PROCESS_TEXT = {
   EXITED_RUNTIME: (prefix: string, exitInfo: string, pid: number) => `  └─ \x1b[90m${prefix} Harness exited (${exitInfo}) — PID ${pid}\x1b[0m`,
   SPAWNED: (workerId: string, pid: number, taskId: string) => `  ┌─ \x1b[32m[${workerId}] Worker spawned\x1b[0m — PID ${pid} — task: ${taskId}`,
   SPAWNED_RUNTIME: (prefix: string, pid: number) => `  ┌─ \x1b[32m${prefix} Harness spawned\x1b[0m — PID ${pid}`,
+  SPAWNED_VISIBLE: (workerId: string, pid: number, taskId: string, runnerPath: string) => `  ┌─ \x1b[32m[${workerId}] Harness terminal spawned\x1b[0m — PID ${pid} — task: ${taskId} — runner: ${runnerPath}`,
+  SPAWNED_VISIBLE_RUNTIME: (prefix: string, pid: number, runnerPath: string) => `  ┌─ \x1b[32m${prefix} Harness terminal spawned\x1b[0m — PID ${pid} — runner: ${runnerPath}`,
 } as const;

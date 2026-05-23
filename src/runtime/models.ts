@@ -149,6 +149,17 @@ export interface HarnessLifecycleEvent extends RuntimeIdentity {
   };
 }
 
+export interface HarnessActivityDetails {
+  current_tool?: string;
+  current_file?: string;
+  tool_call_count?: number;
+  context_usage?: {
+    used: number;
+    limit: number;
+    percent: number;
+  };
+}
+
 export interface ContextSuccessionEvent extends RuntimeIdentity {
   status: typeof RUNTIME_TERMINAL_CALLBACK_STATUS.HANDOVER_REQUIRED;
   goal: string;
@@ -214,6 +225,10 @@ export interface RuntimeProcessInfo {
   task_id?: string;
   started_at: string;
   process: ChildProcess;
+  runtime_identity?: RuntimeIdentity;
+  model?: string;
+  backend?: RuntimeBackendKind;
+  visible_terminal?: boolean;
   timeoutTimer?: NodeJS.Timeout;
   healthCheckTimer?: NodeJS.Timeout;
   completion: Promise<RuntimeProcessOutcome>;
@@ -222,10 +237,12 @@ export interface RuntimeProcessInfo {
 export interface RuntimeSpawnOptions {
   timeoutMs?: number;
   scriptPath?: string;
+  visibleTerminal?: boolean;
 }
 
 export interface RuntimeProcessManagerOptions {
   staleWorkerThresholdMs?: number;
+  visibleHarnessTerminal?: boolean;
 }
 
 export interface SpawnedRuntimeProcess {

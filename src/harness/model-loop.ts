@@ -5,6 +5,7 @@ import { ToolExecutor } from '../worker/tool-executor.js';
 import { TokenCounter } from '../worker/token-counter.js';
 import { SYSTEM_MESSAGE } from '../constants.js';
 import { UnifiedCheckpoint } from '../models/checkpoint.js';
+import type { HarnessActivityDetails } from '../runtime/models.js';
 import {
   HANDOVER_PROMPT,
   HARNESS_LIMITS,
@@ -51,6 +52,7 @@ export interface HarnessConfig {
   contextThreshold: number;
   tools: ToolDefinition[];
   toolExecutor: ToolExecutor;
+  onLifecycle?: (phase: string, message: string, details?: HarnessActivityDetails) => void | Promise<void>;
   checkpoint?: {
     workspaceRoot: string;
     taskId: string;
@@ -84,11 +86,13 @@ export class LLMHarness {
       let reflexionCount = 0;
 
       console.log(HARNESS_LOG.MODEL_LOOP_STARTED(this.config.model, this.config.tools.length));
+      await this.emitLifecycle('model_loop', `model loop started: ${this.config.model}`);
 
       while (loopCount < HARNESS_LIMITS.MAX_TOOL_CALLS) {
         loopCount++;
 
         console.log(HARNESS_LOG.TURN_WAITING(loopCount, HARNESS_LIMITS.MAX_TOOL_CALLS, this.config.model));
+        await this.emitLifecycle('model_turn', `waiting for model turn ${loopCount}/${HARNESS_LIMITS.MAX_TOOL_CALLS}`);
         const response = await this.config.adapter.chat({
           model: this.config.model,
           messages,
@@ -102,9 +106,16 @@ export class LLMHarness {
         const usage = this.getContextUsage();
         const toolCalls = response.message.tool_calls;
         console.log(HARNESS_LOG.TURN_RECEIVED(loopCount, Math.round(usage.percent), toolCalls?.length || 0));
+        await this.emitLifecycle('model_response', `received model turn ${loopCount}`, {
+          tool_call_count: toolCalls?.length || 0,
+          context_usage: usage,
+        });
 
         if (usage.percent >= this.config.contextThreshold * 100) {
           console.warn(HARNESS_LOG.CONTEXT_THRESHOLD(Math.round(usage.percent)));
+          await this.emitLifecycle('handover', `context threshold reached: ${Math.round(usage.percent)}%`, {
+            context_usage: usage,
+          });
           return await this.generateHandover(messages);
         }
 
@@ -129,6 +140,7 @@ export class LLMHarness {
         for (const call of toolCalls) {
           if (call.function.name === 'complete_task') {
             console.log(HARNESS_LOG.COMPLETE_TASK(this.config.checkpoint?.taskId || HARNESS_TEXT.UNKNOWN_TASK));
+            await this.emitLifecycle('completion_signal', 'model requested complete_task');
             let summary = HARNESS_SUMMARY.DEFAULT_COMPLETE;
             let changelog: any = undefined;
             try {
@@ -173,10 +185,20 @@ export class LLMHarness {
           }
 
           console.log(HARNESS_LOG.TOOL_START(call.function.name, formatToolCallPreview(call.function.name, args)));
+          await this.emitLifecycle('tool', `starting ${call.function.name}`, {
+            current_tool: call.function.name,
+            current_file: this.resolveCurrentFile(args),
+            context_usage: this.getContextUsage(),
+          });
           const result = await this.config.toolExecutor.execute(call.function.name, args);
 
           if (result.error) {
             console.warn(HARNESS_LOG.TOOL_FAILED(call.function.name, truncateForLog(result.error, HARNESS_LIMITS.TOOL_ERROR_PREVIEW_LIMIT)));
+            await this.emitLifecycle('tool', `failed ${call.function.name}: ${truncateForLog(result.error, HARNESS_LIMITS.TOOL_ERROR_PREVIEW_LIMIT)}`, {
+              current_tool: call.function.name,
+              current_file: this.resolveCurrentFile(args),
+              context_usage: this.getContextUsage(),
+            });
             if (result.error.startsWith('SCOPE_VIOLATION:')) {
               return this.errorResult(HARNESS_SUMMARY.SCOPE_VIOLATION, {
                 error: result.error,
@@ -188,6 +210,11 @@ export class LLMHarness {
             toolErrorDiagnosis = result.error;
           } else {
             console.log(HARNESS_LOG.TOOL_OK(call.function.name, result.output?.length || 0));
+            await this.emitLifecycle('tool', `finished ${call.function.name}`, {
+              current_tool: call.function.name,
+              current_file: this.resolveCurrentFile(args),
+              context_usage: this.getContextUsage(),
+            });
           }
 
           messages.push({
@@ -216,10 +243,13 @@ export class LLMHarness {
           reflexionCount = 0;
         }
 
-        if (this.tokenCounter.shouldCheckpoint()) {
-          console.warn(SYSTEM_MESSAGE.AGENT_TOKEN_CHECKPOINT);
-          this.writeCheckpoint(hasError, toolErrorDiagnosis);
-        }
+          if (this.tokenCounter.shouldCheckpoint()) {
+            console.warn(SYSTEM_MESSAGE.AGENT_TOKEN_CHECKPOINT);
+            await this.emitLifecycle('checkpoint', 'context checkpoint written', {
+              context_usage: this.getContextUsage(),
+            });
+            this.writeCheckpoint(hasError, toolErrorDiagnosis);
+          }
       }
 
       return {
@@ -250,6 +280,23 @@ export class LLMHarness {
       limit: usage.limit,
       percent: usage.percentage
     };
+  }
+
+  private async emitLifecycle(phase: string, message: string, details?: HarnessActivityDetails): Promise<void> {
+    if (!this.config.onLifecycle) return;
+    try {
+      await this.config.onLifecycle(phase, message, details);
+    } catch {
+      // Progress callbacks are visibility only. Terminal callback remains authoritative.
+    }
+  }
+
+  private resolveCurrentFile(args: Record<string, unknown>): string | undefined {
+    for (const key of ['path', 'file', 'target_file']) {
+      const value = args[key];
+      if (typeof value === 'string' && value.trim() !== '') return value;
+    }
+    return undefined;
   }
 
   private errorResult(summary: string, errorContext: any): HarnessResult {

@@ -9,7 +9,7 @@ import { HarnessStatus, LLMHarness } from './model-loop.js';
 import { SYSTEM_MESSAGE } from '../constants.js';
 import { HARNESS_CALLBACK_STATUS, HARNESS_LIMITS, HARNESS_PHASE, HARNESS_SUMMARY, RUNNER_LOG, RUNNER_TEXT } from './constants.js';
 import { RUNTIME_BACKEND, RUNTIME_READY_STEP } from '../runtime/constants.js';
-import type { HarnessReadyStepResult } from '../runtime/models.js';
+import type { HarnessActivityDetails, HarnessReadyStepResult } from '../runtime/models.js';
 
 function formatStaticFiles(title: string, files: LoadedStaticFile[]): string {
   if (files.length === 0) return '';
@@ -65,7 +65,7 @@ function buildUserMessage(payload: HarnessPayload, loaded: LoadedWorkspaceContex
 
 export async function executeHarness(payload: HarnessPayload): Promise<number> {
   const callbackClient = new CallbackClient(payload.callback_url, payload.ready_url, payload.progress_url);
-  const lifecycle = async (phase: string, message: string): Promise<void> => {
+  const lifecycle = async (phase: string, message: string, details?: HarnessActivityDetails): Promise<void> => {
     console.log(RUNNER_LOG.PHASE(phase, payload.task_id, payload.runtime_id, payload.lease_generation, payload.backend.backend, message));
     try {
       await callbackClient.progress({
@@ -76,6 +76,7 @@ export async function executeHarness(payload: HarnessPayload): Promise<number> {
         backend: payload.backend.backend,
         phase,
         message,
+        details,
       });
     } catch {
       // Progress is best-effort visibility; terminal callback remains authoritative.
@@ -127,6 +128,7 @@ export async function executeHarness(payload: HarnessPayload): Promise<number> {
       contextThreshold: payload.context_threshold ?? HARNESS_LIMITS.DEFAULT_CONTEXT_THRESHOLD,
       tools: buildToolDefinitions(toolNames),
       toolExecutor,
+      onLifecycle: lifecycle,
       checkpoint: {
         workspaceRoot: payload.workspace_root,
         taskId: payload.task_id

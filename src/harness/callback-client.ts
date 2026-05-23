@@ -1,6 +1,6 @@
 import { SYSTEM_MESSAGE } from '../constants.js';
 import { CALLBACK_TEXT, HARNESS_CALLBACK_STATUS, HARNESS_LIMITS } from './constants.js';
-import type { HarnessReadyStepResult, RuntimeBackendKind } from '../runtime/models.js';
+import type { HarnessActivityDetails, HarnessReadyStepResult, RuntimeBackendKind } from '../runtime/models.js';
 
 export interface CompletionCallbackInput {
   workerId: string;
@@ -37,6 +37,7 @@ export interface ProgressCallbackInput {
   backend: RuntimeBackendKind;
   phase: string;
   message: string;
+  details?: HarnessActivityDetails;
 }
 
 interface CompletionCallbackResponse {
@@ -98,6 +99,7 @@ export class CallbackClient {
       backend: input.backend,
       phase: input.phase,
       message: input.message,
+      details: input.details,
     }, CALLBACK_TEXT.PROGRESS_REJECTED);
   }
 

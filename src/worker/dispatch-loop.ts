@@ -14,6 +14,8 @@ import {
   RUNTIME_TERMINAL_CALLBACK_STATUS,
   LeaseValidator,
   RuntimeManager,
+  type HarnessActivityDetails,
+  type RuntimeBackendKind,
   type RuntimeIdentity,
   type RuntimeLeaseStatus,
   type RuntimeTerminalCallbackStatus,
@@ -43,6 +45,12 @@ interface ActiveHarness {
   completionAccepted: boolean;
   readyAccepted: boolean;
   terminalStatus?: RuntimeTerminalCallbackStatus;
+  backend: RuntimeBackendKind;
+  ready: boolean;
+  phase: string;
+  message: string;
+  activityUpdatedAt: string;
+  details?: HarnessActivityDetails;
 }
 
 function resolveMaxConcurrentWorkers(configured?: number): number {
@@ -108,7 +116,26 @@ export class TaskDispatchLoop {
   }
 
   public getActiveWorkers(): ReturnType<RuntimeManager['getActiveWorkers']> {
-    return this.runtimeManager.getActiveWorkers();
+    return this.runtimeManager.getActiveWorkers().map(worker => {
+      const activeHarness = Array.from(this.activeHarnesses.values())
+        .find(harness => harness.workerId === worker.worker_id);
+      if (!activeHarness) return worker;
+      return {
+        ...worker,
+        runtime_id: activeHarness.runtimeIdentity.runtime_id,
+        lease_generation: activeHarness.runtimeIdentity.lease_generation,
+        model: activeHarness.model,
+        backend: activeHarness.backend,
+        ready: activeHarness.ready,
+        phase: activeHarness.phase,
+        message: activeHarness.message,
+        current_tool: activeHarness.details?.current_tool,
+        current_file: activeHarness.details?.current_file,
+        tool_call_count: activeHarness.details?.tool_call_count,
+        context_usage: activeHarness.details?.context_usage,
+        activity_updated_at: activeHarness.activityUpdatedAt,
+      };
+    });
   }
 
   public isRuntimeAlive(workerId: string): boolean {
@@ -148,24 +175,33 @@ export class TaskDispatchLoop {
     }
     if (!ready) return false;
     activeHarness.readyAccepted = true;
+    activeHarness.ready = true;
+    this.updateActivity(activeHarness, 'ready', 'harness ready callback accepted');
     this.runtimeManager.markReady(runtimeIdentity);
     this.runtimeManager.markRunning(runtimeIdentity);
     return true;
   }
 
-  public recordHarnessProgress(workerId: string, taskId: string, runtimeIdentity: RuntimeIdentity): boolean {
+  public recordHarnessProgress(workerId: string, taskId: string, runtimeIdentity: RuntimeIdentity, phase?: string, message?: string, details?: HarnessActivityDetails): boolean {
     const activeHarness = this.activeHarnesses.get(runtimeIdentity.runtime_id);
-    return Boolean(
+    const accepted = Boolean(
       activeHarness &&
       activeHarness.workerId === workerId &&
       activeHarness.taskId === taskId &&
       LeaseValidator.identityMatches(activeHarness.runtimeIdentity, runtimeIdentity)
     );
+    if (accepted && activeHarness && phase && message) {
+      this.updateActivity(activeHarness, phase, message, details);
+    }
+    return accepted;
   }
 
   public setHarnessTerminalStatus(runtimeIdentity: RuntimeIdentity, status: RuntimeTerminalCallbackStatus): void {
     const activeHarness = this.activeHarnesses.get(runtimeIdentity.runtime_id);
-    if (activeHarness) activeHarness.terminalStatus = status;
+    if (activeHarness) {
+      activeHarness.terminalStatus = status;
+      this.updateActivity(activeHarness, 'callback', `terminal callback: ${status}`);
+    }
   }
 
   public rollbackHarnessCompletion(runtimeIdentity: RuntimeIdentity): void {
@@ -310,9 +346,14 @@ export class TaskDispatchLoop {
         workerId,
         taskId: task.id,
         model: profile.model,
+        backend: profile.backend,
         runtimeIdentity,
         completionAccepted: false,
         readyAccepted: false,
+        ready: false,
+        phase: 'spawn',
+        message: 'harness process spawning',
+        activityUpdatedAt: new Date().toISOString(),
       };
       this.activeHarnesses.set(runtimeIdentity.runtime_id, activeHarness);
 
@@ -480,6 +521,13 @@ export class TaskDispatchLoop {
 
     console.warn(DISPATCH_LOOP_TEXT.OLLAMA_UNAVAILABLE);
     this.lastOllamaUnavailableLogAt = now;
+  }
+
+  private updateActivity(activeHarness: ActiveHarness, phase: string, message: string, details?: HarnessActivityDetails): void {
+    activeHarness.phase = phase;
+    activeHarness.message = message;
+    activeHarness.details = details;
+    activeHarness.activityUpdatedAt = new Date().toISOString();
   }
 
   private logBackendUnavailable(backend: string): void {
